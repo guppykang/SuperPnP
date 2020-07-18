@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: vol-pod
+spec:
+  containers:
+  - name: vol-container
+    image: ubuntu
+    args: ["sleep", "36500000"]
+    volumeMounts:
+    - mountPath: /jbk001-data1
+      name: jbk001-data1
+  restartPolicy: Never
+  volumes:
+    - name: jbk001-data1
+      persistentVolumeClaim:
+        claimName: jbk001-data1
