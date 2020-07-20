@@ -1,9 +1,10 @@
+#!/usr/bin/env python 
+
 import os, sys
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from core.networks.model_depth_pose import Model_depth_pose
-from core.networks.model_flow import Model_flow
+from TrianFlow.core.networks.model_depth_pose import Model_depth_pose
+from TrianFlow.core.networks.model_flow import Model_flow
 from visualizer import *
-from profiler import Profiler
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -13,6 +14,7 @@ from sklearn import linear_model
 import yaml
 import warnings
 import copy
+import code
 from collections import OrderedDict
 warnings.filterwarnings("ignore")
 
@@ -121,12 +123,9 @@ class infer_vo():
         num = len(os.listdir(image_dir))
         images = []
         for i in range(num):
-            print(i)
             image = cv2.imread(os.path.join(image_dir, '%.6d'%i)+'.png')
             image = cv2.resize(image, (new_img_w, new_img_h))
             images.append(image)
-
-        print('Loaded Images')
         return images
     
     def get_prediction(self, img1, img2, model, K, K_inv, match_num):
@@ -337,3 +336,4 @@ if __name__ == '__main__':
 
     traj_txt = args.traj_save_dir_txt
     save_traj(traj_txt, poses)
+
