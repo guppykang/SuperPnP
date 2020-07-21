@@ -28,12 +28,3 @@ spec:
     - name: jbk001-data1
       persistentVolumeClaim:
         claimName: jbk001-data1
-  # affinity:
-  #   nodeAffinity:
-  #     requiredDuringSchedulingIgnoredDuringExecution:
-  #       nodeSelectorTerms:
-  #       - matchExpressions:
-  #         - key: gpu-type
-  #           operator: In
-  #           values:
-  #           - 1080Ti
