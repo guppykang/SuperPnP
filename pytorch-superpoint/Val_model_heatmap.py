@@ -30,7 +30,7 @@ from models.model_wrap import SuperPointFrontend_torch
 
 @torch.no_grad()
 class Val_model_heatmap(SuperPointFrontend_torch):
-    def __init__(self, config, device='cpu', verbose=False):
+    def __init__(self, config, device='gpu', verbose=False):
         self.config = config
         self.model = self.config['name']
         self.params = self.config['params']

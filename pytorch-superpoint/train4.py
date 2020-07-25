@@ -59,7 +59,7 @@ def train_joint(config, output_dir, args):
         yaml.dump(config, f, default_flow_style=False)
     # writer = SummaryWriter(getWriterPath(task=args.command, date=True))
     writer = SummaryWriter(getWriterPath(task=args.command, 
-        exper_name=args.exper_name, date=True))
+        exper_name=argsexper_name, date=True))
     ## save data
     save_path = get_save_path(output_dir)
 
