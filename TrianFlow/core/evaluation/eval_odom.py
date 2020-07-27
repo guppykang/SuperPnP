@@ -280,6 +280,9 @@ class KittiEvalOdom():
         return pred_updated
 
     def eval(self, gt_txt, result_txt, seq=None):
+        """
+        Evaluate given predictions and ground truth poses and plot in pdf
+        """
         # gt_dir: the directory of groundtruth poses txt
         # results_dir: the directory of predicted poses txt
         self.plot_path_dir = os.path.dirname(result_txt) + "/plot_path"

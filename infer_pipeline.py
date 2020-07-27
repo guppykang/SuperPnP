@@ -18,6 +18,45 @@ import code
 from collections import OrderedDict
 warnings.filterwarnings("ignore")
 
+## basic
+import argparse
+import time
+import csv
+import yaml
+import os
+import logging
+from pathlib import Path
+
+import numpy as np
+from imageio import imread
+from tqdm import tqdm
+from tensorboardX import SummaryWriter
+
+## torch
+import torch
+from torch.autograd import Variable
+import torch.backends.cudnn as cudnn
+import torch.optim
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.utils.data
+
+## other functions
+from pytorch-superpoint.utils.utils import (
+    tensor2array,
+    save_checkpoint,
+    load_checkpoint,
+    save_path_formatter,
+)
+from pytorch-superpoint.utils.utils import getWriterPath
+from pytorch-superpoint.utils.loader import dataLoader, modelLoader, pretrainedLoader, get_module
+from pytorch-superpoint.utils.utils import inv_warp_image_batch
+from pytorch-superpoint.models.model_wrap import SuperPointFrontend_torch, PointTracker
+
+
+## parameters
+from pytorch-superpoint.settings import EXPER_PATH
+
 def save_traj(path, poses):
     """
     path: file path of saved poses
@@ -169,11 +208,13 @@ class infer_vo():
         for i in range(seq_len-1):
             img1, img2 = images[i], images[i+1]
 
-            #get 2d-2d correspondences and depth from flownet and depthnet
+            ##### Correspondences from FlowNet #####
             depth_match, depth1, depth2 = self.get_flownet_correspondences_and_depths(img1, img2, model, K, K_inv, match_num=5000)
 
-            #TODO : get keypoints and descriptors from SuperPoint
-            
+            ##### Keypoints from superpoint #####
+
+            #TODO: Create a mechanism to gather correspondences from superpoint keypoints
+                
             rel_pose = np.eye(4)
             flow_pose = self.solve_pose_flow(depth_match[:,:2], depth_match[:,2:])
             rel_pose[:3,:3] = copy.deepcopy(flow_pose[:3,:3])
@@ -230,7 +271,7 @@ class infer_vo():
 
         return scale
     
-    def solve_pose_pnp(self, depths,  xy2, ):
+    def solve_pose_pnp(self, depths,  xy2):
         """
         Use pnp to solve relative poses.
 
@@ -303,15 +344,14 @@ if __name__ == '__main__':
     cfg_new = pObject()
     for attr in list(cfg.keys()):
         setattr(cfg_new, attr, cfg[attr])
+
+
+    
     
     os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu)
 
-    model = Model_depth_pose(cfg_new)
-    model.cuda()
-    weights = torch.load(args.pretrained_model)
-    model.load_state_dict(weights['model_state_dict'])
-    
-    model.eval()
+    #SuperPoint
+        model.eval()
     print('Model Loaded.')
 
     print('Testing VO.')
