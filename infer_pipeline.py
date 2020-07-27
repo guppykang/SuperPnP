@@ -129,6 +129,18 @@ class infer_vo():
         return images
     
     def get_flownet_correspondences_and_depths(self, img1, img2, model, K, K_inv, match_num):
+        """
+        Gets correpondences from flownet, and respective depths for each image
+
+        Parameters : 
+            img1
+            img2
+            model : model_depth_pose
+            K : intrinsics
+            K_inv : inverse of K
+            match_num : number of correspondences to subsample from total dense  correspondences
+        
+        """
         # img1: [3,H,W] K: [3,3]
         #visualizer = Visualizer_debug('/home3/zhaow/TrianFlow-pytorch/vis/')
         img1_t = torch.from_numpy(np.transpose(img1 / 255.0, [2,0,1])).cuda().float().unsqueeze(0)
