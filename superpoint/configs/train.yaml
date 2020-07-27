@@ -1,0 +1,25 @@
+#dataset to to use
+dataset : 'kitti_odo' 
+
+#where the kitti datasets are on Nautilus
+kitti : 
+  raw_path : '/jbk001-data1/kitti_raw'
+  vo_path : '/jbk001-data1/kitti_vo'
+
+#config details for the models
+models : 
+  trianflow : 
+    model_depth_pose : 
+      depth_match_num : 6000
+      depth_sample_ratio : 0.20
+      depth_scale : 1
+      w_flow_error : 0.00
+      is_frozen : True
+      ransac_points : 6000 #we won't actually be using ransac (I hope at least)
+      pretrained : '/jbk001-data1/models/trianflow/kitti_odo.pth'
+    
+#training hyperparameters 
+num_iterations: 200000
+
+#general
+img_hw: [256, 832]
