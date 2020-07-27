@@ -3,6 +3,13 @@ SuperPnP is a deep pipeline for end to end learning for SFM, and Visual Odometry
 Developed by Joshua Kang and You-Yi Jau.  
 Advised under Manmohan Chandraker. 
 
+## Prereqs
+### .bashrc
+Must add the root of the repo to the python path (sorry) : 
+```bash 
+export PYTHONPATH="/home/joshuakang/git/cvlab/SuperPnP:$PYTHONPATH"
+```
+
 ## TrianNet
 ### Evaluate VO (flownet correspondences/mask + DepthNet + PnPRansac):
 ```bash
