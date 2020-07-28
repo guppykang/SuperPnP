@@ -14,6 +14,7 @@ import pdb
 class Model_depth_pose(nn.Module):
     def __init__(self, cfg):
         super(Model_depth_pose, self).__init__()
+        
         self.depth_match_num = cfg.depth_match_num
         self.depth_sample_ratio = cfg.depth_sample_ratio
         self.depth_scale = cfg.depth_scale

@@ -15,8 +15,7 @@ from torch.nn.init import xavier_uniform_, zeros_
 from superpoint.utils.loader import get_module
 
 #TrianFlow imports
-from TrianFlow.core.networks import Model_depth_pose 
-
+from TrianFlow.core.networks.model_depth_pose import Model_depth_pose 
 
 class SuperFlow(torch.nn.Module):
     def __init__(self, cfg):
@@ -25,11 +24,13 @@ class SuperFlow(torch.nn.Module):
             TrianFlow : https://github.com/B1ueber2y/TrianFlow
             SuperPoint : https://github.com/eric-yyjau/pytorch-superpoint
         """
+        super(SuperFlow, self).__init__()
+
         #TrianFlow
-        self.trianFlow = Model_depth_pose(cfg["models"]["trianflow"]["model_depth_pose"])
+        self.trianFlow = Model_depth_pose(cfg["trianflow"])
 
         #SuperPoint
-        self.superPoint = get_module("", cfg["front_end_model"])
+        # self.superPoint = get_module("", cfg["front_end_model"])
     
     def loadModules(self, cfg):
         """
@@ -68,6 +69,9 @@ class SuperFlow(torch.nn.Module):
 
         #trianflow
         correspondences, image1_depth_map, image2_depth_map = self.trianFlow.infer_vo(images[0], images[1], K, K_inverse, match_num)
+        outs['correspondences'] = correspondences
+        outs['image1_depth'] = image1_depth_map 
+        outs['image2_depth'] = image2_depth_map 
 
         #superpoint
         # #TODO : Make sure that I'm using the right img format
