@@ -30,7 +30,8 @@ class SuperFlow(torch.nn.Module):
         self.trianFlow = Model_depth_pose(cfg["trianflow"])
 
         #SuperPoint
-        # self.superPoint = get_module("", cfg["front_end_model"])
+        front_end_trainer = get_module("", cfg["superpoint"]['front_end_model'])
+        self.superpoint = front_end_trainer(cfg["superpoint"]['front_end_model'], device='gpu')
     
     def load_modules(self, cfg):
         """
