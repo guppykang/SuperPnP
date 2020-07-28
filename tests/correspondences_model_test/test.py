@@ -2,8 +2,12 @@
 from models.corresondence_model import SuperFlow
 
 import argparse
+import cv2
+import os
 import yaml
 import code
+from pathlib import Path
+import random
 
 def test_inference(cfg):
     pass
@@ -13,20 +17,21 @@ class pObject(object):
     def __init__(self):
         pass
 
-# def load_images(self):
-#         path = self.img_dir
-#         seq = self.seq_id
-#         new_img_h = self.new_img_h
-#         new_img_w = self.new_img_w
-#         seq_dir = os.path.join(path, seq)
-#         image_dir = os.path.join(seq_dir, 'image_2')
-#         num = len(os.listdir(image_dir))
-#         images = []
-#         for i in range(num):
-#             image = cv2.imread(os.path.join(image_dir, '%.6d'%i)+'.png')
-#             image = cv2.resize(image, (new_img_w, new_img_h))
-#             images.append(image)
-#         return images
+def load_image_pair(image_path, sequence, h, w):
+    """
+    loads random pair of subsequent images for correspondence testing in the given sequence of vo data
+    """
+    seq_dir = Path(image_path) / sequence
+    image_dir = seq_dir / 'image_2'
+    num = len(os.listdir(image_dir))
+    random_frame_t = random.randint(0, num-1)
+
+    images = []
+    for i in [random_frame_t, random_frame_t+1]:
+        image = cv2.imread(str(image_dir / i / '.png'))
+        image = cv2.resize(image, (h, w))
+        images.append(image)
+    return images
 
 if __name__ == '__main__':
     arg_parser = argparse.ArgumentParser(description="Unit Tests for Correspondence_model")
@@ -37,16 +42,20 @@ if __name__ == '__main__':
     #do config stuff
     with open(args.config_file, "r") as f:
         cfg = yaml.load(f)
-        #create the model
 
-    #cfg setup (cuz why not)
     trianflow_cfg = pObject()
     for attr in list(cfg["models"]["trianflow"].keys()):
         setattr(trianflow_cfg, attr, cfg["models"]["trianflow"][attr])
 
-    cfg = { 'trianflow' : trianflow_cfg }
+    model_cfg = { 'trianflow' : trianflow_cfg }
 
-    model = SuperFlow(cfg)
+    #create the model
+    model = SuperFlow(model_cfg)
 
+    #load a pair of images
+    vo_sequences_root = Path(cfg["kitti"]["vo_path"]) / 'sequences'
+    images = load_image_pair(vo_sequences_root, '09', cfg['img_hw'][0], cfg['img_hw'][1])
+
+    #inference
 
     print('pass')
