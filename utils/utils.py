@@ -8,6 +8,26 @@ import random
 import numpy as np
 import torch
 
+def get_configs(path): 
+    """
+    Returns the configs for the model and general hyperparameters
+
+    Returns: 
+        model_cfg : Specific configs per module
+        cfg : the remaining hyperparameter configs
+    """
+    with open(path, "r") as f:
+        cfg = yaml.load(f)
+
+    #trianflow configs
+    trianflow_cfg = pObject()
+    for attr in list(cfg["models"]["trianflow"].keys()):
+        setattr(trianflow_cfg, attr, cfg["models"]["trianflow"][attr])
+
+    model_cfg = { 'trianflow' : trianflow_cfg, 'superpoint' : cfg['models']['superpoint']}
+
+    return model_cfg, cfg
+
 
 def load_image_pair(image_path, sequence, h, w):
     """

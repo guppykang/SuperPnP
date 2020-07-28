@@ -13,7 +13,7 @@ import numpy as np
 import torch
 
 #utils
-from utils.utils import load_image_pair, load_camera_intrinsics, pObject
+from utils.utils import load_image_pair, load_camera_intrinsics, pObject, get_configs
 
 #bad juju probably should leave this commented in the worst case that stuff breaks
 # import warnings
@@ -30,17 +30,11 @@ if __name__ == '__main__':
     args = arg_parser.parse_args()
 
     #do config stuff
-    with open(args.config_file, "r") as f:
-        cfg = yaml.load(f)
-
-    trianflow_cfg = pObject()
-    for attr in list(cfg["models"]["trianflow"].keys()):
-        setattr(trianflow_cfg, attr, cfg["models"]["trianflow"][attr])
-
-    model_cfg = { 'trianflow' : trianflow_cfg }
+    model_cfg, cfg = get_configs(args.config_file)    
 
     #create the model
     model = SuperFlow(model_cfg)
+    code.interact(local=locals())
     model.load_modules(model_cfg)
     model.cuda()
     model.eval()
