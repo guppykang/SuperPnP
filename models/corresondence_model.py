@@ -32,25 +32,25 @@ class SuperFlow(torch.nn.Module):
         #SuperPoint
         # self.superPoint = get_module("", cfg["front_end_model"])
     
-    def loadModules(self, cfg):
+    def load_modules(self, cfg):
         """
         Loads specific modules that were pretrained into the pipeline, rather than the entire model
         """
         #load trian flow
-        weights = torch.load(cfg["models"]["trianflow"]["pretrained"])
+        weights = torch.load(cfg["trianflow"].pretrained)
         self.trianFlow.load_state_dict(weights['model_state_dict'])
 
         #load superpoint
 
         pass
 
-    def loadModel(self):
+    def load_model(self):
         """
         Loads the entire model for this class as one, rather than separate modules from which it consists of
         """
         pass
 
-    def inference(self, image1, image2, K, K_inverse, match_num):
+    def inference(self, image1, image2, K, K_inv, match_num):
         """ Forward pass computes keypoints, descriptors, and 3d-2d correspondences.
         Input
             image1, image2: input pair images
@@ -61,14 +61,13 @@ class SuperFlow(torch.nn.Module):
         """
         outs = {}
 
-        image1 = torch.from_numpy(np.transpose(image1/ 255.0, [2,0,1])).cuda().float().unsqueeze(0)
-        image2 = torch.from_numpy(np.transpose(image2/ 255.0, [2,0,1])).cuda().float().unsqueeze(0)
-        images = torch.from_numpy(np.array([image1, image2])).float().unsqueeze(0)
+        image1_t = torch.from_numpy(np.transpose(image1/ 255.0, [2,0,1])).cuda().float().unsqueeze(0)
+        image2_t = torch.from_numpy(np.transpose(image2/ 255.0, [2,0,1])).cuda().float().unsqueeze(0)
         K = torch.from_numpy(K).cuda().float().unsqueeze(0)
-        K_inverse = torch.from_numpy().cuda().float().unsqueeze(0)
+        K_inverse = torch.from_numpy(K_inv).cuda().float().unsqueeze(0)
 
         #trianflow
-        correspondences, image1_depth_map, image2_depth_map = self.trianFlow.infer_vo(images[0], images[1], K, K_inverse, match_num)
+        correspondences, image1_depth_map, image2_depth_map = self.trianFlow.infer_vo(image1_t, image2_t, K, K_inverse, match_num)
         outs['correspondences'] = correspondences
         outs['image1_depth'] = image1_depth_map 
         outs['image2_depth'] = image2_depth_map 

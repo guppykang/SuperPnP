@@ -1,4 +1,5 @@
 #!/usr/bin/env python 
+
 from models.corresondence_model import SuperFlow
 
 import argparse
@@ -8,9 +9,16 @@ import yaml
 import code
 from pathlib import Path
 import random
+import numpy as np
+import torch
 
-def test_inference(cfg):
-    pass
+#bad juju probably should leave this commented in the worst case that stuff breaks
+# import warnings
+# warnings.filterwarnings("ignore")
+
+def test_inference(model, image1, image2, K, K_inv, match_num):
+    outs = model.inference(image1, image2, K, K_inv, match_num)
+    return outs
 
 
 class pObject(object):
@@ -28,10 +36,31 @@ def load_image_pair(image_path, sequence, h, w):
 
     images = []
     for i in [random_frame_t, random_frame_t+1]:
-        image = cv2.imread(str(image_dir / i / '.png'))
+        image_path = str(image_dir / ('%.6d.png'%i))
+        image = cv2.imread(image_path)
         image = cv2.resize(image, (h, w))
         images.append(image)
     return images
+
+def load_camera_intrinsics(image_path, sequence, raw_hw, img_hw):
+    """
+    loads the camera intrinsics for the given sequence
+    """
+    calib_path = Path(image_path) / sequence / 'calib.txt'
+    
+    with open(calib_path, 'r') as f:
+        lines = f.readlines()
+            
+    data = lines[-1].strip('\n').split(' ')[1:]
+    data = [float(k) for k in data]
+    data = np.array(data).reshape(3,4)
+    
+    cam_intrinsics = data[:3,:3]
+    cam_intrinsics[0,:] = cam_intrinsics[0,:] * img_hw[1] / raw_hw[1]
+    cam_intrinsics[1,:] = cam_intrinsics[1,:] * img_hw[0] / raw_hw[0]
+    return cam_intrinsics
+
+    
 
 if __name__ == '__main__':
     arg_parser = argparse.ArgumentParser(description="Unit Tests for Correspondence_model")
@@ -51,11 +80,19 @@ if __name__ == '__main__':
 
     #create the model
     model = SuperFlow(model_cfg)
+    model.load_modules(model_cfg)
+    model.cuda()
+    model.eval()
 
     #load a pair of images
     vo_sequences_root = Path(cfg["kitti"]["vo_path"]) / 'sequences'
     images = load_image_pair(vo_sequences_root, '09', cfg['img_hw'][0], cfg['img_hw'][1])
-
+    
+    #load camera intrinsics
+    K = load_camera_intrinsics(vo_sequences_root, '09', cfg['raw_hw'], cfg['img_hw'])
+    K_inv = np.linalg.inv(K)
+    
     #inference
+    outs = test_inference(model, images[0], images[1], K, K_inv, model_cfg['trianflow'].match_num)
 
     print('pass')
