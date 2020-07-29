@@ -13,7 +13,7 @@ export PYTHONPATH="/home/joshuakang/git/cvlab/SuperPnP:$PYTHONPATH"
 ## TrianNet
 ### Evaluate VO (flownet correspondences/mask + DepthNet + PnPRansac):
 ```bash
-python infer_vo.py --config_file ./config/odo.yaml --gpu 0 --traj_save_dir_txt /jbk001-data1/kitti/vo_preds/09.txt --sequences_root_dir /jbk001-data1/dataset/sequences/ --pretrained_model ./models/pretrained/kitti_odo.pth  
+python infer_vo.py --config_file ./config/odo.yaml --gpu 0 --traj_save_dir_txt /jbk001-data1/kitti_vo/vo_preds/09.txt --sequences_root_dir /jbk001-data1/kitti_vo/vo_dataset/sequences/ --sequence 09 --pretrained_model models/pretrained/kitti_odo.pth
 python core/evaluation/eval_odom.py --gt_txt /jbk001-data1/kitti/vo_gts/09.txt --result_txt /jbk001-data1/kitti/vo_preds/09.txt
 ```
 

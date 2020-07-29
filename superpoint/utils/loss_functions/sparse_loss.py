@@ -1,9 +1,9 @@
-import utils.correspondence_tools.correspondence_finder as correspondence_finder
+import superpoint.utils.correspondence_tools.correspondence_finder as correspondence_finder
 import numpy as np
 import torch
 
-from utils.homographies import scale_homography_torch
-from utils.loss_functions.pixelwise_contrastive_loss import PixelwiseContrastiveLoss
+from superpoint.utils.homographies import scale_homography_torch
+from superpoint.utils.loss_functions.pixelwise_contrastive_loss import PixelwiseContrastiveLoss
 
 def get_coor_cells(Hc, Wc, cell_size, device='cpu', uv=False):
     coor_cells = torch.stack(torch.meshgrid(torch.arange(Hc), torch.arange(Wc)), dim=2)
@@ -16,7 +16,7 @@ def get_coor_cells(Hc, Wc, cell_size, device='cpu', uv=False):
     return coor_cells.to(device)
 
 def warp_coor_cells_with_homographies(coor_cells, homographies, uv=False, device='cpu'):
-    from utils.utils import warp_points
+    from superpoint.utils.utils import warp_points
     # warped_coor_cells = warp_points(coor_cells.view([-1, 2]), homographies, device)
     # warped_coor_cells = normPts(coor_cells.view([-1, 2]), shape)
     warped_coor_cells = coor_cells
@@ -126,9 +126,9 @@ def descriptor_loss_sparse(descriptors, descriptors_warped, homographies, mask_v
         non_match_loss = non_match_loss.sum()/(num_hard_negatives + 1)
         return non_match_loss
 
-    from utils.utils import filter_points
-    from utils.utils import crop_or_pad_choice
-    from utils.utils import normPts
+    from superpoint.utils.utils import filter_points
+    from superpoint.utils.utils import crop_or_pad_choice
+    from superpoint.utils.utils import normPts
     # ##### print configs
     # print("num_masked_non_matches_per_match: ", num_masked_non_matches_per_match)
     # print("num_matching_attempts: ", num_matching_attempts)
