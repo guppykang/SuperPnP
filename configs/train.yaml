@@ -1,9 +1,8 @@
-#dataset to to use
-
 #where the kitti datasets are on Nautilus
 kitti : 
   raw_path : '/jbk001-data1/kitti_raw'
-  vo_path : '/jbk001-data1/kitti_vo/vo_dataset'
+  vo_path : '/jbk001-data1/kitti_vo/vo_dataset/sequences'
+  procressed_data_path : '/jbk001-data1/kitti_vo/vo_dataset_processed'
 
 #config details for the models
 models : 
@@ -20,8 +19,8 @@ models :
     w_flow_error : 0.00
     is_frozen : True
     ransac_points : 6000 #we won't actually be using ransac (I hope at least)
-#     pretrained : '/home/joshuakang/git/cvlab/SuperPnP/models/pretrained/kitti_odo.pth' 
-    pretrained : '/jbk001-data1/git/SuperPnP/TrianFlow/models/pretrained/kitti_odo.pth'
+    pretrained : '/home/joshuakang/git/cvlab/SuperPnP/models/pretrained/kitti_odo.pth' 
+    # pretrained : '/jbk001-data1/git/SuperPnP/TrianFlow/models/pretrained/kitti_odo.pth'
   superpoint : 
     data:
         name: 'kitti'
@@ -111,7 +110,7 @@ models :
                 other_settings: 'train from scratch, 2d method'
         lambda_res: 100
 
-    retrain: true  # set true for new model
+    retrain: false # set true for new model
     reset_iter: true
     train_iter: 170000
     validation_interval: 2000
@@ -119,14 +118,17 @@ models :
     save_interval: 2000
     validation_size: 5
 
-    pretrained:
-    # pretrained: 'logs/superpoint_coco_heat2_0/checkpoints/superPointNet_90000_checkpoint.pth.tar'
+    pretrained: '/home/joshuakang/git/cvlab/SuperPnP/superpoint/logs/superpoint_kitti_heat2_0/checkpoints/superPointNet_50000_checkpoint.pth.tar'
+    # pretrained : '/jbk001-data1/git/SuperPnP/superpoint/logs/superpoint_kitti_heat2_0/checkpoints/superPointNet_50000_checkpoint.pth.tar'
 
 
 
     
 #training hyperparameters 
 num_iterations: 200000
+batch_size: 8 # 32
+iter_start : 0 #place the iteration that it last stopped at here
+num_workers : 6
 
 #general
 img_hw: [256, 832]
