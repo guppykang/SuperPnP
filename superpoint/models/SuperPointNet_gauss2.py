@@ -5,7 +5,7 @@
 import torch
 import torch.nn as nn
 from torch.nn.init import xavier_uniform_, zeros_
-from models.unet_parts import *
+from superpoint.models.unet_parts import *
 import numpy as np
 
 # from models.SubpixelNet import SubpixelNet
@@ -78,7 +78,7 @@ class SuperPointNet_gauss2(torch.nn.Module):
           pts_offset: tensor [batch, N, 2] (grad) (x, y)
           pts_desc: tensor [batch, N, 256] (grad)
         """
-        from utils.utils import flattenDetection
+        from superpoint.utils.utils import flattenDetection
         # from models.model_utils import pred_soft_argmax, sample_desc_from_points
         output = self.output
         semi = output['semi']
@@ -100,7 +100,7 @@ class SuperPointNet_gauss2(torch.nn.Module):
 
 
 def get_matches(deses_SP):
-    from models.model_wrap import PointTracker
+    from superpoint.models.model_wrap import PointTracker
     tracker = PointTracker(max_length=2, nn_thresh=1.2)
     f = lambda x: x.cpu().detach().numpy()
     # tracker = PointTracker(max_length=2, nn_thresh=1.2)
@@ -146,10 +146,10 @@ def main():
     outs = model(image.to(device))
     print("outs: ", list(outs))
 
-    from utils.print_tool import print_dict_attr
+    from superpoint.utils.print_tool import print_dict_attr
     print_dict_attr(outs, 'shape')
 
-    from models.model_utils import SuperPointNet_process 
+    from superpoint.models.model_utils import SuperPointNet_process 
     params = {
         'out_num_points': 500,
         'patch_size': 5,
