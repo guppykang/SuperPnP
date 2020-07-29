@@ -29,7 +29,7 @@ class SuperFlow(torch.nn.Module):
         self.trianFlow = Model_depth_pose(cfg["trianflow"])
 
         #SuperPoint
-        self.superpoint = Train_model_heatmap(cfg["superpoint"], device='gpu')
+        self.superpoint = Train_model_heatmap(cfg["superpoint"], device='cuda')
     
     def load_modules(self, cfg):
         """
