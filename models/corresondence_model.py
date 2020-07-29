@@ -11,8 +11,7 @@ import torch.nn as nn
 from torch.nn.init import xavier_uniform_, zeros_
 
 #Superpoint imports
-#from superpoint.models.unet_parts import *
-from superpoint.utils.loader import get_module
+from superpoint.Train_model_heatmap import Train_model_heatmap
 
 #TrianFlow imports
 from TrianFlow.core.networks.model_depth_pose import Model_depth_pose 
@@ -30,8 +29,7 @@ class SuperFlow(torch.nn.Module):
         self.trianFlow = Model_depth_pose(cfg["trianflow"])
 
         #SuperPoint
-        front_end_trainer = get_module("", cfg["superpoint"]['front_end_model'])
-        self.superpoint = front_end_trainer(cfg["superpoint"]['front_end_model'], device='gpu')
+        self.superpoint = Train_model_heatmap(cfg["superpoint"], device='gpu')
     
     def load_modules(self, cfg):
         """
