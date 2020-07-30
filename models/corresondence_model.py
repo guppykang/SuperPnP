@@ -4,6 +4,7 @@ Sub Module for finding correspondences, keypoints, and descriptors using Superpo
 #general
 import numpy as np
 import code
+import cv2
 
 #torch imports
 import torch
@@ -17,6 +18,9 @@ from superpoint.utils.utils import flattenDetection
 
 #TrianFlow imports
 from TrianFlow.core.networks.model_depth_pose import Model_depth_pose 
+
+#My Utils
+from utils.utils import desc_to_sparseDesc, prep_superpoint_image, prep_trianflow_image
 
 class SuperFlow(torch.nn.Module):
     def __init__(self, cfg):
@@ -62,9 +66,8 @@ class SuperFlow(torch.nn.Module):
         self.optimizer = self.adamOptim(
             self.net, lr=self.config["model"]["learning_rate"]
         )
-        pass
 
-    def inference(self, image1, image2, K, K_inv, match_num):
+    def inference(self, image1, image2, K, K_inv, match_num, hw):
         """ Forward pass computes keypoints, descriptors, and 3d-2d correspondences.
         Input
             image1, image2: input pair images
@@ -75,40 +78,46 @@ class SuperFlow(torch.nn.Module):
         """
         outs = {}
         
-        image1_t = torch.from_numpy(np.transpose(image1/ 255.0, [2,0,1])).cuda().float().unsqueeze(0)
-        image2_t = torch.from_numpy(np.transpose(image2/ 255.0, [2,0,1])).cuda().float().unsqueeze(0)
+        #TrianFlow
+        image1_t = prep_trianflow_image(image1, hw)
+        image2_t = prep_trianflow_image(image2, hw)
         K = torch.from_numpy(K).cuda().float().unsqueeze(0)
         K_inverse = torch.from_numpy(K_inv).cuda().float().unsqueeze(0)
 
-        #trianflow
         correspondences, image1_depth_map, image2_depth_map = self.trianFlow.infer_vo(image1_t, image2_t, K, K_inverse, match_num)
         outs['correspondences'] = correspondences
         outs['image1_depth'] = image1_depth_map 
         outs['image2_depth'] = image2_depth_map 
 
+        
+        
         #superpoint
-        # #TODO : Make sure that I'm using the right img format
-        with torch.no_grad():
-            outs['image1_superpoint_out'] = self.superpoint.net(image1)
-            outs['image2_superpoint_out'] = self.superpoint.net(image2)
+        image1_t = prep_superpoint_image(image1, hw)
+        image2_t = prep_superpoint_image(image2, hw)
 
+        #inference on superpoint
+        with torch.no_grad():
+            code.interact(local=locals())
+            outs['image1_superpoint_out'] = self.superpoint.net(image1_t)
+            outs['image2_superpoint_out'] = self.superpoint.net(image2_t)
+
+        #get the heatmap for each semi dense keypoint detection
         for out_key in ['image1_superpoint_out', 'image2_superpoint_out']:
             channel = outs[out_key]['semi'].shape[1]
             if channel == 64:
                 heatmap = self.superpoint.flatten_64to1(outs[out_key]['semi'], cell_size=self.superpoint.cell_size)
             elif channel == 65:
                 heatmap = flattenDetection(outs[out_key]['semi'], tensor=True)
-
+            
+            #get the exact 2d keypoints from the heatmaps
             heatmap_np = toNumpy(heatmap)
             pts = self.superpoint.heatmap_nms(heatmaps) #refer to heatmap_nms static function
-
-            outs[out_key]['pts'] = pts 
-        
-        # heatmap_batch = self.superPoint.run(images.to(K.device))  
-        # pts = self.superPoint.heatmap_to_pts()
-        # desc_sparse = self.superPoint.desc_to_sparseDesc()
-        # outs = {"pts": pts[0], "desc": desc_sparse[0]}
-
+            outs[out_key]['pts'] = pts
+            outs[out_key]['sparse_desc'] = desc_to_sparseDesc(outs[out_key])
+            
+            
+            #TODO : can also get matches using the func : get_matches(deses_SP) in SuperPointNet_gauss2.py
+            
         return outs
 
 

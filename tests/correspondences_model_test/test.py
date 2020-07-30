@@ -23,10 +23,6 @@ from utils.superpnp_dataset import KITTI_Dataset
 # import warnings
 # warnings.filterwarnings("ignore")
 
-def test_inference(model, image1, image2, K, K_inv, match_num):
-    outs = model.inference(image1, image2, K, K_inv, match_num)
-    return outs
-
 if __name__ == '__main__':
     arg_parser = argparse.ArgumentParser(description="Unit Tests for Correspondence_model")
     arg_parser.add_argument('-c', '--config_file', default='./../../configs/train.yaml', help='config file.')
@@ -49,7 +45,7 @@ if __name__ == '__main__':
 
     #load a pair of images
     vo_sequences_root = Path(cfg["kitti"]["vo_path"])
-    images = load_image_pair(vo_sequences_root, '09', cfg['img_hw'][0], cfg['img_hw'][1])
+    images = load_image_pair(vo_sequences_root, '09')
     
     #load camera intrinsics
     K = load_camera_intrinsics(vo_sequences_root, '09', cfg['raw_hw'], cfg['img_hw'])
@@ -57,7 +53,7 @@ if __name__ == '__main__':
     #TODO : assert that the K has the right dims that we expect to have 3x3
 
     #inference
-    outs = test_inference(model, images[0], images[1], K, K_inv, model_cfg['trianflow'].match_num)
+    outs = outs = model.inference(images[0], images[1], K, K_inv, model_cfg['trianflow'].match_num, cfg['img_hw'])
 
     #get dataset and process
     kitti_raw_dataset = KITTI_Odo(vo_sequences_root)
