@@ -12,6 +12,8 @@ from torch.nn.init import xavier_uniform_, zeros_
 
 #Superpoint imports
 from superpoint.Train_model_heatmap import Train_model_heatmap
+from superpoint.utils.var_dim import toNumpy
+from superpoint.utils.utils import flattenDetection
 
 #TrianFlow imports
 from TrianFlow.core.networks.model_depth_pose import Model_depth_pose 
@@ -86,10 +88,24 @@ class SuperFlow(torch.nn.Module):
 
         #superpoint
         # #TODO : Make sure that I'm using the right img format
+        with torch.no_grad():
+            outs['image1_superpoint_out'] = self.superpoint.net(image1)
+            outs['image2_superpoint_out'] = self.superpoint.net(image2)
+
+        for out_key in ['image1_superpoint_out', 'image2_superpoint_out']:
+            channel = outs[out_key]['semi'].shape[1]
+            if channel == 64:
+                heatmap = self.superpoint.flatten_64to1(outs[out_key]['semi'], cell_size=self.superpoint.cell_size)
+            elif channel == 65:
+                heatmap = flattenDetection(outs[out_key]['semi'], tensor=True)
+
+            heatmap_np = toNumpy(heatmap)
+            pts = self.superpoint.heatmap_nms(heatmaps) #refer to heatmap_nms static function
+
+            outs[out_key]['pts'] = pts 
+        
         # heatmap_batch = self.superPoint.run(images.to(K.device))  
         # pts = self.superPoint.heatmap_to_pts()
-        # if subpixel:
-        #     pts = self.superPoint.soft_argmax_points(pts, patch_size=patch_size)
         # desc_sparse = self.superPoint.desc_to_sparseDesc()
         # outs = {"pts": pts[0], "desc": desc_sparse[0]}
 
@@ -99,10 +115,11 @@ class SuperFlow(torch.nn.Module):
     def forward(self, x):
         """ Forward pass computes keypoints, descriptors, and 3d-2d correspondences.
         Input
-            x: Input pair of images N x 2 x H x W
+            x: Batch size B's of images : B x (2H) x W
         Output
             output: Losses 
         """
+
         pass
 
    
