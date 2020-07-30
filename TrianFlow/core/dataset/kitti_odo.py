@@ -4,7 +4,7 @@ import imageio
 from tqdm import tqdm
 import torch.multiprocessing as mp
 
-def process_folder(q, data_dir, output_dir, stride=1):
+def process_folder(q, data_dir, output_dir, stride=1, do_reverse=False):
     while True:
         if q.empty():
             break
