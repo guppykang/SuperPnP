@@ -49,6 +49,18 @@ class SuperFlow(torch.nn.Module):
         """
         pass
 
+    def dataParallel(self):
+        """
+        put network and optimizer to multiple gpus
+        :return:
+        """
+        print("=== Let's use", torch.cuda.device_count(), "GPUs!")
+        self.net = nn.DataParallel(self.net)
+        self.optimizer = self.adamOptim(
+            self.net, lr=self.config["model"]["learning_rate"]
+        )
+        pass
+
     def inference(self, image1, image2, K, K_inv, match_num):
         """ Forward pass computes keypoints, descriptors, and 3d-2d correspondences.
         Input
