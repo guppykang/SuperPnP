@@ -17,7 +17,7 @@ from utils.utils import load_image_pair, load_camera_intrinsics, pObject, get_co
 
 #dataset stuff
 from TrianFlow.core.dataset.kitti_odo import KITTI_Odo
-from utils.superpnp_dataset import Kitti_Dataset
+from utils.superpnp_dataset import KITTI_Dataset
 
 #bad juju probably should leave this commented in the worst case that stuff breaks
 # import warnings
@@ -52,7 +52,6 @@ if __name__ == '__main__':
     #load camera intrinsics
     K = load_camera_intrinsics(vo_sequences_root, '09', cfg['raw_hw'], cfg['img_hw'])
     K_inv = np.linalg.inv(K)
-    code.interact(local=locals())
     #TODO : assert that the K has the right dims that we expect to have 3x3
 
     #inference
@@ -63,7 +62,7 @@ if __name__ == '__main__':
     vo_sequences_processed = Path(cfg["kitti"]["procressed_data_path"])
     kitti_raw_dataset.prepare_data_mp(vo_sequences_processed, stride=1)
     
-    dataset = Kitti_Dataset(vo_sequences_processed, num_scales=model_cfg['trianflow'].num_scales, img_hw=cfg['img_hw'], num_iterations=(cfg['num_iterations'] - cfg['iter_start']) * cfg['batch_size'])
+    dataset = KITTI_Dataset(vo_sequences_processed, num_scales=model_cfg['trianflow'].num_scales, img_hw=cfg['img_hw'], num_iterations=(cfg['num_iterations'] - cfg['iter_start']) * cfg['batch_size'])
 
     #create dataloader
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=cfg['batch_size'], shuffle=True, num_workers=cfg['num_workers'], drop_last=False)

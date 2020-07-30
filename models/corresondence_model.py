@@ -60,6 +60,11 @@ class SuperFlow(torch.nn.Module):
             output: (2d-2d correspondences, image1_3d_points)
         """
         outs = {}
+        
+        image1_t = torch.from_numpy(np.transpose(image1/ 255.0, [2,0,1])).cuda().float().unsqueeze(0)
+        image2_t = torch.from_numpy(np.transpose(image2/ 255.0, [2,0,1])).cuda().float().unsqueeze(0)
+        K = torch.from_numpy(K).cuda().float().unsqueeze(0)
+        K_inverse = torch.from_numpy(K_inv).cuda().float().unsqueeze(0)
 
         #trianflow
         correspondences, image1_depth_map, image2_depth_map = self.trianFlow.infer_vo(image1_t, image2_t, K, K_inverse, match_num)
