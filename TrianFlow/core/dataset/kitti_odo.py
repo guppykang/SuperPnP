@@ -52,9 +52,10 @@ class KITTI_Odo(object):
             total_dirlist = []
             # Get the different folders of images
             for d in dirlist:
-                if d in self.train_seqs:
+                if d in self.train_seqs and not os.path.isdir(os.path.join(self.data_dir, d)):
                     q.put(d)
             # Process every folder
+            print(f'Sequences to process : {q}')
             for rank in range(num_processes):
                 p = mp.Process(target=process_folder, args=(q, self.data_dir, output_dir, stride))
                 p.start()

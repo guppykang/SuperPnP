@@ -45,6 +45,8 @@ if __name__ == '__main__':
     model.cuda()
     # model.eval()
 
+
+
     #load a pair of images
     vo_sequences_root = Path(cfg["kitti"]["vo_path"])
     images = load_image_pair(vo_sequences_root, '09', cfg['img_hw'][0], cfg['img_hw'][1])
