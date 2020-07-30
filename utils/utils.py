@@ -13,7 +13,6 @@ def get_configs(path):
     Returns the configs for the model and general hyperparameters
 
     Returns: 
-        model_cfg : Specific configs per module
         cfg : the remaining hyperparameter configs
     """
     with open(path, "r") as f:
