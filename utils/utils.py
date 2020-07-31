@@ -9,14 +9,14 @@ import numpy as np
 import torch
 
 from superpoint.utils.var_dim import toNumpy, squeezeToNumpy
-from superpoint.models import model_utils
+from superpoint.models.model_utils import SuperPointNet_process
 
 def prep_superpoint_image(image, new_hw):
-    resized_image = cv2.resize(image, (new_hw[0], new_hw[1]))
-    return torch.from_numpy(cv2.cvtColor(resized_image, cv2.COLOR_RGB2GRAY)/ 255.0).cuda().float().unsqueeze(0)
+    resized_image = cv2.resize(image, (new_hw[1], new_hw[0])) #Why does the hw ordering convention change every three days..
+    return torch.from_numpy(cv2.cvtColor(resized_image, cv2.COLOR_RGB2GRAY)/ 255.0).cuda().float().unsqueeze(0).unsqueeze(0)
 
 def prep_trianflow_image(image, new_hw):
-    resized_image = cv2.resize(image, (new_hw[0], new_hw[1]))
+    resized_image = cv2.resize(image, (new_hw[1], new_hw[0])) #God knows why this is wh not hw
     return torch.from_numpy(np.transpose(resized_image/ 255.0, [2,0,1])).cuda().float().unsqueeze(0)
 
 
@@ -30,7 +30,7 @@ def desc_to_sparseDesc(outs):
     Returns : 
         desc : np [N,D]
     """
-    return squeezeToNumpy(model_utils.sample_desc_from_points(outs['desc'], outs['pts']))
+    return SuperPointNet_process.sample_desc_from_points(outs['desc'], outs['pts'])
      
 
 def get_configs(path): 

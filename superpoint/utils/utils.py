@@ -574,8 +574,12 @@ def getPtsFromHeatmap(heatmap, conf_thresh, nms_dist):
     return pts
 
 def box_nms(prob, size, iou=0.1, min_prob=0.01, keep_top_k=0):
-    from mmdet.ops import nms as nms_mmdet # requires https://github.com/open-mmlab/mmdetection
 
+    
+#     from mmcv.ops import nms as nms_mmdet #import by building from source with flag MMCV_WITH_OPS=1
+    from torchvision.ops import nms
+    
+    
     """Performs non maximum suppression on the heatmap by considering hypothetical
     bounding boxes centered at each pixel's location (e.g. corresponding to the receptive
     field). Optionally only keeps the top k detections.
@@ -593,16 +597,10 @@ def box_nms(prob, size, iou=0.1, min_prob=0.01, keep_top_k=0):
     size = torch.tensor(size/2.).cuda()
     boxes = torch.cat([pts-size, pts+size], dim=1) # [N, 4]
     scores = prob[pts[:, 0].long(), pts[:, 1].long()]
-    if keep_top_k != 0:
-        indices, _ = nms(boxes, scores, iou, min(boxes.size()[0], keep_top_k))
-    else:
-        # indices, _ = nms(boxes, scores, iou, boxes.size()[0])
-        # print("boxes: ", boxes.shape)
-        # print("scores: ", scores.shape)
-        proposals = torch.cat([boxes, scores.unsqueeze(-1)], dim=-1)
-        dets, indices = nms_mmdet(proposals, iou)
-        indices = indices.long()
-
+        
+    #use nms_mmdet implementation here instead if module was correctly built
+    indices = nms(boxes, scores, iou)
+   
         # indices = box_nms_retinaNet(boxes, scores, iou)
     pts = torch.index_select(pts, 0, indices)
     scores = torch.index_select(scores, 0, indices)
@@ -631,6 +629,7 @@ def nms_fast(in_corners, H, W, dist_thresh):
       nmsed_corners - 3xN numpy matrix with surviving corners.
       nmsed_inds - N length numpy vector with surviving corner indices.
     """
+    print('hi mom. Inside nms fast')
     grid = np.zeros((H, W)).astype(int)  # Track NMS data.
     inds = np.zeros((H, W)).astype(int)  # Store indices of points.
     # Sort by confidence and round to nearest int.

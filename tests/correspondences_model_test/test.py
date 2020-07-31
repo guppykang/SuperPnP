@@ -53,13 +53,15 @@ if __name__ == '__main__':
     #TODO : assert that the K has the right dims that we expect to have 3x3
 
     #inference
-    outs = outs = model.inference(images[0], images[1], K, K_inv, model_cfg['trianflow'].match_num, cfg['img_hw'])
 
+    outs = outs = model.inference(images[0], images[1], K, K_inv, model_cfg['trianflow'].match_num, cfg['img_hw'])
+    code.interact(local=locals())
+    
     #get dataset and process
     kitti_raw_dataset = KITTI_Odo(vo_sequences_root)
     vo_sequences_processed = Path(cfg["kitti"]["procressed_data_path"])
     kitti_raw_dataset.prepare_data_mp(vo_sequences_processed, stride=1)
-    
+
     dataset = KITTI_Dataset(vo_sequences_processed, num_scales=model_cfg['trianflow'].num_scales, img_hw=cfg['img_hw'], num_iterations=(cfg['num_iterations'] - cfg['iter_start']) * cfg['batch_size'])
 
     #create dataloader
@@ -68,4 +70,3 @@ if __name__ == '__main__':
     #test foward pass
     
 
-    print('pass')

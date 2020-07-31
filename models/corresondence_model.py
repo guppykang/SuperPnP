@@ -13,8 +13,10 @@ from torch.nn.init import xavier_uniform_, zeros_
 
 #Superpoint imports
 from superpoint.Train_model_heatmap import Train_model_heatmap
-from superpoint.utils.var_dim import toNumpy
+from superpoint.utils.var_dim import toNumpy, squeezeToNumpy
 from superpoint.utils.utils import flattenDetection
+from superpoint.models.model_utils import SuperPointNet_process
+
 
 #TrianFlow imports
 from TrianFlow.core.networks.model_depth_pose import Model_depth_pose 
@@ -30,12 +32,23 @@ class SuperFlow(torch.nn.Module):
             SuperPoint : https://github.com/eric-yyjau/pytorch-superpoint
         """
         super(SuperFlow, self).__init__()
+        
+        self.device = 'cuda:0'
 
         #TrianFlow
         self.trianFlow = Model_depth_pose(cfg["trianflow"])
 
         #SuperPoint
-        self.superpoint = Train_model_heatmap(cfg["superpoint"], device='cuda')
+        self.superpoint = Train_model_heatmap(cfg["superpoint"], device=self.device)
+        
+        self.superpoint_processor_params = {
+            'out_num_points': 500,
+            'patch_size': 5,
+            'device': self.device,
+            'nms_dist': 4,
+            'conf_thresh': 0.015
+        }
+        self.superpoint_processor = SuperPointNet_process(**self.superpoint_processor_params)
     
     def load_modules(self, cfg):
         """
@@ -94,30 +107,36 @@ class SuperFlow(torch.nn.Module):
         #superpoint
         image1_t = prep_superpoint_image(image1, hw)
         image2_t = prep_superpoint_image(image2, hw)
+        pair_input_tensor = torch.cat((image1_t, image2_t), 0)
 
         #inference on superpoint
         with torch.no_grad():
-            code.interact(local=locals())
-            outs['image1_superpoint_out'] = self.superpoint.net(image1_t)
-            outs['image2_superpoint_out'] = self.superpoint.net(image2_t)
+            superpoint_out = self.superpoint.net(pair_input_tensor)
 
         #get the heatmap for each semi dense keypoint detection
-        for out_key in ['image1_superpoint_out', 'image2_superpoint_out']:
-            channel = outs[out_key]['semi'].shape[1]
-            if channel == 64:
-                heatmap = self.superpoint.flatten_64to1(outs[out_key]['semi'], cell_size=self.superpoint.cell_size)
-            elif channel == 65:
-                heatmap = flattenDetection(outs[out_key]['semi'], tensor=True)
+#         for idx, out_key in enumerate(['image1_superpoint_out', 'image2_superpoint_out']):
+#             outs[out_key]['desc'] = superpoint_out['desc'][idx]
+#             outs[out_key]['semi'] = superpoint_out['semi'][idx]
+            
+#             channel = outs[out_key]['semi'].shape[1]
+#             if channel == 64:
+#                 heatmap = self.superpoint.flatten_64to1(outs[out_key]['semi'], cell_size=self.superpoint.cell_size)
+#             elif channel == 65:
+#                 heatmap = flattenDetection(outs[out_key]['semi'], tensor=True)
             
             #get the exact 2d keypoints from the heatmaps
-            heatmap_np = toNumpy(heatmap)
-            pts = self.superpoint.heatmap_nms(heatmaps) #refer to heatmap_nms static function
-            outs[out_key]['pts'] = pts
-            outs[out_key]['sparse_desc'] = desc_to_sparseDesc(outs[out_key])
             
+        processed_superpoint_out = self.superpoint.net.process_output(self.superpoint_processor)
             
-            #TODO : can also get matches using the func : get_matches(deses_SP) in SuperPointNet_gauss2.py
-            
+        for out_key in processed_superpoint_out.keys():
+            #TODO : don't forget here that we detached the tensor 
+            print(out_key)
+
+            for img_idx, img_key in enumerate['image1_superpoint_out', 'image2_superpoint_out']:
+                outs[img_idx][out_key] = processed_superpoint_out[out_key][img_idx]
+                
+                
+        #TODO : can also get matches using the func : get_matches(deses_SP) in SuperPointNet_gauss2.py
         return outs
 
 
@@ -129,6 +148,11 @@ class SuperFlow(torch.nn.Module):
             output: Losses 
         """
 
+        #superpoint
+        #out
+        #nms (val fastnms or process_output())
+        #pts
+        #desc to sparse
         pass
 
    
