@@ -11,6 +11,7 @@ from pathlib import Path
 import random
 import numpy as np
 import torch
+import pickle
 
 #utils stuff
 from utils.utils import load_image_pair, load_camera_intrinsics, pObject, get_configs
@@ -53,9 +54,8 @@ if __name__ == '__main__':
     #TODO : assert that the K has the right dims that we expect to have 3x3
 
     #inference
-
-    outs = outs = model.inference(images[0], images[1], K, K_inv, model_cfg['trianflow'].match_num, cfg['img_hw'])
-    code.interact(local=locals())
+    outs = model.inference(images[0], images[1], K, K_inv, model_cfg['trianflow'].match_num, cfg['img_hw'])
+    torch.save(outs, 'inference_outs.pth')
     
     #get dataset and process
     kitti_raw_dataset = KITTI_Odo(vo_sequences_root)

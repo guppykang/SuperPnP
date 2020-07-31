@@ -11,6 +11,14 @@ import torch
 from superpoint.utils.var_dim import toNumpy, squeezeToNumpy
 from superpoint.models.model_utils import SuperPointNet_process
 
+def sample_and_plot_correspondences(correspondences, image1, image2):
+    cat_images = np.concatenate([image1, image2], axis=0)
+    cv2.imshow(cat_images)
+    print('hi mom')
+    
+      
+    
+
 def prep_superpoint_image(image, new_hw):
     resized_image = cv2.resize(image, (new_hw[1], new_hw[0])) #Why does the hw ordering convention change every three days..
     return torch.from_numpy(cv2.cvtColor(resized_image, cv2.COLOR_RGB2GRAY)/ 255.0).cuda().float().unsqueeze(0).unsqueeze(0)

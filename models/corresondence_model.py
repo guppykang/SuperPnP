@@ -101,39 +101,21 @@ class SuperFlow(torch.nn.Module):
         outs['correspondences'] = correspondences
         outs['image1_depth'] = image1_depth_map 
         outs['image2_depth'] = image2_depth_map 
-
         
         
         #superpoint
         image1_t = prep_superpoint_image(image1, hw)
         image2_t = prep_superpoint_image(image2, hw)
         pair_input_tensor = torch.cat((image1_t, image2_t), 0)
-
-        #inference on superpoint
         with torch.no_grad():
             superpoint_out = self.superpoint.net(pair_input_tensor)
 
-        #get the heatmap for each semi dense keypoint detection
-#         for idx, out_key in enumerate(['image1_superpoint_out', 'image2_superpoint_out']):
-#             outs[out_key]['desc'] = superpoint_out['desc'][idx]
-#             outs[out_key]['semi'] = superpoint_out['semi'][idx]
-            
-#             channel = outs[out_key]['semi'].shape[1]
-#             if channel == 64:
-#                 heatmap = self.superpoint.flatten_64to1(outs[out_key]['semi'], cell_size=self.superpoint.cell_size)
-#             elif channel == 65:
-#                 heatmap = flattenDetection(outs[out_key]['semi'], tensor=True)
-            
-            #get the exact 2d keypoints from the heatmaps
-            
         processed_superpoint_out = self.superpoint.net.process_output(self.superpoint_processor)
-            
+        outs['image1_superpoint_out'], outs['image2_superpoint_out'] = {}, {}
         for out_key in processed_superpoint_out.keys():
-            #TODO : don't forget here that we detached the tensor 
-            print(out_key)
-
-            for img_idx, img_key in enumerate['image1_superpoint_out', 'image2_superpoint_out']:
-                outs[img_idx][out_key] = processed_superpoint_out[out_key][img_idx]
+            #TODO : don't forget here that we detached the tensor
+            for img_idx, img_key in enumerate(['image1_superpoint_out', 'image2_superpoint_out']):
+                outs[img_key][out_key] = processed_superpoint_out[out_key][img_idx]
                 
                 
         #TODO : can also get matches using the func : get_matches(deses_SP) in SuperPointNet_gauss2.py

@@ -629,7 +629,6 @@ def nms_fast(in_corners, H, W, dist_thresh):
       nmsed_corners - 3xN numpy matrix with surviving corners.
       nmsed_inds - N length numpy vector with surviving corner indices.
     """
-    print('hi mom. Inside nms fast')
     grid = np.zeros((H, W)).astype(int)  # Track NMS data.
     inds = np.zeros((H, W)).astype(int)  # Store indices of points.
     # Sort by confidence and round to nearest int.

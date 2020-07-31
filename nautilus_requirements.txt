@@ -126,6 +126,7 @@ testpath==0.4.4
 threadpoolctl @ file:///tmp/tmp79xdzxkt/threadpoolctl-2.1.0-py3-none-any.whl
 toolz==0.10.0
 torch==1.5.1
+torchgeometry==0.1.2
 torchvision==0.6.1
 tornado==6.0.4
 tqdm @ file:///home/conda/feedstock_root/build_artifacts/tqdm_1593390011681/work
