@@ -23,7 +23,7 @@ from superpoint.models.SuperPointNet_gauss2 import get_matches as get_superpoint
 from TrianFlow.core.networks.model_depth_pose import Model_depth_pose 
 
 #My Utils
-from utils.utils import desc_to_sparseDesc, prep_superpoint_image, prep_trianflow_image
+from utils.utils import desc_to_sparseDesc, prep_superpoint_image, prep_trianflow_image, get_pts_from_descriptor_matches
 
 class SuperFlow(torch.nn.Module):
     def __init__(self, cfg):
@@ -35,6 +35,7 @@ class SuperFlow(torch.nn.Module):
         super(SuperFlow, self).__init__()
         
         self.device = 'cuda:0'
+        self.num_matches = 50
 
         #TrianFlow
         self.trianFlow = Model_depth_pose(cfg["trianflow"])
@@ -119,10 +120,10 @@ class SuperFlow(torch.nn.Module):
             for img_idx, img_key in enumerate(['image1_superpoint_out', 'image2_superpoint_out']):
                 outs[img_key][out_key] = processed_superpoint_out[out_key][img_idx]
              
-        outs['superpoint_matches'] = get_superpoint_matches([outs['image1_superpoint_out']['pts_desc'], outs['image1_superpoint_out']['pts_desc']])
+        descriptor_matches = get_superpoint_matches([outs['image1_superpoint_out']['pts_desc'], outs['image1_superpoint_out']['pts_desc']]).T
         
-
-                
+        outs['superpoint_matches'] = get_pts_from_descriptor_matches(descriptor_matches, outs['image1_superpoint_out']['pts_int'], outs['image2_superpoint_out']['pts_int'], self.num_matches)
+        
         #TODO : can also get matches using the func : get_matches(deses_SP) in SuperPointNet_gauss2.py
         return outs
 

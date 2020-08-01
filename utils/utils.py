@@ -11,9 +11,22 @@ import torch
 from superpoint.utils.var_dim import toNumpy, squeezeToNumpy
 from superpoint.models.model_utils import SuperPointNet_process
 
-
-      
+def get_pts_from_descriptor_matches(descriptor_matches, image1_keypoints, image2_keypoints, num_matches):
+    sort_index = np.argsort(descriptor_matches[:, 2])
+    sort_index = sort_index[sort_index != 0]
     
+    if (len(sort_index) > num_matches):
+        sort_index = sort_index[-num_matches]
+        
+    match_pts = np.zeros((len(sort_index), 4))
+    for idx, match in enumerate(sort_index):
+        match_indices = descriptor_matches[match]
+        match_pts[idx][:2] = image1_keypoints[match_indices[0]]
+        match_pts[idx][2:] = image1_keypoints[match_indices[1]]
+
+    return match_pts
+
+
 
 def prep_superpoint_image(image, new_hw):
     resized_image = cv2.resize(image, (new_hw[1], new_hw[0])) #Why does the hw ordering convention change every three days..
