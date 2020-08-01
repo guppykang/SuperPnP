@@ -16,6 +16,7 @@ from superpoint.Train_model_heatmap import Train_model_heatmap
 from superpoint.utils.var_dim import toNumpy, squeezeToNumpy
 from superpoint.utils.utils import flattenDetection
 from superpoint.models.model_utils import SuperPointNet_process
+from superpoint.models.SuperPointNet_gauss2 import get_matches as get_superpoint_matches
 
 
 #TrianFlow imports
@@ -92,8 +93,9 @@ class SuperFlow(torch.nn.Module):
         outs = {}
         
         #TrianFlow
-        image1_t = prep_trianflow_image(image1, hw)
-        image2_t = prep_trianflow_image(image2, hw)
+        image1_t, image1_resized = prep_trianflow_image(image1, hw)
+        image2_t, image2_resized = prep_trianflow_image(image2, hw)
+        outs['inputs'] = { 'image1' : image1_resized , 'image2' : image2_resized }
         K = torch.from_numpy(K).cuda().float().unsqueeze(0)
         K_inverse = torch.from_numpy(K_inv).cuda().float().unsqueeze(0)
 
@@ -116,7 +118,10 @@ class SuperFlow(torch.nn.Module):
             #TODO : don't forget here that we detached the tensor
             for img_idx, img_key in enumerate(['image1_superpoint_out', 'image2_superpoint_out']):
                 outs[img_key][out_key] = processed_superpoint_out[out_key][img_idx]
-                
+             
+        outs['superpoint_matches'] = get_superpoint_matches([outs['image1_superpoint_out']['pts_desc'], outs['image1_superpoint_out']['pts_desc']])
+        
+
                 
         #TODO : can also get matches using the func : get_matches(deses_SP) in SuperPointNet_gauss2.py
         return outs

@@ -57,6 +57,7 @@ if __name__ == '__main__':
     outs = model.inference(images[0], images[1], K, K_inv, model_cfg['trianflow'].match_num, cfg['img_hw'])
     torch.save(outs, 'inference_outs.pth')
     
+    
     #get dataset and process
     kitti_raw_dataset = KITTI_Odo(vo_sequences_root)
     vo_sequences_processed = Path(cfg["kitti"]["procressed_data_path"])

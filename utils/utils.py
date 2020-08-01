@@ -11,11 +11,7 @@ import torch
 from superpoint.utils.var_dim import toNumpy, squeezeToNumpy
 from superpoint.models.model_utils import SuperPointNet_process
 
-def sample_and_plot_correspondences(correspondences, image1, image2):
-    cat_images = np.concatenate([image1, image2], axis=0)
-    cv2.imshow(cat_images)
-    print('hi mom')
-    
+
       
     
 
@@ -25,7 +21,7 @@ def prep_superpoint_image(image, new_hw):
 
 def prep_trianflow_image(image, new_hw):
     resized_image = cv2.resize(image, (new_hw[1], new_hw[0])) #God knows why this is wh not hw
-    return torch.from_numpy(np.transpose(resized_image/ 255.0, [2,0,1])).cuda().float().unsqueeze(0)
+    return torch.from_numpy(np.transpose(resized_image/ 255.0, [2,0,1])).cuda().float().unsqueeze(0), resized_image
 
 
 def desc_to_sparseDesc(outs):
