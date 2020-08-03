@@ -11,18 +11,23 @@ import torch
 from superpoint.utils.var_dim import toNumpy, squeezeToNumpy
 from superpoint.models.model_utils import SuperPointNet_process
 
-def get_pts_from_descriptor_matches(descriptor_matches, image1_keypoints, image2_keypoints, num_matches):
+def get_superpoint_2d_matches(descriptor_matches, image1_keypoints, image2_keypoints, num_matches):
     sort_index = np.argsort(descriptor_matches[:, 2])
-    sort_index = sort_index[sort_index != 0]
+    image1_keypoints = toNumpy(image1_keypoints)
+    image2_keypoints = toNumpy(image2_keypoints)
+
     
     if (len(sort_index) > num_matches):
-        sort_index = sort_index[-num_matches]
+        sort_index = sort_index[-num_matches:]
         
     match_pts = np.zeros((len(sort_index), 4))
     for idx, match in enumerate(sort_index):
         match_indices = descriptor_matches[match]
-        match_pts[idx][:2] = image1_keypoints[match_indices[0]]
-        match_pts[idx][2:] = image1_keypoints[match_indices[1]]
+
+        match_pts[idx][:2] = image1_keypoints[int(match_indices[0])].astype(int)
+        match_pts[idx][2:] = image2_keypoints[int(match_indices[1])].astype(int)
+        
+        code.interact(local=locals())
 
     return match_pts
 

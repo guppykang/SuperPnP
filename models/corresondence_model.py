@@ -16,14 +16,14 @@ from superpoint.Train_model_heatmap import Train_model_heatmap
 from superpoint.utils.var_dim import toNumpy, squeezeToNumpy
 from superpoint.utils.utils import flattenDetection
 from superpoint.models.model_utils import SuperPointNet_process
-from superpoint.models.SuperPointNet_gauss2 import get_matches as get_superpoint_matches
+from superpoint.models.SuperPointNet_gauss2 import get_matches as get_descriptor_matches
 
 
 #TrianFlow imports
 from TrianFlow.core.networks.model_depth_pose import Model_depth_pose 
 
 #My Utils
-from utils.utils import desc_to_sparseDesc, prep_superpoint_image, prep_trianflow_image, get_pts_from_descriptor_matches
+from utils.utils import desc_to_sparseDesc, prep_superpoint_image, prep_trianflow_image, get_superpoint_2d_matches
 
 class SuperFlow(torch.nn.Module):
     def __init__(self, cfg):
@@ -101,7 +101,7 @@ class SuperFlow(torch.nn.Module):
         K_inverse = torch.from_numpy(K_inv).cuda().float().unsqueeze(0)
 
         correspondences, image1_depth_map, image2_depth_map = self.trianFlow.infer_vo(image1_t, image2_t, K, K_inverse, match_num)
-        outs['correspondences'] = correspondences
+        outs['flownet_correspondences'] = correspondences.T
         outs['image1_depth'] = image1_depth_map 
         outs['image2_depth'] = image2_depth_map 
         
@@ -120,9 +120,11 @@ class SuperFlow(torch.nn.Module):
             for img_idx, img_key in enumerate(['image1_superpoint_out', 'image2_superpoint_out']):
                 outs[img_key][out_key] = processed_superpoint_out[out_key][img_idx]
              
-        descriptor_matches = get_superpoint_matches([outs['image1_superpoint_out']['pts_desc'], outs['image1_superpoint_out']['pts_desc']]).T
+        descriptor_matches = get_descriptor_matches([outs['image1_superpoint_out']['pts_desc'], outs['image1_superpoint_out']['pts_desc']]).T
         
-        outs['superpoint_matches'] = get_pts_from_descriptor_matches(descriptor_matches, outs['image1_superpoint_out']['pts_int'], outs['image2_superpoint_out']['pts_int'], self.num_matches)
+        outs['superpoint_correspondences'] = get_superpoint_2d_matches(descriptor_matches, outs['image1_superpoint_out']['pts_int'], outs['image2_superpoint_out']['pts_int'], self.num_matches)
+        
+
         
         #TODO : can also get matches using the func : get_matches(deses_SP) in SuperPointNet_gauss2.py
         return outs
