@@ -22,8 +22,6 @@ def get_superpoint_2d_matches(descriptor_matches, image1_keypoints, image2_keypo
 #     match_pts = np.zeros((len(sort_index), 4))
     
 #     for idx, match in enumerate(sort_index):
-#         code.interact(local=locals())
-
 #         match_indices = descriptor_matches[match]
 
 #         match_pts[idx][:2] = image1_keypoints[int(match_indices[0])].astype(int)
@@ -35,6 +33,8 @@ def get_superpoint_2d_matches(descriptor_matches, image1_keypoints, image2_keypo
 
     image1_keypoints = toNumpy(image1_keypoints)
     image2_keypoints = toNumpy(image2_keypoints)
+
+    code.interact(local=locals())
 
     match_pts = np.zeros((len(descriptor_matches), 4))
 
