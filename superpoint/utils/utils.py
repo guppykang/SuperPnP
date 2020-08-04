@@ -549,6 +549,7 @@ def getPtsFromHeatmap(heatmap, conf_thresh, nms_dist):
     :param heatmap:
         np (H, W)
     :return:
+        (3, N) : (x, y, confidence)
     '''
 
     border_remove = 4

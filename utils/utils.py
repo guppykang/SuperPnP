@@ -12,22 +12,37 @@ from superpoint.utils.var_dim import toNumpy, squeezeToNumpy
 from superpoint.models.model_utils import SuperPointNet_process
 
 def get_superpoint_2d_matches(descriptor_matches, image1_keypoints, image2_keypoints, num_matches):
-    sort_index = np.argsort(descriptor_matches[:, 2])
+#     sort_index = np.argsort(descriptor_matches[:, 2])
+#     image1_keypoints = toNumpy(image1_keypoints)
+#     image2_keypoints = toNumpy(image2_keypoints)
+
+#     if (len(sort_index) > num_matches):
+#         sort_index = sort_index[-num_matches:]
+        
+#     match_pts = np.zeros((len(sort_index), 4))
+    
+#     for idx, match in enumerate(sort_index):
+#         code.interact(local=locals())
+
+#         match_indices = descriptor_matches[match]
+
+#         match_pts[idx][:2] = image1_keypoints[int(match_indices[0])].astype(int)
+#         match_pts[idx][2:] = image2_keypoints[int(match_indices[1])].astype(int)
+        
+        
+
+#     return match_pts
+
     image1_keypoints = toNumpy(image1_keypoints)
     image2_keypoints = toNumpy(image2_keypoints)
 
-    
-    if (len(sort_index) > num_matches):
-        sort_index = sort_index[-num_matches:]
-        
-    match_pts = np.zeros((len(sort_index), 4))
-    for idx, match in enumerate(sort_index):
-        match_indices = descriptor_matches[match]
+    match_pts = np.zeros((len(descriptor_matches), 4))
 
-        match_pts[idx][:2] = image1_keypoints[int(match_indices[0])].astype(int)
-        match_pts[idx][2:] = image2_keypoints[int(match_indices[1])].astype(int)
+    for idx, match in enumerate(descriptor_matches):
+        match_pts[idx][:2] = image1_keypoints[int(match[0])].astype(int)
+        match_pts[idx][2:] = image2_keypoints[int(match[1])].astype(int)
         
-        code.interact(local=locals())
+        
 
     return match_pts
 

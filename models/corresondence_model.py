@@ -17,6 +17,7 @@ from superpoint.utils.var_dim import toNumpy, squeezeToNumpy
 from superpoint.utils.utils import flattenDetection
 from superpoint.models.model_utils import SuperPointNet_process
 from superpoint.models.SuperPointNet_gauss2 import get_matches as get_descriptor_matches
+from superpoint.utils.utils import flattenDetection
 
 
 #TrianFlow imports
@@ -112,15 +113,18 @@ class SuperFlow(torch.nn.Module):
         pair_input_tensor = torch.cat((image1_t, image2_t), 0)
         with torch.no_grad():
             superpoint_out = self.superpoint.net(pair_input_tensor)
-
-        processed_superpoint_out = self.superpoint.net.process_output(self.superpoint_processor)
+            
+            
+        processed_superpoint_out, superpoint_keypoints = self.superpoint.net.process_output(self.superpoint_processor)
+        
+        outs['keypoints'] = superpoint_keypoints
         outs['image1_superpoint_out'], outs['image2_superpoint_out'] = {}, {}
         for out_key in processed_superpoint_out.keys():
             #TODO : don't forget here that we detached the tensor
             for img_idx, img_key in enumerate(['image1_superpoint_out', 'image2_superpoint_out']):
                 outs[img_key][out_key] = processed_superpoint_out[out_key][img_idx]
              
-        descriptor_matches = get_descriptor_matches([outs['image1_superpoint_out']['pts_desc'], outs['image1_superpoint_out']['pts_desc']]).T
+        descriptor_matches = get_descriptor_matches([outs['image1_superpoint_out']['pts_desc'], outs['image2_superpoint_out']['pts_desc']]).T
         
         outs['superpoint_correspondences'] = get_superpoint_2d_matches(descriptor_matches, outs['image1_superpoint_out']['pts_int'], outs['image2_superpoint_out']['pts_int'], self.num_matches)
         
