@@ -36,7 +36,7 @@ class SuperFlow(torch.nn.Module):
         super(SuperFlow, self).__init__()
         
         self.device = 'cuda:0'
-        self.num_matches = 50
+        self.num_matches = 100
 
         #TrianFlow
         self.trianFlow = Model_depth_pose(cfg["trianflow"])
