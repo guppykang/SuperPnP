@@ -24,7 +24,7 @@ from superpoint.utils.utils import flattenDetection
 from TrianFlow.core.networks.model_depth_pose import Model_depth_pose 
 
 #My Utils
-from utils.utils import desc_to_sparseDesc, prep_superpoint_image, prep_trianflow_image, get_superpoint_2d_matches
+from utils.utils import desc_to_sparseDesc, prep_superpoint_image, prep_trianflow_image, get_superpoint_2d_matches, get_flownet_matches_from_superpoint_keypoints
 
 class SuperFlow(torch.nn.Module):
     def __init__(self, cfg):
@@ -90,22 +90,31 @@ class SuperFlow(torch.nn.Module):
             K, K_inverse : intrinsic matrix, and its inverse
             match_num : number of matches to output
         Output
-            output: (2d-2d correspondences, image1_3d_points)
+            outs: {
+                   flownet_correspondences, 
+                   superpoint_correspondences,
+                   inputs : 
+                       image1, 
+                       image2
+                   keypoints, 
+                   image1_superpoint_out:
+                       pts_desc, 
+                       pts_int, 
+                       pts_offset, 
+                       semi, 
+                       desc
+                   image2_superpoint_out:
+                       pts_desc, 
+                       pts_int, 
+                       pts_offset, 
+                       semi, 
+                       desc
+                   image1_depth, 
+                   image2_depth, 
+                   superpoint_keypoint_correspondences
+                   }
         """
         outs = {}
-        
-        #TrianFlow
-        image1_t, image1_resized = prep_trianflow_image(image1, hw)
-        image2_t, image2_resized = prep_trianflow_image(image2, hw)
-        outs['inputs'] = { 'image1' : image1_resized , 'image2' : image2_resized }
-        K = torch.from_numpy(K).cuda().float().unsqueeze(0)
-        K_inverse = torch.from_numpy(K_inv).cuda().float().unsqueeze(0)
-
-        correspondences, image1_depth_map, image2_depth_map = self.trianFlow.infer_vo(image1_t, image2_t, K, K_inverse, match_num)
-        outs['flownet_correspondences'] = correspondences.T
-        outs['image1_depth'] = image1_depth_map 
-        outs['image2_depth'] = image2_depth_map 
-        
         
         #superpoint
         image1_t = prep_superpoint_image(image1, hw)
@@ -113,7 +122,6 @@ class SuperFlow(torch.nn.Module):
         pair_input_tensor = torch.cat((image1_t, image2_t), 0)
         with torch.no_grad():
             superpoint_out = self.superpoint.net(pair_input_tensor)
-            
             
         processed_superpoint_out, superpoint_keypoints = self.superpoint.net.process_output(self.superpoint_processor)
         
@@ -128,9 +136,24 @@ class SuperFlow(torch.nn.Module):
         
         outs['superpoint_correspondences'] = get_superpoint_2d_matches(descriptor_matches, outs['image1_superpoint_out']['pts_int'], outs['image2_superpoint_out']['pts_int'], self.num_matches)
         
-
         
-        #TODO : can also get matches using the func : get_matches(deses_SP) in SuperPointNet_gauss2.py
+        #TrianFlow
+        image1_t, image1_resized = prep_trianflow_image(image1, hw)
+        image2_t, image2_resized = prep_trianflow_image(image2, hw)
+        outs['inputs'] = { 'image1' : image1_resized , 'image2' : image2_resized }
+        K = torch.from_numpy(K).cuda().float().unsqueeze(0)
+        K_inverse = torch.from_numpy(K_inv).cuda().float().unsqueeze(0)
+
+        correspondences, image1_depth_map, image2_depth_map = self.trianFlow.infer_vo(image1_t, image2_t, K, K_inverse, match_num)
+        outs['flownet_correspondences'] = correspondences.T
+        outs['image1_depth'] = image1_depth_map 
+        outs['image2_depth'] = image2_depth_map 
+        
+        outs['superpoint_keypoint_correspondences'] = get_flownet_matches_from_superpoint_keypoints(outs['keypoints'][0], squeezeToNumpy(outs['flownet_correspondences']))
+        
+        
+        
+        
         return outs
 
 

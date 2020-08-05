@@ -11,8 +11,35 @@ import torch
 from superpoint.utils.var_dim import toNumpy, squeezeToNumpy
 from superpoint.models.model_utils import SuperPointNet_process
 
+def get_random_sequence():
+    """
+    For the kitti vo dataset
+    """
+    sequences = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21']
+    return sequences[random.randint(0, len(sequences)-1)]
+        
 
-def get_superpoint_2d_matches(descriptor_matches, image1_keypoints, image2_keypoints, num_matches=100, ranked=True):
+def get_flownet_matches_from_superpoint_keypoints(image1_keypoints, matches):
+    """
+    Given keypoints from superpoint, grab the correspondences that exist in those pixel locations
+    
+    Parameters : 
+        image1_keypoints : (N x 2) Superpoint Keypoints from image1
+        matches : (N x 4) Correspondences from trianflow flownet 
+    Returns : 
+        N x 4
+    """
+    
+    match_points = []
+    for keypoint_idx, keypoint in enumerate(image1_keypoints):
+        for match in matches:
+            if int(match[0]) == int(keypoint[0]) and int(match[1]) == int(keypoint[1]):
+                match_points.append(match)
+                break
+    return np.array(match_points)
+
+
+def get_superpoint_2d_matches(descriptor_matches, image1_keypoints, image2_keypoints, num_matches=100, ranked=False):
     """
     Given a set of descriptor matches, finds the top num_matcheas with the highest score and returns those 2d-2d correspondences. 
     
@@ -23,14 +50,12 @@ def get_superpoint_2d_matches(descriptor_matches, image1_keypoints, image2_keypo
         ranked : returns the top ranked matches if True. Otherwise, returns all matches
         
     Returns : 
-        N x 4 : (image1_x, image1_y, image2_x, image2_y)
+        M x 4 : (image1_x, image1_y, image2_x, image2_y) where M is num_matches or len(descriptor_matches)
     """
     image1_keypoints = toNumpy(image1_keypoints)
     image2_keypoints = toNumpy(image2_keypoints)
 
     
-    code.interact(local=locals())
-
     if ranked:
         sort_index = np.argsort(descriptor_matches[:, 2])
         
@@ -52,7 +77,6 @@ def get_superpoint_2d_matches(descriptor_matches, image1_keypoints, image2_keypo
             match_pts[idx][:2] = image1_keypoints[int(match[0])].astype(int)
             match_pts[idx][2:] = image2_keypoints[int(match[1])].astype(int)
     
-    code.interact(local=locals())
     return match_pts
 
 

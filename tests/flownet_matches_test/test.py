@@ -14,7 +14,7 @@ import torch
 import pickle
 
 #utils stuff
-from utils.utils import load_image_pair, load_camera_intrinsics, pObject, get_configs
+from utils.utils import load_image_pair, load_camera_intrinsics, pObject, get_configs, get_random_sequence
 
 #dataset stuff
 from TrianFlow.core.dataset.kitti_odo import KITTI_Odo
@@ -42,14 +42,14 @@ if __name__ == '__main__':
     model.cuda()
     # model.eval()
 
-
+    sequence = get_random_sequence()
 
     #load a pair of images
     vo_sequences_root = Path(cfg["kitti"]["vo_path"])
-    images = load_image_pair(vo_sequences_root, '09')
+    images = load_image_pair(vo_sequences_root, sequence)
     
     #load camera intrinsics
-    K = load_camera_intrinsics(vo_sequences_root, '09', cfg['raw_hw'], cfg['img_hw'])
+    K = load_camera_intrinsics(vo_sequences_root, sequence, cfg['raw_hw'], cfg['img_hw'])
     K_inv = np.linalg.inv(K)
     #TODO : assert that the K has the right dims that we expect to have 3x3
 
