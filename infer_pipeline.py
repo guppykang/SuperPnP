@@ -1,10 +1,9 @@
-#!/usr/bin/env python 
-
 import os, sys
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from TrianFlow.core.networks.model_depth_pose import Model_depth_pose
-from TrianFlow.core.networks.model_flow import Model_flow
+from core.networks.model_depth_pose import Model_depth_pose
+from core.networks.model_flow import Model_flow
 from visualizer import *
+from profiler import Profiler
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -14,48 +13,12 @@ from sklearn import linear_model
 import yaml
 import warnings
 import copy
-import code
 from collections import OrderedDict
+
+from models.corresondence_model import SuperFlow
+from util.utils import get_configs
+
 warnings.filterwarnings("ignore")
-
-## basic
-import argparse
-import time
-import csv
-import yaml
-import os
-import logging
-from pathlib import Path
-
-import numpy as np
-from imageio import imread
-from tqdm import tqdm
-from tensorboardX import SummaryWriter
-
-## torch
-import torch
-from torch.autograd import Variable
-import torch.backends.cudnn as cudnn
-import torch.optim
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.utils.data
-
-## other functions
-from pytorch-superpoint.utils.utils import (
-    tensor2array,
-    save_checkpoint,
-    load_checkpoint,
-    save_path_formatter,
-)
-from pytorch-superpoint.utils.utils import getWriterPath
-from pytorch-superpoint.utils.loader import dataLoader, modelLoader, pretrainedLoader, get_module
-from pytorch-superpoint.utils.utils import inv_warp_image_batch
-from pytorch-superpoint.models.model_wrap import SuperPointFrontend_torch, PointTracker
-
-
-## parameters
-from pytorch-superpoint.settings import EXPER_PATH
 
 def save_traj(path, poses):
     """
@@ -165,29 +128,25 @@ class infer_vo():
             image = cv2.imread(os.path.join(image_dir, '%.6d'%i)+'.png')
             image = cv2.resize(image, (new_img_w, new_img_h))
             images.append(image)
+
+        print('Loaded Images')
         return images
     
-    def get_flownet_correspondences_and_depths(self, img1, img2, model, K, K_inv, match_num):
-        """
-        Gets correpondences from flownet, and respective depths for each image
+    def get_prediction(self, img1, img2, model, K, K_inv, match_num, mode):
+        outs = model.inference(img1, img2, K, K_inv, match_num, (img1.shape[0], img1.shape[1]))
+        depth1 = outs['image1_depth']
+        depth2 = outs['image2_depth']
 
-        Parameters : 
-            img1
-            img2
-            model : model_depth_pose
-            K : intrinsics
-            K_inv : inverse of K
-            match_num : number of correspondences to subsample from total dense  correspondences
+        if mode == 'superpoint':
+            filt_depth_match = outs['superpoint_correspondences']
+            pass
+        elif mode == 'flownet':
+            filt_depth_match = outs['flownet_correspondences']
+            pass
+        elif mode == 'superflow':
+            #TODO : Do this
+            pass
         
-        """
-        # img1: [3,H,W] K: [3,3]
-        #visualizer = Visualizer_debug('/home3/zhaow/TrianFlow-pytorch/vis/')
-        img1_t = torch.from_numpy(np.transpose(img1 / 255.0, [2,0,1])).cuda().float().unsqueeze(0)
-        img2_t = torch.from_numpy(np.transpose(img2 / 255.0, [2,0,1])).cuda().float().unsqueeze(0)
-        K = torch.from_numpy(K).cuda().float().unsqueeze(0)
-        K_inv = torch.from_numpy(K_inv).cuda().float().unsqueeze(0)
-
-        filt_depth_match, depth1, depth2 = model.infer_vo(img1_t, img2_t, K, K_inv, match_num)
         return filt_depth_match[0].transpose(0,1).cpu().detach().numpy(), depth1[0].squeeze(0).cpu().detach().numpy(), depth2[0].squeeze(0).cpu().detach().numpy()
 
     
@@ -195,8 +154,6 @@ class infer_vo():
         '''Process a sequence to get scale consistent trajectory results. 
         Register according to depth net predictions. Here we assume depth predictions have consistent scale.
         If not, pleas use process_video_tri which only use triangulated depth to get self-consistent scaled pose.
-
-        Computes the relative pose for the first p frames, until we have a full p frames to do sample 3d-2d correspondences from 
         '''
         poses = []
         global_pose = np.eye(4)
@@ -207,14 +164,8 @@ class infer_vo():
         K_inv = np.linalg.inv(self.cam_intrinsics)
         for i in range(seq_len-1):
             img1, img2 = images[i], images[i+1]
-
-            ##### Correspondences from FlowNet #####
-            depth_match, depth1, depth2 = self.get_flownet_correspondences_and_depths(img1, img2, model, K, K_inv, match_num=5000)
-
-            ##### Keypoints from superpoint #####
-
-            #TODO: Create a mechanism to gather correspondences from superpoint keypoints
-                
+            depth_match, depth1, depth2 = self.get_prediction(img1, img2, model, K, K_inv, match_num=5000)
+            
             rel_pose = np.eye(4)
             flow_pose = self.solve_pose_flow(depth_match[:,:2], depth_match[:,2:])
             rel_pose[:3,:3] = copy.deepcopy(flow_pose[:3,:3])
@@ -224,7 +175,7 @@ class infer_vo():
             
             if np.linalg.norm(flow_pose[:3,3:]) == 0 or scale == -1:
                 print('PnP '+str(i))
-                pnp_pose = self.solve_pose_pnp(depth1, depth_match[:,2:] )
+                pnp_pose = self.solve_pose_pnp(depth_match[:,:2], depth_match[:,2:], depth1)
                 rel_pose = pnp_pose
 
             global_pose[:3,3:] = np.matmul(global_pose[:3,:3], rel_pose[:3,3:]) + global_pose[:3,3:]
@@ -271,16 +222,47 @@ class infer_vo():
 
         return scale
     
-    def solve_pose_pnp(self, depths,  xy2):
-        """
-        Use pnp to solve relative poses.
+    def solve_pose_pnp(self, xy1, xy2, depth1):
+        # Use pnp to solve relative poses.
+        # xy1, xy2: [N, 2] depth1: [H, W]
 
-        Parameters : 
-            xy2: [N, 2] (2d points correspondences in the latter image in time)
-            depths: [N, 3] (3d points of the correspondences in the former image in time)
-        """
-        return [] 
+        img_h, img_w = np.shape(depth1)[0], np.shape(depth1)[1]
+        
+        # Ensure all the correspondences are inside the image.
+        x_idx = (xy2[:, 0] >= 0) * (xy2[:, 0] < img_w)
+        y_idx = (xy2[:, 1] >= 0) * (xy2[:, 1] < img_h)
+        idx = y_idx * x_idx
+        xy1 = xy1[idx]
+        xy2 = xy2[idx]
 
+        xy1_int = xy1.astype(np.int)
+        sample_depth = depth1[xy1_int[:,1], xy1_int[:,0]]
+        valid_depth_mask = (sample_depth < self.max_depth) * (sample_depth > self.min_depth)
+
+        xy1 = xy1[valid_depth_mask]
+        xy2 = xy2[valid_depth_mask]
+
+        # Unproject to 3d space
+        points1 = unprojection(xy1, sample_depth[valid_depth_mask], self.cam_intrinsics)
+
+        # ransac
+        best_rt = []
+        max_inlier_num = 0
+        max_ransac_iter = self.PnP_ransac_times
+        
+        for i in range(max_ransac_iter):
+            if xy2.shape[0] > 4:
+                flag, r, t, inlier = cv2.solvePnPRansac(objectPoints=points1, imagePoints=xy2, cameraMatrix=self.cam_intrinsics, distCoeffs=None, iterationsCount=self.PnP_ransac_iter, reprojectionError=self.PnP_ransac_thre)
+                if flag and inlier.shape[0] > max_inlier_num:
+                    best_rt = [r, t]
+                    max_inlier_num = inlier.shape[0]
+        pose = np.eye(4)
+        if len(best_rt) != 0:
+            r, t = best_rt
+            pose[:3,:3] = cv2.Rodrigues(r)[0]
+            pose[:3,3:] = t
+        pose = np.linalg.inv(pose)
+        return pose
     
     def solve_pose_flow(self, xy1, xy2):
         # Solve essential matrix to find relative pose from flow.
@@ -322,7 +304,7 @@ if __name__ == '__main__':
     arg_parser = argparse.ArgumentParser(
         description="TrianFlow training pipeline."
     )
-    arg_parser.add_argument('-c', '--config_file', default=None, help='config file.')
+    arg_parser.add_argument('-c', '--config_file', default='./../../configs/train.yaml', help='config file.')
     arg_parser.add_argument('-g', '--gpu', type=str, default=0, help='gpu id.')
     arg_parser.add_argument('--mode', type=str, default='flow', help='training mode.')
     arg_parser.add_argument('--traj_save_dir_txt', type=str, default=None, help='directory for saving results')
@@ -331,27 +313,17 @@ if __name__ == '__main__':
     arg_parser.add_argument('--pretrained_model', type=str, default=None, help='directory for loading pretrained models')
     args = arg_parser.parse_args()
 
-    with open(args.config_file, 'r') as f:
-        cfg = yaml.safe_load(f)
-    cfg['dataset'] = 'kitti_odo'
-    # copy attr into cfg
-    for attr in dir(args):
-        if attr[:2] != '__':
-            cfg[attr] = getattr(args, attr)
-    class pObject(object):
-        def __init__(self):
-            pass
-    cfg_new = pObject()
-    for attr in list(cfg.keys()):
-        setattr(cfg_new, attr, cfg[attr])
-
-
-    
-    
     os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu)
 
-    #SuperPoint
-        model.eval()
+   
+    #do config stuff
+    model_cfg, cfg = get_configs(args.config_file)    
+
+    #create the model
+    model = SuperFlow(model_cfg)
+    model.load_modules(model_cfg)
+    model.cuda()
+    model.eval()
     print('Model Loaded.')
 
     print('Testing VO.')
@@ -363,4 +335,3 @@ if __name__ == '__main__':
 
     traj_txt = args.traj_save_dir_txt
     save_traj(traj_txt, poses)
-

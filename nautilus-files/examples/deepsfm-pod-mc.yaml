@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name:  deepsfm-pod-jbk001
+  name:  jbk001-pod
   namespace: mc-lab
   labels:
     user: jbk001 
