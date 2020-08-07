@@ -1,9 +1,8 @@
+#!/usr/bin/env python 
+
 import os, sys
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from core.networks.model_depth_pose import Model_depth_pose
-from core.networks.model_flow import Model_flow
-from visualizer import *
-from profiler import Profiler
+from TrianFlow.core.visualize.visualizer import *
+from TrianFlow.core.visualize.profiler import Profiler
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -12,11 +11,13 @@ import pdb
 from sklearn import linear_model
 import yaml
 import warnings
+import code
 import copy
+
 from collections import OrderedDict
 
 from models.corresondence_model import SuperFlow
-from util.utils import get_configs
+from utils.utils import get_configs
 
 warnings.filterwarnings("ignore")
 
@@ -132,25 +133,24 @@ class infer_vo():
         print('Loaded Images')
         return images
     
-    def get_prediction(self, img1, img2, model, K, K_inv, match_num, mode):
-        outs = model.inference(img1, img2, K, K_inv, match_num, (img1.shape[0], img1.shape[1]))
-        depth1 = outs['image1_depth']
-        depth2 = outs['image2_depth']
+    def get_prediction(self, img1, img2, model, K, K_inv, mode):
+        outs = model.inference(img1, img2, K, K_inv, (img1.shape[0], img1.shape[1]))
+        depth1 = outs['image1_depth'] # H, W
+        depth2 = outs['image2_depth'] # H, W
 
         if mode == 'superpoint':
-            filt_depth_match = outs['superpoint_correspondences']
-            pass
+            filt_depth_match = outs['superpoint_correspondences'] #M x 4 : due to its sparse nature it does not produce as many correspondences as flownet
         elif mode == 'flownet':
-            filt_depth_match = outs['flownet_correspondences']
-            pass
+            filt_depth_match = outs['flownet_correspondences']# N x 4
         elif mode == 'superflow':
+            filt_depth_match = outs['superflow_correspondences']# N x 4
+
             #TODO : Do this
-            pass
         
-        return filt_depth_match[0].transpose(0,1).cpu().detach().numpy(), depth1[0].squeeze(0).cpu().detach().numpy(), depth2[0].squeeze(0).cpu().detach().numpy()
+        return filt_depth_match, depth1, depth2
 
     
-    def process_video(self, images, model):
+    def process_video(self, images, model, mode):
         '''Process a sequence to get scale consistent trajectory results. 
         Register according to depth net predictions. Here we assume depth predictions have consistent scale.
         If not, pleas use process_video_tri which only use triangulated depth to get self-consistent scaled pose.
@@ -164,7 +164,7 @@ class infer_vo():
         K_inv = np.linalg.inv(self.cam_intrinsics)
         for i in range(seq_len-1):
             img1, img2 = images[i], images[i+1]
-            depth_match, depth1, depth2 = self.get_prediction(img1, img2, model, K, K_inv, match_num=5000)
+            depth_match, depth1, depth2 = self.get_prediction(img1, img2, model, K, K_inv, mode)
             
             rel_pose = np.eye(4)
             flow_pose = self.solve_pose_flow(depth_match[:,:2], depth_match[:,2:])
@@ -304,13 +304,12 @@ if __name__ == '__main__':
     arg_parser = argparse.ArgumentParser(
         description="TrianFlow training pipeline."
     )
-    arg_parser.add_argument('-c', '--config_file', default='./../../configs/train.yaml', help='config file.')
+    arg_parser.add_argument('-c', '--config_file', default='./configs/train.yaml', help='config file.')
     arg_parser.add_argument('-g', '--gpu', type=str, default=0, help='gpu id.')
-    arg_parser.add_argument('--mode', type=str, default='flow', help='training mode.')
-    arg_parser.add_argument('--traj_save_dir_txt', type=str, default=None, help='directory for saving results')
-    arg_parser.add_argument('--sequences_root_dir', type=str, default=None, help='directory for test sequences')
+    arg_parser.add_argument('--mode', type=str, default='flownet', help='training mode.')
+    arg_parser.add_argument('--traj_save_dir_txt', type=str, default='/jbk001-data1/kitti_vo/vo_preds/superflow', help='directory for saving results')
+    arg_parser.add_argument('--sequences_root_dir', type=str, default='/jbk001-data1/kitti_vo/vo_dataset/sequences', help='directory for test sequences')
     arg_parser.add_argument('--sequence', type=str, default='09', help='Test sequence id.')
-    arg_parser.add_argument('--pretrained_model', type=str, default=None, help='directory for loading pretrained models')
     args = arg_parser.parse_args()
 
     os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu)
@@ -330,7 +329,7 @@ if __name__ == '__main__':
     vo_test = infer_vo(args.sequence, args.sequences_root_dir)
     images = vo_test.load_images()
     print('Images Loaded. Total ' + str(len(images)) + ' images found.')
-    poses = vo_test.process_video(images, model)
+    poses = vo_test.process_video(images, model, args.mode)
     print('Test completed.')
 
     traj_txt = args.traj_save_dir_txt

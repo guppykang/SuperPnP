@@ -1,5 +1,6 @@
 import argparse
 import cv2
+import copy
 import os
 import yaml
 import code
@@ -10,6 +11,27 @@ import torch
 
 from superpoint.utils.var_dim import toNumpy, squeezeToNumpy
 from superpoint.models.model_utils import SuperPointNet_process
+
+def dense_sparse_hybrid_correspondences(image1_keypoints, flownet_matches, superpoint_matches, num_matches):
+    matches = np.zeros((num_matches, 4))
+    
+    common_matches, flownet_matches = get_flownet_matches_from_superpoint_keypoints(image1_keypoints, flownet_matches)
+    matches[:common_matches.shape[0]] = common_matches
+    
+    #get random
+    
+    temp_num_matches = int((num_matches-common_matches.shape[0])/2)
+    
+    flownet_indices = np.random.choice(flownet_matches.shape[0], temp_num_matches, replace=False)
+    matches[common_matches.shape[0] : common_matches.shape[0] + temp_num_matches] = flownet_matches[flownet_indices]
+    
+    temp_num_matches = num_matches - common_matches.shape[0] - temp_num_matches
+    #I recognize here that I still possibly have the superpoint matches that I chose in "common_matches"
+    superpoint_indices = np.random.choice(superpoint_matches.shape[0], temp_num_matches)
+    matches[flownet_indices.shape[0] + common_matches.shape[0] :] = superpoint_matches[superpoint_indices]
+    
+    return matches
+
 
 def get_random_sequence():
     """
@@ -29,24 +51,31 @@ def get_flownet_matches_from_superpoint_keypoints(image1_keypoints, matches):
     Returns : 
         N x 4
     """
+    remaining_matches = copy.deepcopy(matches)
+    chosen_indices = []
     
     match_points = []
     for keypoint_idx, keypoint in enumerate(image1_keypoints):
-        for match in matches:
+        for match_idx, match in enumerate(matches):
             if int(match[0]) == int(keypoint[0]) and int(match[1]) == int(keypoint[1]):
                 match_points.append(match)
+                chosen_indices.append(match_idx)
                 break
-    return np.array(match_points)
+                
+    for index in chosen_indices:
+        remaining_matches = np.delete(remaining_matches, index, axis=0)
+        
+    return np.array(match_points), remaining_matches
 
 
-def get_superpoint_2d_matches(descriptor_matches, image1_keypoints, image2_keypoints, num_matches=100, ranked=False):
+def get_superpoint_2d_matches(descriptor_matches, image1_keypoints, image2_keypoints, num_matches, ranked=False):
     """
     Given a set of descriptor matches, finds the top num_matcheas with the highest score and returns those 2d-2d correspondences. 
     
     Parameters : 
         descriptor_matches : (N, 3) where each entry is a tuple of (image1_index, image2_index, score)
         image1_keypoints, image2_keypoints : (N, 2). 2d pixel wise keypoints
-        num_matches : the number of matches that we want to choose from
+        num_matches : the number of matches that we want to choose from, if it is less than descriptor_matches.shape[0]
         ranked : returns the top ranked matches if True. Otherwise, returns all matches
         
     Returns : 
@@ -55,7 +84,7 @@ def get_superpoint_2d_matches(descriptor_matches, image1_keypoints, image2_keypo
     image1_keypoints = toNumpy(image1_keypoints)
     image2_keypoints = toNumpy(image2_keypoints)
 
-    
+
     if ranked:
         sort_index = np.argsort(descriptor_matches[:, 2])
         

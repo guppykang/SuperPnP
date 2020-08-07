@@ -24,7 +24,7 @@ from superpoint.utils.utils import flattenDetection
 from TrianFlow.core.networks.model_depth_pose import Model_depth_pose 
 
 #My Utils
-from utils.utils import desc_to_sparseDesc, prep_superpoint_image, prep_trianflow_image, get_superpoint_2d_matches, get_flownet_matches_from_superpoint_keypoints
+from utils.utils import desc_to_sparseDesc, prep_superpoint_image, prep_trianflow_image, get_superpoint_2d_matches, dense_sparse_hybrid_correspondences
 
 class SuperFlow(torch.nn.Module):
     def __init__(self, cfg):
@@ -36,7 +36,7 @@ class SuperFlow(torch.nn.Module):
         super(SuperFlow, self).__init__()
         
         self.device = 'cuda:0'
-        self.num_matches = 100
+        self.num_matches = 6000
 
         #TrianFlow
         self.trianFlow = Model_depth_pose(cfg["trianflow"])
@@ -83,12 +83,11 @@ class SuperFlow(torch.nn.Module):
             self.net, lr=self.config["model"]["learning_rate"]
         )
 
-    def inference(self, image1, image2, K, K_inv, match_num, hw):
+    def inference(self, image1, image2, K, K_inv, hw):
         """ Forward pass computes keypoints, descriptors, and 3d-2d correspondences.
         Input
             image1, image2: input pair images
             K, K_inverse : intrinsic matrix, and its inverse
-            match_num : number of matches to output
         Output
             outs: {
                    flownet_correspondences, 
@@ -128,7 +127,6 @@ class SuperFlow(torch.nn.Module):
         outs['keypoints'] = superpoint_keypoints
         outs['image1_superpoint_out'], outs['image2_superpoint_out'] = {}, {}
         for out_key in processed_superpoint_out.keys():
-            #TODO : don't forget here that we detached the tensor
             for img_idx, img_key in enumerate(['image1_superpoint_out', 'image2_superpoint_out']):
                 outs[img_key][out_key] = processed_superpoint_out[out_key][img_idx]
              
@@ -143,17 +141,14 @@ class SuperFlow(torch.nn.Module):
         outs['inputs'] = { 'image1' : image1_resized , 'image2' : image2_resized }
         K = torch.from_numpy(K).cuda().float().unsqueeze(0)
         K_inverse = torch.from_numpy(K_inv).cuda().float().unsqueeze(0)
+        correspondences, image1_depth_map, image2_depth_map = self.trianFlow.infer_vo(image1_t, image2_t, K, K_inverse, self.num_matches)
 
-        correspondences, image1_depth_map, image2_depth_map = self.trianFlow.infer_vo(image1_t, image2_t, K, K_inverse, match_num)
-        outs['flownet_correspondences'] = correspondences.T
-        outs['image1_depth'] = image1_depth_map 
-        outs['image2_depth'] = image2_depth_map 
-        
-        outs['superpoint_keypoint_correspondences'] = get_flownet_matches_from_superpoint_keypoints(outs['keypoints'][0], squeezeToNumpy(outs['flownet_correspondences']))
-        
-        
-        
-        
+        #post process
+        outs['flownet_correspondences'] = squeezeToNumpy(correspondences.T)
+        outs['image1_depth'] = squeezeToNumpy(image1_depth_map)
+        outs['image2_depth'] = squeezeToNumpy(image2_depth_map)
+        outs['superflow_correspondences'] = dense_sparse_hybrid_correspondences(outs['keypoints'][0], (outs['flownet_correspondences']), outs['superpoint_correspondences'], self.num_matches)
+
         return outs
 
 

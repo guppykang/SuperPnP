@@ -51,7 +51,7 @@ if __name__ == '__main__':
     #TODO : assert that the K has the right dims that we expect to have 3x3
 
     #inference
-    outs = model.inference(images[0], images[1], K, K_inv, model_cfg['trianflow'].match_num, cfg['img_hw'])
+    outs = model.inference(images[0], images[1], K, K_inv, cfg['img_hw'])
     torch.save(outs, 'inference_outs.pth')
     
     

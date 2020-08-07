@@ -13,6 +13,7 @@ from sklearn import linear_model
 import yaml
 import warnings
 import copy
+import code
 from collections import OrderedDict
 warnings.filterwarnings("ignore")
 
@@ -137,6 +138,7 @@ class infer_vo():
         K_inv = torch.from_numpy(K_inv).cuda().float().unsqueeze(0)
 
         filt_depth_match, depth1, depth2 = model.infer_vo(img1_t, img2_t, K, K_inv, match_num)
+        
         return filt_depth_match[0].transpose(0,1).cpu().detach().numpy(), depth1[0].squeeze(0).cpu().detach().numpy(), depth2[0].squeeze(0).cpu().detach().numpy()
 
     
@@ -155,6 +157,8 @@ class infer_vo():
         for i in range(seq_len-1):
             img1, img2 = images[i], images[i+1]
             depth_match, depth1, depth2 = self.get_prediction(img1, img2, model, K, K_inv, match_num=5000)
+            code.interact(local=locals())
+
             
             rel_pose = np.eye(4)
             flow_pose = self.solve_pose_flow(depth_match[:,:2], depth_match[:,2:])
