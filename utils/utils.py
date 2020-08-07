@@ -62,8 +62,7 @@ def get_flownet_matches_from_superpoint_keypoints(image1_keypoints, matches):
                 chosen_indices.append(match_idx)
                 break
                 
-    for index in chosen_indices:
-        remaining_matches = np.delete(remaining_matches, index, axis=0)
+    remaining_matches = np.delete(remaining_matches, chosen_indices, axis=0)
         
     return np.array(match_points), remaining_matches
 
