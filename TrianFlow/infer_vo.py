@@ -15,6 +15,7 @@ import warnings
 import copy
 import code
 from collections import OrderedDict
+from tqdm import tqdm
 warnings.filterwarnings("ignore")
 
 def save_traj(path, poses):
@@ -154,7 +155,7 @@ class infer_vo():
         seq_len = len(images)
         K = self.cam_intrinsics
         K_inv = np.linalg.inv(self.cam_intrinsics)
-        for i in range(seq_len-1):
+        for i in tqdm(range(seq_len-1)):
             img1, img2 = images[i], images[i+1]
             depth_match, depth1, depth2 = self.get_prediction(img1, img2, model, K, K_inv, match_num=5000)
             code.interact(local=locals())
@@ -175,7 +176,7 @@ class infer_vo():
             global_pose[:3,3:] = np.matmul(global_pose[:3,:3], rel_pose[:3,3:]) + global_pose[:3,3:]
             global_pose[:3,:3] = np.matmul(global_pose[:3,:3], rel_pose[:3,:3])
             poses.append(copy.deepcopy(global_pose))
-            print(i)
+            # print(i)
         return poses
     
     def normalize_coord(self, xy, K):
