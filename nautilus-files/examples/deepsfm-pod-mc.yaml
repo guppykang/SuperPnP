@@ -8,7 +8,13 @@ metadata:
 spec:
   containers:
   - name: gpu-container
-    image: gitlab-registry.nautilus.optiputer.net/prp/jupyter-stack/scipy #pytorch/pytorch:1.0.1-cuda10.0-cudnn7-runtime
+    image: gitlab-registry.nautilus.optiputer.net/prp/jupyterlab 
+    command : 
+    - "sh"
+    - "-c"
+    - "./jbk001-data1/git/SuperPnP/setup_nautilus.sh"
+    - "source /home/jovyan/.bashrc"
+    - "echo WELCOME DARK LORD TO YOUR HUMBLE DOMAIN"
     # imagePullPolicy: Always
     args: ["sleep", "infinity"]
     resources:
