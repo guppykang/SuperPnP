@@ -83,7 +83,9 @@ class SuperPointNet_process(object):
             samp_pts = samp_pts.view(1, 1, -1, 2)
             samp_pts = samp_pts.float()
             # samp_pts = samp_pts.to(self.device)
-            desc = torch.nn.functional.grid_sample(coarse_desc, samp_pts, align_corners=True) # tensor [batch_size(1), D, 1, N]
+            desc = torch.nn.functional.grid_sample(coarse_desc, samp_pts) # tensor [batch_size(1), D, 1, N]
+
+#             desc = torch.nn.functional.grid_sample(coarse_desc, samp_pts, align_corners=True) # tensor [batch_size(1), D, 1, N]
             # desc = desc.data.cpu().numpy().reshape(D, -1)
             # desc /= np.linalg.norm(desc, axis=0)[np.newaxis, :]
             desc = desc.squeeze().transpose(0,1).unsqueeze(0)

@@ -12,6 +12,7 @@ from sklearn import linear_model
 import yaml
 import warnings
 import code
+from tqdm import tqdm
 import copy
 
 from collections import OrderedDict
@@ -162,7 +163,7 @@ class infer_vo():
         seq_len = len(images)
         K = self.cam_intrinsics
         K_inv = np.linalg.inv(self.cam_intrinsics)
-        for i in range(seq_len-1):
+        for i in tqdm(range(seq_len-1)):
             img1, img2 = images[i], images[i+1]
             depth_match, depth1, depth2 = self.get_prediction(img1, img2, model, K, K_inv, mode)
             
@@ -306,8 +307,8 @@ if __name__ == '__main__':
     )
     arg_parser.add_argument('-c', '--config_file', default='./configs/train.yaml', help='config file.')
     arg_parser.add_argument('-g', '--gpu', type=str, default=0, help='gpu id.')
-    arg_parser.add_argument('--mode', type=str, default='flownet', help='training mode.')
-    arg_parser.add_argument('--traj_save_dir_txt', type=str, default='/jbk001-data1/kitti_vo/vo_preds/superflow', help='directory for saving results')
+    arg_parser.add_argument('--mode', type=str, default='flownet', help='(choose from : flownet, superflow, superpoint)')
+    arg_parser.add_argument('--traj_save_dir_txt', type=str, default='/jbk001-data1/kitti_vo/vo_preds/superflow/09.txt', help='directory for saving results')
     arg_parser.add_argument('--sequences_root_dir', type=str, default='/jbk001-data1/kitti_vo/vo_dataset/sequences', help='directory for test sequences')
     arg_parser.add_argument('--sequence', type=str, default='09', help='Test sequence id.')
     args = arg_parser.parse_args()
