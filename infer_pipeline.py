@@ -307,7 +307,7 @@ if __name__ == '__main__':
     )
     arg_parser.add_argument('-c', '--config_file', default='./configs/train.yaml', help='config file.')
     arg_parser.add_argument('-g', '--gpu', type=str, default=0, help='gpu id.')
-    arg_parser.add_argument('--mode', type=str, default='flownet', help='(choose from : flownet, superflow, superpoint)')
+    arg_parser.add_argument('--mode', type=str, default='superflow', help='(choose from : flownet, superflow, superpoint)')
     arg_parser.add_argument('--traj_save_dir_txt', type=str, default='/jbk001-data1/kitti_vo/vo_preds/superflow/09.txt', help='directory for saving results')
     arg_parser.add_argument('--sequences_root_dir', type=str, default='/jbk001-data1/kitti_vo/vo_dataset/sequences', help='directory for test sequences')
     arg_parser.add_argument('--sequence', type=str, default='09', help='Test sequence id.')
@@ -332,6 +332,8 @@ if __name__ == '__main__':
     print('Images Loaded. Total ' + str(len(images)) + ' images found.')
     poses = vo_test.process_video(images, model, args.mode)
     print('Test completed.')
+    
+    code.interact(local=locals())
 
     traj_txt = args.traj_save_dir_txt
     save_traj(traj_txt, poses)
