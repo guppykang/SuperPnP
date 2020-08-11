@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name:  jbk001-running
+  name:  running-jbk001
   namespace: mc-lab
   labels:
     user: jbk001 
