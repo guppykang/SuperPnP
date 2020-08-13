@@ -9,6 +9,7 @@ spec:
   containers:
   - name: gpu-container
     image: gitlab-registry.nautilus.optiputer.net/prp/jupyterlab 
+
     # imagePullPolicy: Always
     args: ["sleep", "infinity"]
     resources:
