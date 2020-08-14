@@ -18,7 +18,7 @@ from pathlib import Path
 
 from collections import OrderedDict
 
-from models.corresondence_model import SuperFlow
+from models.siftflow_correspondence import SiftFlow
 from utils.utils import get_configs
 
 warnings.filterwarnings("ignore")
@@ -145,14 +145,12 @@ class infer_vo():
         depth1 = outs['image1_depth'] # H, W
         depth2 = outs['image2_depth'] # H, W
 
-        if mode == 'superpoint':
-            filt_depth_match = outs['superpoint_correspondences'] #M x 4 : due to its sparse nature it does not produce as many correspondences as flownet
+        if mode == 'sift':
+            filt_depth_match = outs['sift_correspondences'] #M x 4. M can be less than num_matches due to the nature of sift not having per pixel correspondences like flownet
         elif mode == 'flownet':
-            filt_depth_match = outs['flownet_correspondences']# N x 4
-        elif mode == 'superflow':
-            filt_depth_match = outs['superflow_correspondences']# N x 4
-
-            #TODO : Do this
+            filt_depth_match = outs['flownet_correspondences']# num_matches x 4
+        elif mode == 'siftflow':
+            filt_depth_match = outs['siftflow_correspondences']# num_matches x 4
         
         return filt_depth_match, depth1, depth2
 
@@ -313,7 +311,7 @@ if __name__ == '__main__':
     )
     arg_parser.add_argument('-c', '--config_file', default='./configs/train.yaml', help='config file.')
     arg_parser.add_argument('-g', '--gpu', type=str, default=0, help='gpu id.')
-    arg_parser.add_argument('--mode', type=str, default='superflow', help='(choose from : flownet, superflow, superpoint)')
+    arg_parser.add_argument('--mode', type=str, default='siftflow', help='(choose from : sift, flownet, siftflow)')
     arg_parser.add_argument('--traj_save_dir', type=str, default='/jbk001-data1/kitti_vo/vo_preds/superflow', help='directory for saving results')
     arg_parser.add_argument('--sequences_root_dir', type=str, default='/jbk001-data1/kitti_vo/vo_dataset/sequences', help='directory for test sequences')
     arg_parser.add_argument('--sequence', type=str, default='10', help='Test sequence id.')
@@ -328,7 +326,7 @@ if __name__ == '__main__':
     model_cfg, cfg = get_configs(args.config_file)    
 
     #create the model
-    model = SuperFlow(model_cfg)
+    model = SiftFlow(model_cfg)
     model.load_modules(model_cfg)
     model.cuda()
     model.eval()

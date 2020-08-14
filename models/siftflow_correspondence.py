@@ -120,13 +120,20 @@ class SiftFlow(torch.nn.Module):
         outs['image1_depth'] = squeezeToNumpy(image1_depth_map)
         outs['image2_depth'] = squeezeToNumpy(image2_depth_map)
         
+        
+        
         #SIFT 
         outs['image1_sift_keypoints'], outs['image1_sift_descriptors'] = classical_detector_descriptor(image1_resized, image1_resized)
         outs['image2_sift_keypoints'], outs['image2_sift_descriptors'] = classical_detector_descriptor(image2_resized, image2_resized)
         
         image1_sift_matches, image2_sift_matches, _, good_matches_indices = KNN_match(outs['image1_sift_descriptors'], outs['image2_sift_descriptors'], outs['image1_sift_keypoints'], outs['image2_sift_keypoints'], None, None, None, None)
+        
         outs['sift_correspondences'] = np.concatenate((image1_sift_matches, image2_sift_matches), axis=1)
+        if outs['sift_correspondences'].shape[0] > self.num_matches:
+            outs['sift_correspondences'] = outs['sift_correspondences'][:self.num_matches]
 
+        
+        
         #SIFTFLOW
         outs['siftflow_correspondences'] = dense_sparse_hybrid_correspondences(outs['image1_sift_keypoints'], outs['image2_sift_keypoints'], outs['flownet_correspondences'], outs['sift_correspondences'], self.num_matches)
 
