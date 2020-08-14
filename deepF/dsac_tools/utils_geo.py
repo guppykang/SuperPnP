@@ -2,7 +2,7 @@ import torch
 import numpy as np
 import cv2
 import math
-import deepFEPE.dsac_tools.utils_misc as utils_misc
+import deepF.dsac_tools.utils_misc as utils_misc
 
 def rot_to_angle(R):
     return rot12_to_angle_error(np.eye(3, R))

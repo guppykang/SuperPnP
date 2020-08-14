@@ -1,7 +1,7 @@
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
-import deepFEPE.dsac_tools.utils_misc as utils_misc
+import deepF.dsac_tools.utils_misc as utils_misc
 
 def drawlines(img1,img2,lines,pts1,pts2, colors=None, width=1):
     ''' OpenCV function for img1 - image on which we draw the epilines for the points in img2

@@ -7,9 +7,9 @@ import scipy
 import random
 from six.moves import xrange
 import operator
-import deepFEPE.dsac_tools.utils_misc as utils_misc
-import deepFEPE.dsac_tools.utils_geo as utils_geo
-import deepFEPE.dsac_tools.utils_vis as utils_vis
+import deepF.dsac_tools.utils_misc as utils_misc
+import deepF.dsac_tools.utils_geo as utils_geo
+import deepF.dsac_tools.utils_vis as utils_vis
 # from batch_svd import batch_svd # https://github.com/KinglittleQ/torch-batch-svd.git
 
 def _normalize_XY(X, Y):

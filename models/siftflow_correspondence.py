@@ -26,7 +26,9 @@ from deepF.dsac_tools.utils_opencv import KNN_match
 from TrianFlow.core.networks.model_depth_pose import Model_depth_pose 
 
 #My Utils
-from utils.utils import desc_to_sparseDesc, prep_superpoint_image, prep_trianflow_image, get_2d_matches, desc_nn_match_two_way, dense_sparse_hybrid_correspondences
+from utils.utils import desc_to_sparseDesc, prep_superpoint_image, prep_trianflow_image, get_2d_matches, dense_sparse_hybrid_correspondences
+
+
 
     
 class SiftFlow(torch.nn.Module):
@@ -104,16 +106,7 @@ class SiftFlow(torch.nn.Module):
                    }
         """
         outs = {}
-        
-        #SIFT 
-        #TODO : check the input into SIFT should be rgb ints
-        outs['image1_sift_keypoints'], outs['image1_sift_descriptors'] = classical_detector_descriptor(image1, image1)
-        outs['image2_sift_keypoints'], outs['image2_sift_descriptors'] = classical_detector_descriptor(image2, image2)
-        
-        outs['sift_matches'] = KNN_match(outs['image1_sift_descriptors'], outs['image2_sift_descriptors'], outs['image1_sift_descriptors'], outs['image2_sift_descriptors'], None, None, None, None)
-
-        
-        
+                    
         #TrianFlow
         image1_t, image1_resized = prep_trianflow_image(image1, hw)
         image2_t, image2_resized = prep_trianflow_image(image2, hw)
@@ -126,7 +119,16 @@ class SiftFlow(torch.nn.Module):
         outs['flownet_correspondences'] = squeezeToNumpy(correspondences.T)
         outs['image1_depth'] = squeezeToNumpy(image1_depth_map)
         outs['image2_depth'] = squeezeToNumpy(image2_depth_map)
-        outs['siftflow_correspondences'] = dense_sparse_hybrid_correspondences(outs['keypoints'][0], (outs['flownet_correspondences']), outs['sift_correspondences'], self.num_matches)
+        
+        #SIFT 
+        outs['image1_sift_keypoints'], outs['image1_sift_descriptors'] = classical_detector_descriptor(image1_resized, image1_resized)
+        outs['image2_sift_keypoints'], outs['image2_sift_descriptors'] = classical_detector_descriptor(image2_resized, image2_resized)
+        
+        image1_sift_matches, image2_sift_matches, _, good_matches_indices = KNN_match(outs['image1_sift_descriptors'], outs['image2_sift_descriptors'], outs['image1_sift_keypoints'], outs['image2_sift_keypoints'], None, None, None, None)
+        outs['sift_correspondences'] = np.concatenate((image1_sift_matches, image2_sift_matches), axis=1)
+
+        #SIFTFLOW
+        outs['siftflow_correspondences'] = dense_sparse_hybrid_correspondences(outs['image1_sift_keypoints'], outs['image2_sift_keypoints'], outs['flownet_correspondences'], outs['sift_correspondences'], self.num_matches)
 
         return outs
 

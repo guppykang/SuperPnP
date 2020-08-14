@@ -16,9 +16,8 @@ import pickle
 #utils stuff
 from utils.utils import load_image_pair, load_camera_intrinsics, pObject, get_configs, get_random_sequence
 
-#bad juju probably should leave this commented in the worst case that stuff breaks
-# import warnings
-# warnings.filterwarnings("ignore")
+import warnings
+warnings.filterwarnings("ignore")
 
 if __name__ == '__main__':
     arg_parser = argparse.ArgumentParser(description="Unit Tests for Correspondence_model")
