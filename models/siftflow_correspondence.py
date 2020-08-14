@@ -1,5 +1,5 @@
 """
-Sub Module for finding correspondences, keypoints, and descriptors using Superpoint and Flownet
+Sub Module for finding correspondences, keypoints, and descriptors using SIFT and/or Flownet
 """
 #general
 import numpy as np
@@ -18,22 +18,25 @@ from superpoint.utils.utils import flattenDetection
 from superpoint.models.model_utils import SuperPointNet_process
 from superpoint.models.SuperPointNet_gauss2 import get_matches as get_descriptor_matches
 from superpoint.utils.utils import flattenDetection
+from superpoint.models.classical_detectors_descriptors import SIFT_det as classical_detector_descriptor
 
+from deepF.dsac_tools.utils_opencv import KNN_match
 
 #TrianFlow imports
 from TrianFlow.core.networks.model_depth_pose import Model_depth_pose 
 
 #My Utils
-from utils.utils import desc_to_sparseDesc, prep_superpoint_image, prep_trianflow_image, get_2d_matches, dense_sparse_hybrid_correspondences
+from utils.utils import desc_to_sparseDesc, prep_superpoint_image, prep_trianflow_image, get_2d_matches, desc_nn_match_two_way, dense_sparse_hybrid_correspondences
 
-class SuperFlow(torch.nn.Module):
+    
+class SiftFlow(torch.nn.Module):
     def __init__(self, cfg):
         """
         Model consists of two modules for correspondences:
             TrianFlow : https://github.com/B1ueber2y/TrianFlow
             SuperPoint : https://github.com/eric-yyjau/pytorch-superpoint
         """
-        super(SuperFlow, self).__init__()
+        super(SiftFlow, self).__init__()
         
         self.device = 'cuda:0'
         self.num_matches = 6000
@@ -41,17 +44,7 @@ class SuperFlow(torch.nn.Module):
         #TrianFlow
         self.trianFlow = Model_depth_pose(cfg["trianflow"])
 
-        #SuperPoint
-        self.superpoint = Train_model_heatmap(cfg["superpoint"], device=self.device)
-        
-        self.superpoint_processor_params = {
-            'out_num_points': 500,
-            'patch_size': 5,
-            'device': self.device,
-            'nms_dist': 4,
-            'conf_thresh': 0.015
-        }
-        self.superpoint_processor = SuperPointNet_process(**self.superpoint_processor_params)
+        #SIFT
     
     def load_modules(self, cfg):
         """
@@ -60,9 +53,6 @@ class SuperFlow(torch.nn.Module):
         #load trian flow
         weights = torch.load(cfg["trianflow"].pretrained)
         self.trianFlow.load_state_dict(weights['model_state_dict'])
-
-        #load superpoint
-        self.superpoint.loadModel()
 
         pass
 
@@ -115,24 +105,13 @@ class SuperFlow(torch.nn.Module):
         """
         outs = {}
         
-        #superpoint
-        image1_t = prep_superpoint_image(image1, hw)
-        image2_t = prep_superpoint_image(image2, hw)
-        pair_input_tensor = torch.cat((image1_t, image2_t), 0)
-        with torch.no_grad():
-            superpoint_out = self.superpoint.net(pair_input_tensor)
-            
-        processed_superpoint_out, superpoint_keypoints = self.superpoint.net.process_output(self.superpoint_processor)
+        #SIFT 
+        #TODO : check the input into SIFT should be rgb ints
+        outs['image1_sift_keypoints'], outs['image1_sift_descriptors'] = classical_detector_descriptor(image1, image1)
+        outs['image2_sift_keypoints'], outs['image2_sift_descriptors'] = classical_detector_descriptor(image2, image2)
         
-        outs['keypoints'] = superpoint_keypoints
-        outs['image1_superpoint_out'], outs['image2_superpoint_out'] = {}, {}
-        for out_key in processed_superpoint_out.keys():
-            for img_idx, img_key in enumerate(['image1_superpoint_out', 'image2_superpoint_out']):
-                outs[img_key][out_key] = processed_superpoint_out[out_key][img_idx]
-             
-        descriptor_matches = get_descriptor_matches([outs['image1_superpoint_out']['pts_desc'], outs['image2_superpoint_out']['pts_desc']]).T
-        
-        outs['superpoint_correspondences'] = get_2d_matches(descriptor_matches, outs['image1_superpoint_out']['pts_int'], outs['image2_superpoint_out']['pts_int'], self.num_matches)
+        outs['sift_matches'] = KNN_match(outs['image1_sift_descriptors'], outs['image2_sift_descriptors'], outs['image1_sift_descriptors'], outs['image2_sift_descriptors'], None, None, None, None)
+
         
         
         #TrianFlow
@@ -147,7 +126,7 @@ class SuperFlow(torch.nn.Module):
         outs['flownet_correspondences'] = squeezeToNumpy(correspondences.T)
         outs['image1_depth'] = squeezeToNumpy(image1_depth_map)
         outs['image2_depth'] = squeezeToNumpy(image2_depth_map)
-        outs['superflow_correspondences'] = dense_sparse_hybrid_correspondences(outs['keypoints'][0], outs['keypoints'][1], outs['flownet_correspondences'], outs['superpoint_correspondences'], self.num_matches)
+        outs['siftflow_correspondences'] = dense_sparse_hybrid_correspondences(outs['keypoints'][0], (outs['flownet_correspondences']), outs['sift_correspondences'], self.num_matches)
 
         return outs
 

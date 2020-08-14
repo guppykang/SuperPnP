@@ -117,7 +117,10 @@ class infer_vo():
         cam_intrinsics[1,:] = cam_intrinsics[1,:] * new_img_h / raw_img_h
         return cam_intrinsics
     
-    def load_images(self):
+    def load_images(self, stride=1):
+        """
+        Stride is the number of images to skip between
+        """
         path = self.img_dir
         seq = self.seq_id
         new_img_h = self.new_img_h
@@ -127,6 +130,8 @@ class infer_vo():
         num = len(os.listdir(image_dir))
         images = []
         for i in range(num):
+            if i % stride != 0:
+                continue
             image = cv2.imread(os.path.join(image_dir, '%.6d'%i)+'.png')
             image = cv2.resize(image, (new_img_w, new_img_h))
             images.append(image)

@@ -12,25 +12,38 @@ import torch
 from superpoint.utils.var_dim import toNumpy, squeezeToNumpy
 from superpoint.models.model_utils import SuperPointNet_process
 
-def dense_sparse_hybrid_correspondences(image1_keypoints, flownet_matches, superpoint_matches, num_matches, flownet_ratio=0.5):
+
+def dense_sparse_hybrid_correspondences(image1_keypoints, image2_keypoints, flownet_matches, superpoint_matches, num_matches, flownet_ratio=0.5):
     matches = np.zeros((num_matches, 4))
     
-    common_matches, flownet_matches = get_flownet_matches_from_superpoint_keypoints(image1_keypoints, flownet_matches)
-    matches[:common_matches.shape[0]] = common_matches
+    current_start_index = 0
     
-    #get random
+    #image1 keypoints
+    common_matches_image1, flownet_matches = get_flownet_matches_from_superpoint_keypoints(image1_keypoints, flownet_matches)
+    matches[:common_matches_image1.shape[0]] = common_matches_image1
+    current_start_index = common_matches_image1.shape[0]
     
-    temp_num_matches = int((num_matches-common_matches.shape[0]) * flownet_ratio)
+    #image2 keypoints 
+    common_matches_image2, flownet_matches = get_flownet_matches_from_superpoint_keypoints(image2_keypoints, flownet_matches)
+    matches[current_start_index : current_start_index + common_matches_image2.shape[0]] = common_matches_image2
+    current_start_index += common_matches_image2.shape[0]
+    
+    print(f'number of hybrid matches : {current_start_index}')
+    
+    
+    #Fill with random choices from remaining flownet and superoints matches
+    temp_num_matches = int((num_matches-current_start_index) * flownet_ratio)
     
     #get half flownet correspondences
     flownet_indices = np.random.choice(flownet_matches.shape[0], temp_num_matches, replace=False)
-    matches[common_matches.shape[0] : common_matches.shape[0] + temp_num_matches] = flownet_matches[flownet_indices]
+    matches[current_start_index : current_start_index + temp_num_matches] = flownet_matches[flownet_indices]
+    current_start_index += temp_num_matches
     
     #get half superpoint correspondences
-    temp_num_matches = num_matches - common_matches.shape[0] - temp_num_matches
+    temp_num_matches = num_matches - current_start_index
     #I recognize here that I still possibly have the superpoint matches that I chose in "common_matches"
     superpoint_indices = np.random.choice(superpoint_matches.shape[0], temp_num_matches)
-    matches[flownet_indices.shape[0] + common_matches.shape[0] :] = superpoint_matches[superpoint_indices]
+    matches[current_start_index :] = superpoint_matches[superpoint_indices]
     
     return matches
 
@@ -43,13 +56,14 @@ def get_random_sequence():
     return sequences[random.randint(0, len(sequences)-1)]
         
 
-def get_flownet_matches_from_superpoint_keypoints(image1_keypoints, matches):
+def get_flownet_matches_from_superpoint_keypoints(keypoints, matches, image_keypoints=1):
     """
     Given keypoints from superpoint, grab the correspondences that exist in those pixel locations
     
     Parameters : 
-        image1_keypoints : (N x 2) Superpoint Keypoints from image1
+        keypoints : (N x 2) Superpoint Keypoints from image1 or image2
         matches : (N x 4) Correspondences from trianflow flownet 
+        image_keypoints : which image we are getting the keypoints from
     Returns : 
         N x 4
     """
@@ -57,9 +71,15 @@ def get_flownet_matches_from_superpoint_keypoints(image1_keypoints, matches):
     chosen_indices = []
     
     match_points = []
-    for keypoint_idx, keypoint in enumerate(image1_keypoints):
+    
+    if image_keypoints == 1: 
+        offset = 0
+    else : 
+        offset = 2
+    
+    for keypoint_idx, keypoint in enumerate(keypoints):
         for match_idx, match in enumerate(matches):
-            if int(match[0]) == int(keypoint[0]) and int(match[1]) == int(keypoint[1]):
+            if int(match[0 + offset]) == int(keypoint[0]) and int(match[1 + offset]) == int(keypoint[1]):
                 match_points.append(match)
                 chosen_indices.append(match_idx)
                 break
@@ -69,7 +89,7 @@ def get_flownet_matches_from_superpoint_keypoints(image1_keypoints, matches):
     return np.array(match_points), remaining_matches
 
 
-def get_superpoint_2d_matches(descriptor_matches, image1_keypoints, image2_keypoints, num_matches=None):
+def get_2d_matches(descriptor_matches, image1_keypoints, image2_keypoints, num_matches=None):
     """
     Given a set of descriptor matches, finds the top num_matcheas with the highest score and returns those 2d-2d correspondences. 
     
