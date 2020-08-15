@@ -29,7 +29,7 @@ if __name__ == '__main__':
         assert RuntimeError('Must have access to a GPU to run this script')
 
     #do config stuff
-    model_cfg, cfg = get_configs(args.config_file)    
+    model_cfg, cfg = get_configs(args.config_file)
 
     #create the model
     model = SiftFlow(model_cfg)

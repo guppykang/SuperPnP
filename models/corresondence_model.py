@@ -5,6 +5,7 @@ Sub Module for finding correspondences, keypoints, and descriptors using Superpo
 import numpy as np
 import code
 import cv2
+from datetime import datetime
 
 #torch imports
 import torch
@@ -114,6 +115,8 @@ class SuperFlow(torch.nn.Module):
                    }
         """
         outs = {}
+        start_time = datetime.utcnow()
+
         
         #superpoint
         image1_t = prep_superpoint_image(image1, hw)
@@ -142,12 +145,22 @@ class SuperFlow(torch.nn.Module):
         K = torch.from_numpy(K).cuda().float().unsqueeze(0)
         K_inverse = torch.from_numpy(K_inv).cuda().float().unsqueeze(0)
         correspondences, image1_depth_map, image2_depth_map = self.trianFlow.infer_vo(image1_t, image2_t, K, K_inverse, self.num_matches)
+        
+        mid_time = datetime.utcnow()
+        print(f'SIFT and flownet took {mid_time - start_time} to run')
 
         #post process
         outs['flownet_correspondences'] = squeezeToNumpy(correspondences.T)
         outs['image1_depth'] = squeezeToNumpy(image1_depth_map)
         outs['image2_depth'] = squeezeToNumpy(image2_depth_map)
+        
+        #SuperFLOW
+        print(f'keypoints : {outs["keypoints"][0].shape[0] + outs["keypoints"][1].shape[0]}, superpoint matches : {outs["superpoint_correspondences"].shape[0]}')
         outs['superflow_correspondences'] = dense_sparse_hybrid_correspondences(outs['keypoints'][0], outs['keypoints'][1], outs['flownet_correspondences'], outs['superpoint_correspondences'], self.num_matches)
+
+        
+        end_time = datetime.utcnow()
+        print(f'Hybrid sampling took {end_time - mid_time} to run')
 
         return outs
 

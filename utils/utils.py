@@ -12,6 +12,9 @@ import torch
 from superpoint.utils.var_dim import toNumpy, squeezeToNumpy
 from superpoint.models.model_utils import SuperPointNet_process
 
+def sample_random_k(data, num_sample, num_total):
+    indices = np.random.choice(num_total, num_sample, replace=False)
+    return data[indices]
 
 def dense_sparse_hybrid_correspondences(image1_keypoints, image2_keypoints, flownet_matches, superpoint_matches, num_matches, flownet_ratio=0.5):
     matches = np.zeros((num_matches, 4))

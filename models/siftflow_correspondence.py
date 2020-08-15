@@ -5,6 +5,7 @@ Sub Module for finding correspondences, keypoints, and descriptors using SIFT an
 import numpy as np
 import code
 import cv2
+from datetime import datetime
 
 #torch imports
 import torch
@@ -26,7 +27,7 @@ from deepF.dsac_tools.utils_opencv import KNN_match
 from TrianFlow.core.networks.model_depth_pose import Model_depth_pose 
 
 #My Utils
-from utils.utils import desc_to_sparseDesc, prep_superpoint_image, prep_trianflow_image, get_2d_matches, dense_sparse_hybrid_correspondences
+from utils.utils import desc_to_sparseDesc, prep_superpoint_image, prep_trianflow_image, get_2d_matches, dense_sparse_hybrid_correspondences, sample_random_k
 
 
 
@@ -106,7 +107,8 @@ class SiftFlow(torch.nn.Module):
                    }
         """
         outs = {}
-                    
+                   
+        start_time = datetime.utcnow()
         #TrianFlow
         image1_t, image1_resized = prep_trianflow_image(image1, hw)
         image2_t, image2_resized = prep_trianflow_image(image2, hw)
@@ -129,14 +131,28 @@ class SiftFlow(torch.nn.Module):
         image1_sift_matches, image2_sift_matches, _, good_matches_indices = KNN_match(outs['image1_sift_descriptors'], outs['image2_sift_descriptors'], outs['image1_sift_keypoints'], outs['image2_sift_keypoints'], None, None, None, None)
         
         outs['sift_correspondences'] = np.concatenate((image1_sift_matches, image2_sift_matches), axis=1)
+        
+        #if too many sift correspondences
         if outs['sift_correspondences'].shape[0] > self.num_matches:
-            outs['sift_correspondences'] = outs['sift_correspondences'][:self.num_matches]
+            outs['sift_correspondences'] = sample_random_k(outs['sift_correspondences'], self.num_matches, outs['sift_correspondences'].shape[0])
+        if outs['image1_sift_keypoints'].shape[0] > 1000:
+            outs['image1_sift_keypoints'] = sample_random_k(outs['image1_sift_keypoints'], 1000, outs['image1_sift_keypoints'].shape[0])
+        if outs['image2_sift_keypoints'].shape[0] > 1000:
+            outs['image2_sift_keypoints'] = sample_random_k(outs['image2_sift_keypoints'], 1000, outs['image2_sift_keypoints'].shape[0])
 
+            
+        mid_time = datetime.utcnow()
+        print(f'SIFT and flownet took {mid_time - start_time} to run')
         
         
         #SIFTFLOW
+        print(f'keypoints : {outs["image1_sift_keypoints"].shape[0] + outs["image2_sift_keypoints"].shape[0]}, sift matches : {outs["sift_correspondences"].shape[0]}')
         outs['siftflow_correspondences'] = dense_sparse_hybrid_correspondences(outs['image1_sift_keypoints'], outs['image2_sift_keypoints'], outs['flownet_correspondences'], outs['sift_correspondences'], self.num_matches)
 
+        
+        end_time = datetime.utcnow()
+        print(f'SIFT and flownet took {end_time - mid_time} to run')
+        
         return outs
 
 
