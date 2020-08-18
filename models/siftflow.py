@@ -151,7 +151,7 @@ class SiftFlow(torch.nn.Module):
 
         
         end_time = datetime.utcnow()
-        print(f'SIFT and flownet took {end_time - mid_time} to run')
+        print(f'Hybrid sampling took {end_time - mid_time} to run\n')
         
         return outs
 
