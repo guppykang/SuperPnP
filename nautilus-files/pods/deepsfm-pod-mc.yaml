@@ -9,16 +9,19 @@ spec:
   containers:
   - name: gpu-container
     image: gitlab-registry.nautilus.optiputer.net/prp/jupyterlab 
-
+    command:
+    - "sh"
+    - "-c"
+    - "/jbk001-data1/scripts/setup.sh"
     # imagePullPolicy: Always
     args: ["sleep", "infinity"]
     resources:
       requests:
-        cpu: "8"
+        cpu: "2"
         memory: "8Gi"
         nvidia.com/gpu: 1
       limits:
-        cpu: "8"
+        cpu: "2"
         memory: "8Gi"
         nvidia.com/gpu: 1
     volumeMounts:
