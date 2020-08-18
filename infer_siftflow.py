@@ -309,7 +309,7 @@ if __name__ == '__main__':
     arg_parser = argparse.ArgumentParser(
         description="TrianFlow training pipeline."
     )
-    arg_parser.add_argument('-c', '--config_file', default='./configs/train.yaml', help='config file.')
+    arg_parser.add_argument('-c', '--config_file', default='./configs/siftflow.yaml', help='config file.')
     arg_parser.add_argument('-g', '--gpu', type=str, default=0, help='gpu id.')
     arg_parser.add_argument('--mode', type=str, default='siftflow', help='(choose from : sift, flownet, siftflow)')
     arg_parser.add_argument('--traj_save_dir', type=str, default='/jbk001-data1/kitti_vo/vo_preds/superflow', help='directory for saving results')
