@@ -155,7 +155,7 @@ def desc_to_sparseDesc(outs):
     return SuperPointNet_process.sample_desc_from_points(outs['desc'], outs['pts'])
      
 
-def get_configs(path): 
+def get_configs(path, mode='superflow'): 
     """
     Returns the configs for the model and general hyperparameters
 
@@ -170,7 +170,11 @@ def get_configs(path):
     for attr in list(cfg["models"]["trianflow"].keys()):
         setattr(trianflow_cfg, attr, cfg["models"]["trianflow"][attr])
 
-    model_cfg = { 'trianflow' : trianflow_cfg, 'superpoint' : cfg['models']['superpoint']}
+    if mode == 'superflow':
+        model_cfg = { 'trianflow' : trianflow_cfg, 'superpoint' : cfg['models']['superpoint']}
+    elif mode == 'superglueflow': 
+        model_cfg = { 'trianflow' : trianflow_cfg, 'superpoint' : cfg['models']['superpoint'], 'superglue' : cfg['models']['superglue']}
+        
 
     return model_cfg, cfg
 

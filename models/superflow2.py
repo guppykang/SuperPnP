@@ -1,5 +1,5 @@
 """
-Sub Module for finding correspondences, keypoints, and descriptors using SIFT and/or Flownet
+Sub Module for finding correspondences, keypoints, and descriptors using Superpoint and Flownet
 """
 #general
 import numpy as np
@@ -13,33 +13,26 @@ import torch.nn as nn
 from torch.nn.init import xavier_uniform_, zeros_
 
 #Superpoint imports
-from superpoint.Train_model_heatmap import Train_model_heatmap
 from superpoint.utils.var_dim import toNumpy, squeezeToNumpy
-from superpoint.utils.utils import flattenDetection
-from superpoint.models.model_utils import SuperPointNet_process
 from superpoint.models.SuperPointNet_gauss2 import get_matches as get_descriptor_matches
-from superpoint.utils.utils import flattenDetection
-from superpoint.models.classical_detectors_descriptors import SIFT_det as classical_detector_descriptor
 
-from deepF.dsac_tools.utils_opencv import KNN_match
+#SuperGlue imports
+from superglue.models.superpoint import SuperPoint
 
 #TrianFlow imports
 from TrianFlow.core.networks.model_depth_pose import Model_depth_pose 
 
 #My Utils
-from utils.utils import desc_to_sparseDesc, prep_superpoint_image, prep_trianflow_image, get_2d_matches, dense_sparse_hybrid_correspondences, sample_random_k
+from utils.utils import desc_to_sparseDesc, prep_superpoint_image, prep_trianflow_image, get_2d_matches, dense_sparse_hybrid_correspondences
 
-
-
-    
-class SiftFlow(torch.nn.Module):
+class SuperFlow(torch.nn.Module):
     def __init__(self, cfg):
         """
         Model consists of two modules for correspondences:
             TrianFlow : https://github.com/B1ueber2y/TrianFlow
             SuperPoint : https://github.com/eric-yyjau/pytorch-superpoint
         """
-        super(SiftFlow, self).__init__()
+        super(SuperFlow, self).__init__()
         
         self.device = 'cuda:0'
         self.num_matches = 6000
@@ -47,7 +40,9 @@ class SiftFlow(torch.nn.Module):
         #TrianFlow
         self.trianFlow = Model_depth_pose(cfg["trianflow"])
 
-        #SIFT
+        #SuperPoint
+        self.superpoint = SuperPoint(cfg["superpoint"])
+       
     
     def load_modules(self, cfg):
         """
@@ -56,6 +51,8 @@ class SiftFlow(torch.nn.Module):
         #load trian flow
         weights = torch.load(cfg["trianflow"].pretrained)
         self.trianFlow.load_state_dict(weights['model_state_dict'])
+
+        #load superpoint
 
         pass
 
@@ -103,12 +100,30 @@ class SiftFlow(torch.nn.Module):
                        desc
                    image1_depth, 
                    image2_depth, 
-                   superpoint_keypoint_correspondences
+                   superflow_correspondences
                    }
         """
         outs = {}
-                   
         start_time = datetime.utcnow()
+
+        
+        #superpoint
+        image1_t = prep_superpoint_image(image1, hw)
+        image2_t = prep_superpoint_image(image2, hw)
+
+        superpoint_pred = {}
+        pred0 = self.superpoint({'image': image1_t})
+        superpoint_pred = {**superpoint_pred, **{k+'0': v for k, v in pred0.items()}}
+        pred1 = self.superpoint({'image': image2_t})
+        superpoint_pred = {**superpoint_pred, **{k+'1': v for k, v in pred1.items()}}
+        
+        outs['keypoints'] = [superpoint_pred['keypoints0'], superpoint_pred['keypoints1']]
+        
+        descriptor_matches = get_descriptor_matches([superpoint_pred['descriptors0'], superpoint_pred['descriptors1']]).T
+        
+        outs['superpoint_correspondences'] = get_2d_matches(descriptor_matches, superpoint_pred['keypoints0'], superpoint_pred['keypoints1'], self.num_matches)
+        
+        
         #TrianFlow
         image1_t, image1_resized = prep_trianflow_image(image1, hw)
         image2_t, image2_resized = prep_trianflow_image(image2, hw)
@@ -116,43 +131,23 @@ class SiftFlow(torch.nn.Module):
         K = torch.from_numpy(K).cuda().float().unsqueeze(0)
         K_inverse = torch.from_numpy(K_inv).cuda().float().unsqueeze(0)
         correspondences, image1_depth_map, image2_depth_map = self.trianFlow.infer_vo(image1_t, image2_t, K, K_inverse, self.num_matches)
+        
+        mid_time = datetime.utcnow()
+        print(f'SIFT and flownet took {mid_time - start_time} to run')
 
         #post process
         outs['flownet_correspondences'] = squeezeToNumpy(correspondences.T)
         outs['image1_depth'] = squeezeToNumpy(image1_depth_map)
         outs['image2_depth'] = squeezeToNumpy(image2_depth_map)
         
-        
-        
-        #SIFT 
-        outs['image1_sift_keypoints'], outs['image1_sift_descriptors'] = classical_detector_descriptor(image1_resized, image1_resized)
-        outs['image2_sift_keypoints'], outs['image2_sift_descriptors'] = classical_detector_descriptor(image2_resized, image2_resized)
-        
-        image1_sift_matches, image2_sift_matches, _, good_matches_indices = KNN_match(outs['image1_sift_descriptors'], outs['image2_sift_descriptors'], outs['image1_sift_keypoints'], outs['image2_sift_keypoints'], None, None, None, None)
-        
-        outs['sift_correspondences'] = np.concatenate((image1_sift_matches, image2_sift_matches), axis=1)
-        
-        #if too many sift correspondences
-        if outs['sift_correspondences'].shape[0] > self.num_matches:
-            outs['sift_correspondences'] = sample_random_k(outs['sift_correspondences'], self.num_matches, outs['sift_correspondences'].shape[0])
-        if outs['image1_sift_keypoints'].shape[0] > 1000:
-            outs['image1_sift_keypoints'] = sample_random_k(outs['image1_sift_keypoints'], 1000, outs['image1_sift_keypoints'].shape[0])
-        if outs['image2_sift_keypoints'].shape[0] > 1000:
-            outs['image2_sift_keypoints'] = sample_random_k(outs['image2_sift_keypoints'], 1000, outs['image2_sift_keypoints'].shape[0])
-
-            
-        mid_time = datetime.utcnow()
-        print(f'SIFT and flownet took {mid_time - start_time} to run')
-        
-        
-        #SIFTFLOW
-        print(f'keypoints : {outs["image1_sift_keypoints"].shape[0] + outs["image2_sift_keypoints"].shape[0]}, sift matches : {outs["sift_correspondences"].shape[0]}')
-        outs['siftflow_correspondences'] = dense_sparse_hybrid_correspondences(outs['image1_sift_keypoints'], outs['image2_sift_keypoints'], outs['flownet_correspondences'], outs['sift_correspondences'], self.num_matches)
+        #SuperFLOW
+        print(f'keypoints : {outs["keypoints"][0].shape[0] + outs["keypoints"][1].shape[0]}, superpoint matches : {outs["superpoint_correspondences"].shape[0]}')
+        outs['superflow_correspondences'] = dense_sparse_hybrid_correspondences(outs['keypoints'][0], outs['keypoints'][1], outs['flownet_correspondences'], outs['superpoint_correspondences'], self.num_matches)
 
         
         end_time = datetime.utcnow()
-        print(f'SIFT and flownet took {end_time - mid_time} to run')
-        
+        print(f'Hybrid sampling took {end_time - mid_time} to run')
+
         return outs
 
 

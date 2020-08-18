@@ -1,6 +1,6 @@
 #!/usr/bin/env python 
 
-from models.superflow import SuperFlow
+from models.superflow2 import SuperFlow
 
 import argparse
 import cv2
@@ -15,10 +15,6 @@ import pickle
 
 #utils stuff
 from utils.utils import load_image_pair, load_camera_intrinsics, pObject, get_configs, get_random_sequence
-
-#dataset stuff
-from TrianFlow.core.dataset.kitti_odo import KITTI_Odo
-from utils.superpnp_dataset import KITTI_Dataset
 
 #bad juju probably should leave this commented in the worst case that stuff breaks
 # import warnings
@@ -42,6 +38,7 @@ if __name__ == '__main__':
     model.cuda()
     # model.eval()
 
+
     sequence = get_random_sequence()
 
     #load a pair of images
@@ -58,16 +55,5 @@ if __name__ == '__main__':
     torch.save(outs, 'inference_outs.pth')
     
     
-    #get dataset and process
-    kitti_raw_dataset = KITTI_Odo(vo_sequences_root)
-    vo_sequences_processed = Path(cfg["kitti"]["procressed_data_path"])
-    kitti_raw_dataset.prepare_data_mp(vo_sequences_processed, stride=1)
-
-    dataset = KITTI_Dataset(vo_sequences_processed, num_scales=model_cfg['trianflow'].num_scales, img_hw=cfg['img_hw'], num_iterations=(cfg['num_iterations'] - cfg['iter_start']) * cfg['batch_size'])
-
-    #create dataloader
-    dataloader = torch.utils.data.DataLoader(dataset, batch_size=cfg['batch_size'], shuffle=True, num_workers=cfg['num_workers'], drop_last=False)
-
-    #test foward pass
     
 

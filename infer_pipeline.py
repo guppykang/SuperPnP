@@ -18,7 +18,7 @@ from pathlib import Path
 
 from collections import OrderedDict
 
-from models.corresondence_model import SuperFlow
+from models.superflow import SuperFlow
 from utils.utils import get_configs
 
 warnings.filterwarnings("ignore")

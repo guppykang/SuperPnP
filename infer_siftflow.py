@@ -18,7 +18,7 @@ from pathlib import Path
 
 from collections import OrderedDict
 
-from models.siftflow_correspondence import SiftFlow
+from models.siftflow import SiftFlow
 from utils.utils import get_configs
 
 warnings.filterwarnings("ignore")
