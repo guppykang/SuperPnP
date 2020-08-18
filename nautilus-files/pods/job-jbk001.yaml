@@ -15,7 +15,7 @@ spec:
         command:
         - "sh"
         - "-c"
-        - "/jbk001-data1/scripts/run.sh"
+        - "/jbk001-data1/scripts/run_siftflow.sh"
         resources:
           requests:
             cpu: "8"
