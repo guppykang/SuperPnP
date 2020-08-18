@@ -12,6 +12,10 @@ spec:
       containers:
       - name: gpu-container
         image: gitlab-registry.nautilus.optiputer.net/prp/jupyterlab # pytorch/pytorch:1.0.1-cuda10.0-cudnn7-runtime
+        command:
+        - "sh"
+        - "-c"
+        - "/jbk001-data1/scripts/run.sh"
         resources:
           requests:
             cpu: "8"
