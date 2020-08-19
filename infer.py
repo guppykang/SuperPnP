@@ -442,8 +442,6 @@ if __name__ == '__main__':
     poses = vo_test.process_video_relative(images, model, args.mode)
     print('Test completed.')
     
-    code.interact(local=locals())
-
     traj_txt = args.traj_save_dir
     save_traj(traj_txt, poses)
     print(f'Predicted Trajectory saved at : {args.traj_save_dir}')
