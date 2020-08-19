@@ -401,7 +401,7 @@ if __name__ == '__main__':
     )
     arg_parser.add_argument('-c', '--config_file', default='./configs/superflow.yaml', help='config file.')
     arg_parser.add_argument('-g', '--gpu', type=str, default=0, help='gpu id.')
-    arg_parser.add_argument('-v', '--version', type=int, default=1, help='(1) : Superflow. (2) : Superflow2 ')
+    arg_parser.add_argument('-v', '--version', type=int, default=1, help='Superflow version (1) : Superflow. (2) : Superflow2 ')
     arg_parser.add_argument('--mode', type=str, default='superflow', help='(choose from : siftflow, superglueflow, superflow)')
     arg_parser.add_argument('--traj_save_dir', type=str, default='/jbk001-data1/kitti_vo/vo_preds/superflow', help='directory for saving results')
     arg_parser.add_argument('--sequences_root_dir', type=str, default='/jbk001-data1/kitti_vo/vo_dataset/sequences', help='directory for test sequences')

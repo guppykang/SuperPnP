@@ -402,7 +402,7 @@ if __name__ == '__main__':
     arg_parser.add_argument('--mode', type=str, default='superglueflow', help='(choose from : flownet, superflow, superpoint, superglueflow)')
     arg_parser.add_argument('--traj_save_dir', type=str, default='/jbk001-data1/kitti_vo/vo_preds/superglueflow', help='directory for saving results')
     arg_parser.add_argument('--sequences_root_dir', type=str, default='/jbk001-data1/kitti_vo/vo_dataset/sequences', help='directory for test sequences')
-    arg_parser.add_argument('--sequence', type=str, default='09', help='Test sequence id.')
+    arg_parser.add_argument('--sequence', type=str, default='10', help='Test sequence id.')
     args = arg_parser.parse_args()
     
     args.traj_save_dir = str(Path(args.traj_save_dir) / (args.sequence + '.txt')) #I just like this better than os.path
@@ -429,7 +429,6 @@ if __name__ == '__main__':
     poses = vo_test.process_video_relative(images, model, args.mode)
     print('Test completed.')
     
-    code.interact(local=locals())
 
     traj_txt = args.traj_save_dir
     save_traj(traj_txt, poses)
