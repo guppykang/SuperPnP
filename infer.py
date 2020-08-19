@@ -144,12 +144,15 @@ class infer_vo():
         depth1 = outs['image1_depth'] # H, W
         depth2 = outs['image2_depth'] # H, W
 
-        if mode == 'superpoint':
-            filt_depth_match = outs['superpoint_correspondences'] #M x 4 : due to its sparse nature it does not produce as many correspondences as flownet
-        elif mode == 'flownet':
-            filt_depth_match = outs['flownet_correspondences']# N x 4
-        elif mode == 'superflow':
+
+        if mode == 'superflow':
             filt_depth_match = outs['superflow_correspondences']# N x 4
+        elif mode == 'siftflow':
+            filt_depth_match = outs['siftflow_correspondences']# num_matches x 4
+        elif mode == 'superglueflow':
+            filt_depth_match = outs['superglueflow_correspondences']# N x 4
+        else:
+            raise RuntimeError('bad correspondence mode')
 
             #TODO : Do this
         
@@ -195,9 +198,9 @@ class infer_vo():
         return poses
     
     def process_video_absolute(self, images, model, mode):
-         '''
-         Done in absolute pose estimation fashion
-         Process a sequence to get scale consistent trajectory results. 
+        '''
+        Done in absolute pose estimation fashion
+        Process a sequence to get scale consistent trajectory results. 
         Register according to depth net predictions. Here we assume depth predictions have consistent scale.
         If not, pleas use process_video_tri which only use triangulated depth to get self-consistent scaled pose.
         '''
@@ -396,10 +399,10 @@ if __name__ == '__main__':
     arg_parser = argparse.ArgumentParser(
         description="TrianFlow training pipeline."
     )
-    arg_parser.add_argument('-c', '--config_file', default='./configs/train.yaml', help='config file.')
+    arg_parser.add_argument('-c', '--config_file', default='./configs/superflow.yaml', help='config file.')
     arg_parser.add_argument('-g', '--gpu', type=str, default=0, help='gpu id.')
     arg_parser.add_argument('-v', '--version', type=int, default=1, help='(1) : Superflow. (2) : Superflow2 ')
-    arg_parser.add_argument('--mode', type=str, default='superflow', help='(choose from : flownet, superflow, superpoint)')
+    arg_parser.add_argument('--mode', type=str, default='superflow', help='(choose from : siftflow, superglueflow, superflow)')
     arg_parser.add_argument('--traj_save_dir', type=str, default='/jbk001-data1/kitti_vo/vo_preds/superflow', help='directory for saving results')
     arg_parser.add_argument('--sequences_root_dir', type=str, default='/jbk001-data1/kitti_vo/vo_dataset/sequences', help='directory for test sequences')
     arg_parser.add_argument('--sequence', type=str, default='10', help='Test sequence id.')
@@ -414,14 +417,19 @@ if __name__ == '__main__':
     model_cfg, cfg = get_configs(args.config_file)    
 
     #create the model
-    if args.version == 1: 
-        from models.superflow import SuperFlow
-    elif args.version == 2: 
-        from models.superflow2 import SuperFlow
-    else: 
-        raise RuntimeError('Choose a valid version of Superflow')
+    if args.mode == 'superflow':
+        if args.version == 1: 
+            from models.superflow import SuperFlow as Model
+        elif args.version == 2: 
+            from models.superflow2 import SuperFlow as Model
+        else: 
+            raise RuntimeError('Choose a valid version of Superflow')
+    elif args.mode == 'siftflow':
+        from models.siftflow import SiftFlow as Model
+    elif args.mode == 'superglueflow':
+        from models.superglueflow import SuperGlueFlow as Model
         
-    model = SuperFlow(model_cfg)
+    model = Model(model_cfg)
     model.load_modules(model_cfg)
     model.cuda()
     model.eval()
@@ -431,7 +439,7 @@ if __name__ == '__main__':
     vo_test = infer_vo(args.sequence, args.sequences_root_dir)
     images = vo_test.load_images()
     print('Images Loaded. Total ' + str(len(images)) + ' images found.')
-    poses = vo_test.process_video(images, model, args.mode)
+    poses = vo_test.process_video_relative(images, model, args.mode)
     print('Test completed.')
     
     code.interact(local=locals())
