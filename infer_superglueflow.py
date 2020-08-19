@@ -400,7 +400,7 @@ if __name__ == '__main__':
     arg_parser.add_argument('-c', '--config_file', default='./configs/superglueflow.yaml', help='config file.')
     arg_parser.add_argument('-g', '--gpu', type=str, default=0, help='gpu id.')
     arg_parser.add_argument('--mode', type=str, default='superglueflow', help='(choose from : flownet, superflow, superpoint, superglueflow)')
-    arg_parser.add_argument('--traj_save_dir', type=str, default='/jbk001-data1/kitti_vo/vo_preds/superflow', help='directory for saving results')
+    arg_parser.add_argument('--traj_save_dir', type=str, default='/jbk001-data1/kitti_vo/vo_preds/superglueflow', help='directory for saving results')
     arg_parser.add_argument('--sequences_root_dir', type=str, default='/jbk001-data1/kitti_vo/vo_dataset/sequences', help='directory for test sequences')
     arg_parser.add_argument('--sequence', type=str, default='09', help='Test sequence id.')
     args = arg_parser.parse_args()
