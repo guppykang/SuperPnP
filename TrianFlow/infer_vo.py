@@ -15,6 +15,7 @@ import warnings
 import copy
 from collections import OrderedDict
 from tqdm import tqdm
+from pathlib import Path
 warnings.filterwarnings("ignore")
 
 def save_traj(path, poses):
@@ -123,7 +124,7 @@ class infer_vo():
         cam_intrinsics[1,:] = cam_intrinsics[1,:] * new_img_h / raw_img_h
         return cam_intrinsics
     
-    def load_images(self):
+    def load_images(self, max_length=-1):
         path = self.img_dir
         seq = self.seq_id
         new_img_h = self.new_img_h
@@ -152,7 +153,7 @@ class infer_vo():
         return filt_depth_match[0].transpose(0,1).cpu().detach().numpy(), depth1[0].squeeze(0).cpu().detach().numpy(), depth2[0].squeeze(0).cpu().detach().numpy()
 
     
-    def process_video(self, images, model):
+    def process_video(self, images, model, max_length=-1):
         '''Process a sequence to get scale consistent trajectory results. 
         Register according to depth net predictions. Here we assume depth predictions have consistent scale.
         If not, pleas use process_video_tri which only use triangulated depth to get self-consistent scaled pose.
@@ -165,6 +166,8 @@ class infer_vo():
         K = self.cam_intrinsics
         K_inv = np.linalg.inv(self.cam_intrinsics)
         for i in tqdm(range(seq_len-1)):
+            if max_length != -1 and i > max_length:
+                break
             img1, img2 = images[i], images[i+1]
             depth_match, depth1, depth2 = self.get_prediction(img1, img2, model, K, K_inv, match_num=5000)
             
@@ -299,6 +302,10 @@ class infer_vo():
         pose[:3,:3] = R
         pose[:3,3:] = t
         return pose
+    
+    def save_traj(self, traj_txt="", poses=None):
+        print(f"skipped")
+        pass
 
 class infer_vo_tum(infer_vo):
     def __init__(self, seq_id, sequences_root_dir):
@@ -366,17 +373,20 @@ class infer_vo_tum(infer_vo):
                     timestamps.append(float(t))
         test_files = rgb_filenames
         timestamps = np.array(timestamps)
-        return test_files
+        return test_files, timestamps
     
-    def load_images(self):
+    def load_images(self, max_length=-1):
         path = self.img_dir
         seq = self.seq_id
         new_img_h = self.new_img_h
         new_img_w = self.new_img_w
-        test_files = self.read_images_files_from_folder(f"{path}/{seq}")
+        test_files, timestamps = self.read_images_files_from_folder(f"{path}/{seq}")
+        self.timestamps = timestamps
         # seq_dir = os.path.join(path, seq)
         # image_dir = os.path.join(seq_dir, 'image_2')
         num = len(test_files)
+        if max_length > 0:
+            num = min(int(max_length)+1, num)
         
         images = []
         for i in tqdm(range(num)):
@@ -386,6 +396,39 @@ class infer_vo_tum(infer_vo):
 
         print('Loaded Images')
         return images
+    
+    @staticmethod
+    def mat2quat(mat):
+        assert mat.shape == (3,4) or mat.shape == (4,4)
+        rotation = mat[:3,:3]
+        trans = mat[:3,3]
+        from scipy.spatial.transform import Rotation as R
+        qua = R.from_matrix(rotation)
+        vect = np.concatenate((trans, qua.as_quat() ), axis=0)
+        return vect
+        
+    
+    def save_traj(self, traj_txt, poses):
+        time_stamps = self.timestamps
+        time_stamps = np.array(time_stamps).flatten()
+        time_stamps = time_stamps[:len(poses)].reshape(-1,1)
+        
+        poses_wTime = np.concatenate((time_stamps, poses), axis=1)
+        # dir
+        traj_dir = Path(f"{traj_txt}").parent
+        traj_dir = traj_dir/f"{self.seq_id}"
+        traj_dir.mkdir(exist_ok=True, parents=True)
+        # save txt
+        filename = Path(f"{traj_dir}/{self.seq_id}.txt")
+        np.savetxt(filename, poses, delimiter=" ", fmt="%.4f")
+        filename = Path(f"{traj_dir}/{self.seq_id}_t.txt")
+        np.savetxt(filename, poses_wTime, delimiter=" ", fmt="%.4f")
+        ## save tum txt
+        filename = Path(f"{traj_dir}/{self.seq_id}.tum")
+        pose_qua = np.array([infer_vo_tum.mat2quat(m.reshape(3,4)) for m in poses])
+        poses_qua_wTime = np.concatenate((time_stamps, pose_qua), axis=1)
+        np.savetxt(filename, poses_qua_wTime, delimiter=" ", fmt="%.4f")
+        pass
     
     """ testing tum
     vo_test = infer_vo_tum("rgbd_dataset_freiburg3_long_office_household", "./data/tum_data/")
@@ -405,6 +448,7 @@ if __name__ == '__main__':
     arg_parser.add_argument('--sequences_root_dir', type=str, default=None, help='directory for test sequences')
     arg_parser.add_argument('--sequence', type=str, default='09', help='Test sequence id.')
     arg_parser.add_argument('--pretrained_model', type=str, default=None, help='directory for loading pretrained models')
+    arg_parser.add_argument('-ml', '--max_length', type=int, default=-1, help='set max length for debugging')
     args = arg_parser.parse_args()
 
     with open(args.config_file, 'r') as f:
@@ -438,10 +482,14 @@ if __name__ == '__main__':
         vo_test = infer_vo_tum(args.sequence, args.sequences_root_dir)
     else:
         raise NotImplementedError
-    images = vo_test.load_images()
+    images = vo_test.load_images(max_length=args.max_length)
     print('Images Loaded. Total ' + str(len(images)) + ' images found.')
-    poses = vo_test.process_video(images, model)
+    poses = vo_test.process_video(images, model, max_length=args.max_length)
+    poses = np.array(poses)
+    print(f'poses: {poses.shape}.')
     print('Test completed.')
 
     traj_txt = args.traj_save_dir_txt
+    vo_test.save_traj(traj_txt, poses[:,:3,:4].reshape(-1, 12))
     save_traj(traj_txt, poses)
+    
