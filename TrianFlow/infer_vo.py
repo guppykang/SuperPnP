@@ -307,8 +307,8 @@ class infer_vo_tum(infer_vo):
         self.seq_id = seq_id
         self.raw_img_h = 480.0 #320
         self.raw_img_w = 640.0 #1024
-        self.new_img_h = 480 #320
-        self.new_img_w = 640 #1024
+        self.new_img_h = 384 #320
+        self.new_img_w = 512 #1024
         self.max_depth = 50.0
         self.min_depth = 0.0
         self.cam_intrinsics = self.rescale_camera_intrinsics(self.read_calib_file())
@@ -431,7 +431,7 @@ if __name__ == '__main__':
     model.eval()
     print('Model Loaded.')
 
-    print('Testing VO.')
+    print(f'Testing VO: {args.dataset}.')
     if args.dataset == 'kitti_odo':
         vo_test = infer_vo(args.sequence, args.sequences_root_dir)
     elif args.dataset == 'tum':
