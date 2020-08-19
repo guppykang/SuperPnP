@@ -8,15 +8,46 @@ from pathlib import Path
 import random
 import numpy as np
 import torch
+from scipy.spatial.transform import Rotation as R
+
 
 from superpoint.utils.var_dim import toNumpy, squeezeToNumpy
 from superpoint.models.model_utils import SuperPointNet_process
+
+def vehicle_to_world(pose_t, vehicle_3d_points):
+    """
+    Do an inverse Transform on the 3d vehicle frame points to be in world coordinates
+    
+    pose_t : (3, 4) R, T 
+    vehicle_3d_points : (n x 3)
+    """
+    R = pose_t[:3, :3]
+    T = pose_t[:3, 3:]
+    inverse_pose_t = np.concatenate((np.linalg.pinv(R), -T), axis=1)
+    world_points = inverse_pose_t @ np.vstack((vehicle_3d_points.T, np.ones(vehicle_3d_points.shape[0])))
+    
+#decide what to do about the 1/3 decimal issue
+#     for row_idx, row in enumerate(world_points):
+#         for col_idx, value in enumerate(row):
+#             if value == 2.220446049250313e-16:
+#                 inverse_pose[row_idx][col_idx] = 0                
+    return world_points
 
 def sample_random_k(data, num_sample, num_total):
     indices = np.random.choice(num_total, num_sample, replace=False)
     return data[indices]
 
 def dense_sparse_hybrid_correspondences(image1_keypoints, image2_keypoints, flownet_matches, superpoint_matches, num_matches, flownet_ratio=0.5):
+    """
+    Finds the flownet matches that lie on the keypoints from given keypoints. Fills in remaining num_matches with split given ratio of dense and sparse correspondences
+    
+    image1_keypoints : keypoints from image1 (n x 2)
+    image2_keypoints : keypoints from image2 (n x 2)
+    flownet_matches : 2d-2d matches between image1 and image2, respectively(n x 4) 
+    superpoint_matches : 2d-2d matches between image1 and image2, respectively(n x 4) 
+    num_matches : number of 2d-2d matches to output
+    flownet_ratio : ratio of remaining matches to fill in using the flownet dense matches
+    """
     matches = np.zeros((num_matches, 4))
     
     current_start_index = 0

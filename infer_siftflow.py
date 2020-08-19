@@ -314,7 +314,7 @@ if __name__ == '__main__':
     arg_parser.add_argument('--mode', type=str, default='siftflow', help='(choose from : sift, flownet, siftflow)')
     arg_parser.add_argument('--traj_save_dir', type=str, default='/jbk001-data1/kitti_vo/vo_preds/siftflow', help='directory for saving results')
     arg_parser.add_argument('--sequences_root_dir', type=str, default='/jbk001-data1/kitti_vo/vo_dataset/sequences', help='directory for test sequences')
-    arg_parser.add_argument('--sequence', type=str, default='10', help='Test sequence id.')
+    arg_parser.add_argument('--sequence', type=str, default='09', help='Test sequence id.')
     args = arg_parser.parse_args()
     
     args.traj_save_dir = str(Path(args.traj_save_dir) / (args.sequence + '.txt')) #I just like this better than os.path
@@ -323,7 +323,7 @@ if __name__ == '__main__':
 
    
     #do config stuff
-    model_cfg, cfg = get_configs(args.config_file)    
+    model_cfg, cfg = get_configs(args.config_file)  
 
     #create the model
     model = SiftFlow(model_cfg)

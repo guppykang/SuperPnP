@@ -18,8 +18,7 @@ from pathlib import Path
 
 from collections import OrderedDict
 
-from models.superflow import SuperFlow
-from utils.utils import get_configs
+from utils.utils import get_configs, vehicle_to_world
 
 warnings.filterwarnings("ignore")
 
@@ -157,12 +156,16 @@ class infer_vo():
         return filt_depth_match, depth1, depth2
 
     
-    def process_video(self, images, model, mode):
-        '''Process a sequence to get scale consistent trajectory results. 
+    def process_video_relative(self, images, model, mode):
+        '''
+        Done in relative pose estimation fashion
+        Process a sequence to get scale consistent trajectory results. 
         Register according to depth net predictions. Here we assume depth predictions have consistent scale.
         If not, pleas use process_video_tri which only use triangulated depth to get self-consistent scaled pose.
         '''
+        
         poses = []
+        absolute_pose_t = np.zeros((3, 4))
         global_pose = np.eye(4)
         # The first one global pose is origin.
         poses.append(copy.deepcopy(global_pose))
@@ -182,15 +185,52 @@ class infer_vo():
             
             if np.linalg.norm(flow_pose[:3,3:]) == 0 or scale == -1:
                 print('PnP '+str(i))
-                pnp_pose = self.solve_pose_pnp(depth_match[:,:2], depth_match[:,2:], depth1)
+                pnp_pose = self.solve_relative_pose_pnp(depth_match[:,:2], depth_match[:,2:], depth1)
                 rel_pose = pnp_pose
-
+                
             global_pose[:3,3:] = np.matmul(global_pose[:3,:3], rel_pose[:3,3:]) + global_pose[:3,3:]
             global_pose[:3,:3] = np.matmul(global_pose[:3,:3], rel_pose[:3,:3])
             poses.append(copy.deepcopy(global_pose))
             print(i)
         return poses
     
+    def process_video_absolute(self, images, model, mode):
+         '''
+         Done in absolute pose estimation fashion
+         Process a sequence to get scale consistent trajectory results. 
+        Register according to depth net predictions. Here we assume depth predictions have consistent scale.
+        If not, pleas use process_video_tri which only use triangulated depth to get self-consistent scaled pose.
+        '''
+        
+        poses = []
+        absolute_pose_t = np.zeros((3, 4))
+        global_pose = np.eye(4)
+        # The first one global pose is origin.
+        poses.append(copy.deepcopy(global_pose))
+        seq_len = len(images)
+        K = self.cam_intrinsics
+        K_inv = np.linalg.inv(self.cam_intrinsics)
+        for i in tqdm(range(seq_len-1)):
+            img1, img2 = images[i], images[i+1]
+            depth_match, depth1, depth2 = self.get_prediction(img1, img2, model, K, K_inv, mode)
+            
+            rel_pose = np.eye(4)
+            flow_pose = self.solve_pose_flow(depth_match[:,:2], depth_match[:,2:])
+            rel_pose[:3,:3] = copy.deepcopy(flow_pose[:3,:3])
+            if np.linalg.norm(flow_pose[:3,3:]) != 0:
+                scale = self.align_to_depth(depth_match[:,:2], depth_match[:,2:], flow_pose, depth2)
+                rel_pose[:3,3:] = flow_pose[:3,3:] * scale
+                global_pose[:3,3:] = np.matmul(global_pose[:3,:3], rel_pose[:3,3:]) + global_pose[:3,3:]
+                global_pose[:3,:3] = np.matmul(global_pose[:3,:3], rel_pose[:3,:3])
+            
+            if np.linalg.norm(flow_pose[:3,3:]) == 0 or scale == -1:
+                print('PnP '+str(i))
+                global_pose = self.solve_absolute_pose_pnp(depth_match[:,:2], depth_match[:,2:], vehicle_to_world(depth1), poses[-1])   
+            
+            poses.append(copy.deepcopy(global_pose))
+            print(i)
+        return poses
+        
     def normalize_coord(self, xy, K):
         xy_norm = copy.deepcopy(xy)
         xy_norm[:,0] = (xy[:,0] - K[0,2]) / K[0,0]
@@ -229,7 +269,7 @@ class infer_vo():
 
         return scale
     
-    def solve_pose_pnp(self, xy1, xy2, depth1):
+    def solve_relative_pose_pnp(self, xy1, xy2, depth1):
         # Use pnp to solve relative poses.
         # xy1, xy2: [N, 2] depth1: [H, W]
 
@@ -251,6 +291,51 @@ class infer_vo():
 
         # Unproject to 3d space
         points1 = unprojection(xy1, sample_depth[valid_depth_mask], self.cam_intrinsics)
+
+        # ransac
+        best_rt = []
+        max_inlier_num = 0
+        max_ransac_iter = self.PnP_ransac_times
+        
+        for i in range(max_ransac_iter):
+            if xy2.shape[0] > 4:
+                flag, r, t, inlier = cv2.solvePnPRansac(objectPoints=points1, imagePoints=xy2, cameraMatrix=self.cam_intrinsics, distCoeffs=None, iterationsCount=self.PnP_ransac_iter, reprojectionError=self.PnP_ransac_thre)
+                if flag and inlier.shape[0] > max_inlier_num:
+                    best_rt = [r, t]
+                    max_inlier_num = inlier.shape[0]
+        pose = np.eye(4)
+        if len(best_rt) != 0:
+            r, t = best_rt
+            pose[:3,:3] = cv2.Rodrigues(r)[0]
+            pose[:3,3:] = t
+        pose = np.linalg.inv(pose)
+        return pose
+    
+    def solve_absolute_pose_pnp(self, xy1, xy2, depth1, pose_t):
+        # Use pnp to solve relative poses.
+        # xy1, xy2: [N, 2] depth1: [H, W]
+
+        img_h, img_w = np.shape(depth1)[0], np.shape(depth1)[1]
+        
+        # Ensure all the correspondences are inside the image.
+        x_idx = (xy2[:, 0] >= 0) * (xy2[:, 0] < img_w)
+        y_idx = (xy2[:, 1] >= 0) * (xy2[:, 1] < img_h)
+        idx = y_idx * x_idx
+        xy1 = xy1[idx]
+        xy2 = xy2[idx]
+
+        xy1_int = xy1.astype(np.int)
+        sample_depth = depth1[xy1_int[:,1], xy1_int[:,0]]
+        valid_depth_mask = (sample_depth < self.max_depth) * (sample_depth > self.min_depth)
+
+        xy1 = xy1[valid_depth_mask]
+        xy2 = xy2[valid_depth_mask]
+
+        # Unproject to 3d space
+        points1 = unprojection(xy1, sample_depth[valid_depth_mask], self.cam_intrinsics)
+        
+        # Project to world coordinate space
+        world_points1 = vehicle_to_world(pose_t, points1)
 
         # ransac
         best_rt = []
@@ -313,6 +398,7 @@ if __name__ == '__main__':
     )
     arg_parser.add_argument('-c', '--config_file', default='./configs/train.yaml', help='config file.')
     arg_parser.add_argument('-g', '--gpu', type=str, default=0, help='gpu id.')
+    arg_parser.add_argument('-v', '--version', type=int, default=1, help='(1) : Superflow. (2) : Superflow2 ')
     arg_parser.add_argument('--mode', type=str, default='superflow', help='(choose from : flownet, superflow, superpoint)')
     arg_parser.add_argument('--traj_save_dir', type=str, default='/jbk001-data1/kitti_vo/vo_preds/superflow', help='directory for saving results')
     arg_parser.add_argument('--sequences_root_dir', type=str, default='/jbk001-data1/kitti_vo/vo_dataset/sequences', help='directory for test sequences')
@@ -328,6 +414,13 @@ if __name__ == '__main__':
     model_cfg, cfg = get_configs(args.config_file)    
 
     #create the model
+    if args.version == 1: 
+        from models.superflow import SuperFlow
+    elif args.version == 2: 
+        from models.superflow2 import SuperFlow
+    else: 
+        raise RuntimeError('Choose a valid version of Superflow')
+        
     model = SuperFlow(model_cfg)
     model.load_modules(model_cfg)
     model.cuda()
