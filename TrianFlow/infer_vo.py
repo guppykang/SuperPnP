@@ -112,6 +112,17 @@ class infer_vo():
         cam_intrinsics[1,:] = cam_intrinsics[1,:] * new_img_h / raw_img_h
         return cam_intrinsics
     
+    def rescale_camera_intrinsics(self, cam_intrinsics):
+        """ don't call again if 'read_rescale_camera_intrinsics' is used
+        """
+        raw_img_h = self.raw_img_h
+        raw_img_w = self.raw_img_w
+        new_img_h = self.new_img_h
+        new_img_w = self.new_img_w
+        cam_intrinsics[0,:] = cam_intrinsics[0,:] * new_img_w / raw_img_w
+        cam_intrinsics[1,:] = cam_intrinsics[1,:] * new_img_h / raw_img_h
+        return cam_intrinsics
+    
     def load_images(self):
         path = self.img_dir
         seq = self.seq_id
@@ -289,7 +300,98 @@ class infer_vo():
         pose[:3,3:] = t
         return pose
 
+class infer_vo_tum(infer_vo):
+    def __init__(self, seq_id, sequences_root_dir):
+        self.img_dir = sequences_root_dir
+        #self.img_dir = '/home4/zhaow/data/kitti_odometry/sampled_s4_sequences/'
+        self.seq_id = seq_id
+        self.raw_img_h = 480.0 #320
+        self.raw_img_w = 640.0 #1024
+        self.new_img_h = 480 #320
+        self.new_img_w = 640 #1024
+        self.max_depth = 50.0
+        self.min_depth = 0.0
+        self.cam_intrinsics = self.rescale_camera_intrinsics(self.read_calib_file())
+        self.flow_pose_ransac_thre = 0.1 #0.2
+        self.flow_pose_ransac_times = 10 #5
+        self.flow_pose_min_flow = 5
+        self.align_ransac_min_samples = 3
+        self.align_ransac_max_trials = 100
+        self.align_ransac_stop_prob = 0.99
+        self.align_ransac_thre = 1.0
+        self.PnP_ransac_iter = 1000
+        self.PnP_ransac_thre = 1
+        self.PnP_ransac_times = 5
+        self.train_sets = [ # only process train_set
+            "rgbd_dataset_freiburg3_long_office_household",
+            "rgbd_dataset_freiburg3_long_office_household_validation",
+            "rgbd_dataset_freiburg3_sitting_xyz",
+            "rgbd_dataset_freiburg3_structure_texture_far",
+            "rgbd_dataset_freiburg3_structure_texture_near",
+            "rgbd_dataset_freiburg3_teddy",
+            ]
+        self.test_sets = [
+            "rgbd_dataset_freiburg3_walking_xyz",
+            "rgbd_dataset_freiburg3_large_cabinet_validation",
+            ]
+    
+    
+    def read_calib_file(self):
+        """ # directly from the website
+        https://vision.in.tum.de/data/datasets/rgbd-dataset/file_formats#intrinsic_camera_calibration_of_the_kinect
 
+        """
+        calib = np.identity(3)
+        fu, fv, cu, cv =  535.4, 539.2, 320.1, 247.6
+        calib = np.array([[fu, 0, cu], [0, fv, cv], [0, 0, 1]])
+        # D = np.array([0,0,0,0,0])
+        # height, width, calib, D = self.load_intrinsics(calib_data)
+        # calib = proj_c2p[0:3, 0:3]
+        # intrinsics_original = calib + 0
+        # calib[0,:] *=  zoom_x
+        # calib[1,:] *=  zoom_y
+        # print(f"calib: {calib}, intrinsics_original: {intrinsics_original}")
+        return calib
+    
+    # @staticmethod
+    def read_images_files_from_folder(self, path_to_sequence):
+        rgb_filenames = []
+        timestamps = []
+        # path_to_sequence = f"{dataset_dir}/{sequence}"
+        with open(f"{path_to_sequence}/rgb.txt") as times_file:
+            for line in times_file:
+                if len(line) > 0 and not line.startswith('#'):
+                    t, rgb = line.rstrip().split(' ')[0:2]
+                    rgb_filenames.append(f"{path_to_sequence}/{rgb}")
+                    timestamps.append(float(t))
+        test_files = rgb_filenames
+        timestamps = np.array(timestamps)
+        return test_files
+    
+    def load_images(self):
+        path = self.img_dir
+        seq = self.seq_id
+        new_img_h = self.new_img_h
+        new_img_w = self.new_img_w
+        test_files = self.read_images_files_from_folder(f"{path}/{seq}")
+        # seq_dir = os.path.join(path, seq)
+        # image_dir = os.path.join(seq_dir, 'image_2')
+        num = len(test_files)
+        
+        images = []
+        for i in tqdm(range(num)):
+            image = cv2.imread(test_files[i])
+            image = cv2.resize(image, (new_img_w, new_img_h))
+            images.append(image)
+
+        print('Loaded Images')
+        return images
+    
+    """ testing tum
+    vo_test = infer_vo_tum("rgbd_dataset_freiburg3_long_office_household", "./data/tum_data/")
+    images = vo_test.load_images()
+    """
+    
 if __name__ == '__main__':
     import argparse
     arg_parser = argparse.ArgumentParser(
@@ -297,6 +399,7 @@ if __name__ == '__main__':
     )
     arg_parser.add_argument('-c', '--config_file', default=None, help='config file.')
     arg_parser.add_argument('-g', '--gpu', type=str, default=0, help='gpu id.')
+    arg_parser.add_argument('--dataset', type=str, default='kitti_odo', help='choose the dataset: kitti or tum')
     arg_parser.add_argument('--mode', type=str, default='flow', help='training mode.')
     arg_parser.add_argument('--traj_save_dir_txt', type=str, default=None, help='directory for saving results')
     arg_parser.add_argument('--sequences_root_dir', type=str, default=None, help='directory for test sequences')
@@ -329,7 +432,12 @@ if __name__ == '__main__':
     print('Model Loaded.')
 
     print('Testing VO.')
-    vo_test = infer_vo(args.sequence, args.sequences_root_dir)
+    if args.dataset == 'kitti_odo':
+        vo_test = infer_vo(args.sequence, args.sequences_root_dir)
+    elif args.dataset == 'tum':
+        vo_test = infer_vo_tum(args.sequence, args.sequences_root_dir)
+    else:
+        raise NotImplementedError
     images = vo_test.load_images()
     print('Images Loaded. Total ' + str(len(images)) + ' images found.')
     poses = vo_test.process_video(images, model)
