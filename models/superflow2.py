@@ -22,6 +22,9 @@ from superglue.models.superpoint import SuperPoint
 #TrianFlow imports
 from TrianFlow.core.networks.model_depth_pose import Model_depth_pose 
 
+from deepF.dsac_tools.utils_opencv import KNN_match
+
+
 #My Utils
 from utils.utils import desc_to_sparseDesc, prep_superpoint_image, prep_trianflow_image, get_2d_matches, dense_sparse_hybrid_correspondences
 
@@ -117,11 +120,13 @@ class SuperFlow(torch.nn.Module):
         pred1 = self.superpoint({'image': image2_t})
         superpoint_pred = {**superpoint_pred, **{k+'1': v for k, v in pred1.items()}}
         
-        outs['keypoints'] = [superpoint_pred['keypoints0'], superpoint_pred['keypoints1']]
+        outs['keypoints'] = [superpoint_pred['keypoints0'][0], superpoint_pred['keypoints1'][0]]
         
-        descriptor_matches = get_descriptor_matches([superpoint_pred['descriptors0'], superpoint_pred['descriptors1']]).T
+#         code.interact(local=locals())
+
+        image1_superpoint_matches, image2_superpoint_matches, _, good_matches_indices = KNN_match(toNumpy(superpoint_pred['descriptors0'][0]).T, toNumpy(superpoint_pred['descriptors1'][0]).T, toNumpy(superpoint_pred['keypoints0'][0]), toNumpy(superpoint_pred['keypoints1'][0]), None, None, None, None)
         
-        outs['superpoint_correspondences'] = get_2d_matches(descriptor_matches, superpoint_pred['keypoints0'], superpoint_pred['keypoints1'], self.num_matches)
+        outs['superpoint_correspondences'] = np.concatenate((image1_superpoint_matches, image2_superpoint_matches), axis=1)
         
         
         #TrianFlow
@@ -133,7 +138,7 @@ class SuperFlow(torch.nn.Module):
         correspondences, image1_depth_map, image2_depth_map = self.trianFlow.infer_vo(image1_t, image2_t, K, K_inverse, self.num_matches)
         
         mid_time = datetime.utcnow()
-        print(f'SIFT and flownet took {mid_time - start_time} to run')
+        print(f'superpoint and flownet took {mid_time - start_time} to run')
 
         #post process
         outs['flownet_correspondences'] = squeezeToNumpy(correspondences.T)
@@ -141,12 +146,13 @@ class SuperFlow(torch.nn.Module):
         outs['image2_depth'] = squeezeToNumpy(image2_depth_map)
         
         #SuperFLOW
+        print(f'superpoint({outs["superpoint_correspondences"].shape[0]}) and flownet({outs["flownet_correspondences"].shape[0]}) took {mid_time - start_time} to run')
         print(f'keypoints : {outs["keypoints"][0].shape[0] + outs["keypoints"][1].shape[0]}, superpoint matches : {outs["superpoint_correspondences"].shape[0]}')
-        outs['superflow_correspondences'] = dense_sparse_hybrid_correspondences(outs['keypoints'][0], outs['keypoints'][1], outs['flownet_correspondences'], outs['superpoint_correspondences'], self.num_matches)
+        outs['superflow_correspondences'] = dense_sparse_hybrid_correspondences(outs['keypoints'][0], outs['keypoints'][1], outs['flownet_correspondences'], outs['superpoint_correspondences'], int(self.num_matches/2))
 
         
         end_time = datetime.utcnow()
-        print(f'Hybrid sampling took {end_time - mid_time} to run')
+        print(f'Hybrid sampling took {end_time - mid_time} to run\n')
 
         return outs
 

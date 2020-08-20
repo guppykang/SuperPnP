@@ -128,6 +128,7 @@ class SiftFlow(torch.nn.Module):
         outs['image1_sift_keypoints'], outs['image1_sift_descriptors'] = classical_detector_descriptor(image1_resized, image1_resized)
         outs['image2_sift_keypoints'], outs['image2_sift_descriptors'] = classical_detector_descriptor(image2_resized, image2_resized)
         
+        code.interact(local=locals())
         image1_sift_matches, image2_sift_matches, _, good_matches_indices = KNN_match(outs['image1_sift_descriptors'], outs['image2_sift_descriptors'], outs['image1_sift_keypoints'], outs['image2_sift_keypoints'], None, None, None, None)
         
         outs['sift_correspondences'] = np.concatenate((image1_sift_matches, image2_sift_matches), axis=1)

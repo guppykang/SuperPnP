@@ -133,7 +133,7 @@ class SuperGlueFlow(torch.nn.Module):
 
         
         end_time = datetime.utcnow()
-        print(f'Hybrid sampling took {end_time - mid_time} to run')
+        print(f'Hybrid sampling took {end_time - mid_time} to run\n')
 
         return outs
 

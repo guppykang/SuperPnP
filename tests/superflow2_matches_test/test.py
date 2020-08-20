@@ -22,7 +22,7 @@ from utils.utils import load_image_pair, load_camera_intrinsics, pObject, get_co
 
 if __name__ == '__main__':
     arg_parser = argparse.ArgumentParser(description="Unit Tests for Correspondence_model")
-    arg_parser.add_argument('-c', '--config_file', default='./../../configs/superflow.yaml', help='config file.')
+    arg_parser.add_argument('-c', '--config_file', default='./../../configs/superglueflow.yaml', help='config file.')
     args = arg_parser.parse_args()
 
     #Require GPU
