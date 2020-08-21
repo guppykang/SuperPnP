@@ -13,6 +13,7 @@ from sklearn import linear_model
 import yaml
 import warnings
 import copy
+import code
 from collections import OrderedDict
 from tqdm import tqdm
 from pathlib import Path
@@ -150,6 +151,7 @@ class infer_vo():
         K_inv = torch.from_numpy(K_inv).cuda().float().unsqueeze(0)
 
         filt_depth_match, depth1, depth2 = model.infer_vo(img1_t, img2_t, K, K_inv, match_num)
+        
         return filt_depth_match[0].transpose(0,1).cpu().detach().numpy(), depth1[0].squeeze(0).cpu().detach().numpy(), depth2[0].squeeze(0).cpu().detach().numpy()
 
     

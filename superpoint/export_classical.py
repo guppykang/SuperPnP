@@ -15,10 +15,10 @@ from tqdm import tqdm
 
 from tensorboardX import SummaryWriter
 
-from utils.utils import tensor2array, save_checkpoint, load_checkpoint, save_path_formatter
-from settings import EXPER_PATH
-from utils.loader import dataLoader, modelLoader, pretrainedLoader
-from utils.utils import getWriterPath
+from superpoint.utils.utils import tensor2array, save_checkpoint, load_checkpoint, save_path_formatter
+from superpoint.settings import EXPER_PATH
+from superpoint.utils.loader import dataLoader, modelLoader, pretrainedLoader
+from superpoint.utils.utils import getWriterPath
 
 # from utils.logging import *
 
@@ -87,7 +87,7 @@ def export_descriptor(config, output_dir, args):
         def classicalDetectors(image, method='sift'):
             round_method = False
             if round_method == True:
-                from models.classical_detectors_descriptors import classical_detector_descriptor # with quantization
+                from superpoint.models.classical_detectors_descriptors import classical_detector_descriptor # with quantization
                 points, desc = classical_detector_descriptor(image, **{'method': method})
                 y, x = np.where(points)
                 # pnts = np.stack((y, x), axis=1)
@@ -96,7 +96,7 @@ def export_descriptor(config, output_dir, args):
                 desc = desc[y, x, :]
             else:
                 # sift with subpixel accuracy
-                from models.classical_detectors_descriptors import SIFT_det as classical_detector_descriptor
+                from superpoint.models.classical_detectors_descriptors import SIFT_det as classical_detector_descriptor
                 pnts, desc = classical_detector_descriptor(image, image)
 
             print("desc shape: ", desc.shape)

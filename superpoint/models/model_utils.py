@@ -29,12 +29,12 @@ class SuperPointNet_process(object):
         """
         patch_size=self.patch_size
         device=self.device
-        from utils.losses import norm_patches
+        from superpoint.utils.losses import norm_patches
 
         outs = {}
         # extract patches
-        from utils.losses import extract_patches
-        from utils.losses import soft_argmax_2d
+        from superpoint.utils.losses import extract_patches
+        from superpoint.utils.losses import soft_argmax_2d
         label_idx = labels_2D[...].nonzero()
 
         # patch_size = self.config['params']['patch_size']
@@ -44,7 +44,7 @@ class SuperPointNet_process(object):
         # patches = norm_patches(patches)
 
         # predict offsets
-        from utils.losses import do_log
+        from superpoint.utils.losses import do_log
         patches_log = do_log(patches)
         # soft_argmax
         dxdy = soft_argmax_2d(patches_log, normalized_coordinates=False) # tensor [B, N, patch, patch]
@@ -83,7 +83,9 @@ class SuperPointNet_process(object):
             samp_pts = samp_pts.view(1, 1, -1, 2)
             samp_pts = samp_pts.float()
             # samp_pts = samp_pts.to(self.device)
-            desc = torch.nn.functional.grid_sample(coarse_desc, samp_pts, align_corners=True) # tensor [batch_size(1), D, 1, N]
+            desc = torch.nn.functional.grid_sample(coarse_desc, samp_pts) # tensor [batch_size(1), D, 1, N]
+
+#             desc = torch.nn.functional.grid_sample(coarse_desc, samp_pts, align_corners=True) # tensor [batch_size(1), D, 1, N]
             # desc = desc.data.cpu().numpy().reshape(D, -1)
             # desc /= np.linalg.norm(desc, axis=0)[np.newaxis, :]
             desc = desc.squeeze().transpose(0,1).unsqueeze(0)
@@ -120,17 +122,17 @@ class SuperPointNet_process(object):
         return coords
 
 
-    def heatmap_to_nms(self, heatmap, tensor=False, boxnms=True):
+    def heatmap_to_nms(self, heatmap, tensor=False, boxnms=False):
         """
         return: 
           heatmap_nms_batch: np [batch, 1, H, W]
         """
         to_floatTensor = lambda x: torch.from_numpy(x).type(torch.FloatTensor)
-        from utils.var_dim import toNumpy
+        from superpoint.utils.var_dim import toNumpy
         heatmap_np = toNumpy(heatmap)
         ## heatmap_nms
         if boxnms:
-            from utils.utils import box_nms
+            from superpoint.utils.utils import box_nms
             heatmap_nms_batch = [box_nms(h.detach().squeeze(), self.nms_dist, min_prob=self.conf_thresh) \
                             for h in heatmap] # [batch, H, W]
             heatmap_nms_batch = torch.stack(heatmap_nms_batch, dim=0).unsqueeze(1)
@@ -160,7 +162,7 @@ class SuperPointNet_process(object):
         heatmap = heatmap.squeeze()
         boxnms = False
         # print("heatmap: ", heatmap.shape)
-        from utils.utils import getPtsFromHeatmap
+        from superpoint.utils.utils import getPtsFromHeatmap
         pts_nms = getPtsFromHeatmap(heatmap, conf_thresh, nms_dist)
 
         semi_thd_nms_sample = np.zeros_like(heatmap)
@@ -194,7 +196,7 @@ class SuperPointNet_process(object):
             pts_desc_b = self.sample_desc_from_points(desc[i].unsqueeze(0), pts_b).squeeze(0)
             # print("pts_desc_b: ", pts_desc_b.shape)
             # get random shuffle
-            from utils.utils import crop_or_pad_choice
+            from superpoint.utils.utils import crop_or_pad_choice
             choice = crop_or_pad_choice(pts_int_b.shape[0], out_num_points=self.out_num_points, shuffle=True)
             choice = torch.tensor(choice)
             pts_int.append(pts_int_b[choice])

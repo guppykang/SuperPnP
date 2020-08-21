@@ -7,6 +7,9 @@ import torch.nn as nn
 from torch.nn.init import xavier_uniform_, zeros_
 from superpoint.models.unet_parts import *
 import numpy as np
+import code
+
+from superpoint.utils.var_dim import toNumpy, squeezeToNumpy
 
 # from models.SubpixelNet import SubpixelNet
 class SuperPointNet_gauss2(torch.nn.Module):
@@ -78,13 +81,17 @@ class SuperPointNet_gauss2(torch.nn.Module):
           pts_offset: tensor [batch, N, 2] (grad) (x, y)
           pts_desc: tensor [batch, N, 256] (grad)
         """
-        from superpoint.utils.utils import flattenDetection
+        from superpoint.utils.utils import flattenDetection, getPtsFromHeatmap
+                
         # from models.model_utils import pred_soft_argmax, sample_desc_from_points
         output = self.output
         semi = output['semi']
         desc = output['desc']
         # flatten
         heatmap = flattenDetection(semi) # [batch_size, 1, H, W]
+        
+        keypoints = [getPtsFromHeatmap(squeezeToNumpy(heatmap[heatmap_idx]), 0.015, 4).T for heatmap_idx in range(heatmap.shape[0])]
+        
         # nms
         heatmap_nms_batch = sp_processer.heatmap_to_nms(heatmap, tensor=True)
         # extract offsets
@@ -96,17 +103,19 @@ class SuperPointNet_gauss2(torch.nn.Module):
         # output.update({'heatmap': heatmap, 'heatmap_nms': heatmap_nms, 'descriptors': descriptors})
         output.update(outs)
         self.output = output
-        return output
+        return output, keypoints
 
 
 def get_matches(deses_SP):
     from superpoint.models.model_wrap import PointTracker
     tracker = PointTracker(max_length=2, nn_thresh=1.2)
-    f = lambda x: x.cpu().detach().numpy()
+    f = lambda x: x.squeeze().cpu().detach().numpy()
     # tracker = PointTracker(max_length=2, nn_thresh=1.2)
     # print("deses_SP[1]: ", deses_SP[1].shape)
-    matching_mask = tracker.nn_match_two_way(f(deses_SP[0]).transpose(), f(deses_SP[1]).transpose(), nn_thresh=1.2)
-    # print("matching_mask: ", matching_mask.shape)
+    matching_mask = tracker.nn_match_two_way(f(deses_SP[0]).T, f(deses_SP[1]).T, nn_thresh=1.2)
+    
+    return matching_mask
+        # print("matching_mask: ", matching_mask.shape)
     # f_mask = lambda pts, maks: pts[]
     # pts_m = []
     # pts_m_res = []

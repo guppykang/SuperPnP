@@ -12,6 +12,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.utils.data
 from tqdm import tqdm
+import code
 
 
 def labels2Dto3D(cell_size, labels):
@@ -440,8 +441,8 @@ class PointTracker(object):
         that the NN match from descriptor A->B must equal the NN match from B->A.
 
         Inputs:
-          desc1 - NxM numpy matrix of N corresponding M-dimensional descriptors.
-          desc2 - NxM numpy matrix of N corresponding M-dimensional descriptors.
+          desc1 - MxN numpy matrix of N corresponding M-dimensional descriptors.
+          desc2 - MxN numpy matrix of N corresponding M-dimensional descriptors.
           nn_thresh - Optional descriptor distance below which is a good match.
 
         Returns:
@@ -449,6 +450,7 @@ class PointTracker(object):
                     a match of two descriptors, d_i in image 1 and d_j' in image 2:
                     [d_i index, d_j' index, match_score]^T
         """
+
         assert desc1.shape[0] == desc2.shape[0]
         if desc1.shape[1] == 0 or desc2.shape[1] == 0:
             return np.zeros((3, 0))

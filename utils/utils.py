@@ -1,5 +1,6 @@
 import argparse
 import cv2
+import copy
 import os
 import yaml
 import code
@@ -7,17 +8,169 @@ from pathlib import Path
 import random
 import numpy as np
 import torch
+from scipy.spatial.transform import Rotation as R
+
 
 from superpoint.utils.var_dim import toNumpy, squeezeToNumpy
-from superpoint.models import model_utils
+from superpoint.models.model_utils import SuperPointNet_process
+
+def vehicle_to_world(pose_t, vehicle_3d_points):
+    """
+    Do an inverse Transform on the 3d vehicle frame points to be in world coordinates
+    
+    pose_t : (3, 4) R, T 
+    vehicle_3d_points : (n x 3)
+    """
+    R = pose_t[:3, :3]
+    T = pose_t[:3, 3:]
+    inverse_pose_t = np.concatenate((np.linalg.pinv(R), -T), axis=1)
+    world_points = inverse_pose_t @ np.vstack((vehicle_3d_points.T, np.ones(vehicle_3d_points.shape[0])))
+    
+#decide what to do about the 1/3 decimal issue
+#     for row_idx, row in enumerate(world_points):
+#         for col_idx, value in enumerate(row):
+#             if value == 2.220446049250313e-16:
+#                 inverse_pose[row_idx][col_idx] = 0                
+    return world_points
+
+def sample_random_k(data, num_sample, num_total):
+    indices = np.random.choice(num_total, num_sample, replace=False)
+    return data[indices]
+
+def dense_sparse_hybrid_correspondences(image1_keypoints, image2_keypoints, flownet_matches, superpoint_matches, num_matches, flownet_ratio=0.5):
+    """
+    Finds the flownet matches that lie on the keypoints from given keypoints. Fills in remaining num_matches with split given ratio of dense and sparse correspondences
+    
+    image1_keypoints : keypoints from image1 (n x 2)
+    image2_keypoints : keypoints from image2 (n x 2)
+    flownet_matches : 2d-2d matches between image1 and image2, respectively(n x 4) 
+    superpoint_matches : 2d-2d matches between image1 and image2, respectively(n x 4) 
+    num_matches : number of 2d-2d matches to output
+    flownet_ratio : ratio of remaining matches to fill in using the flownet dense matches
+    """
+    matches = np.zeros((num_matches, 4))
+    
+    current_start_index = 0
+    
+    #image1 keypoints
+    common_matches_image1, flownet_matches = get_flownet_matches_from_superpoint_keypoints(image1_keypoints, flownet_matches)
+    matches[:common_matches_image1.shape[0]] = common_matches_image1
+    current_start_index = common_matches_image1.shape[0]
+    
+    #image2 keypoints 
+    common_matches_image2, flownet_matches = get_flownet_matches_from_superpoint_keypoints(image2_keypoints, flownet_matches)
+    matches[current_start_index : current_start_index + common_matches_image2.shape[0]] = common_matches_image2
+    current_start_index += common_matches_image2.shape[0]
+    
+    print(f'number of hybrid matches : {current_start_index}')
+    
+    
+    #Fill with random choices from remaining flownet and superoints matches
+    temp_num_matches = int((num_matches-current_start_index) * flownet_ratio)
+    
+    #get half flownet correspondences
+    flownet_indices = np.random.choice(flownet_matches.shape[0], temp_num_matches, replace=False)
+    matches[current_start_index : current_start_index + temp_num_matches] = flownet_matches[flownet_indices]
+    current_start_index += temp_num_matches
+    
+    #get half superpoint correspondences
+    temp_num_matches = num_matches - current_start_index
+    #I recognize here that I still possibly have the superpoint matches that I chose in "common_matches"
+    superpoint_indices = np.random.choice(superpoint_matches.shape[0], temp_num_matches)
+    matches[current_start_index :] = superpoint_matches[superpoint_indices]
+    
+    return matches
+
+
+def get_random_sequence():
+    """
+    For the kitti vo dataset
+    """
+    sequences = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21']
+    return sequences[random.randint(0, len(sequences)-1)]
+        
+
+def get_flownet_matches_from_superpoint_keypoints(keypoints, matches, image_keypoints=1):
+    """
+    Given keypoints from superpoint, grab the correspondences that exist in those pixel locations
+    
+    Parameters : 
+        keypoints : (N x 2) Superpoint Keypoints from image1 or image2
+        matches : (N x 4) Correspondences from trianflow flownet 
+        image_keypoints : which image we are getting the keypoints from
+    Returns : 
+        N x 4
+    """
+    remaining_matches = copy.deepcopy(matches)
+    chosen_indices = []
+    
+    match_points = []
+    
+    if image_keypoints == 1: 
+        offset = 0
+    else : 
+        offset = 2
+    
+    for keypoint_idx, keypoint in enumerate(keypoints):
+        for match_idx, match in enumerate(matches):
+            if int(match[0 + offset]) == int(keypoint[0]) and int(match[1 + offset]) == int(keypoint[1]):
+                match_points.append(match)
+                chosen_indices.append(match_idx)
+                break
+                
+    remaining_matches = np.delete(remaining_matches, chosen_indices, axis=0)
+        
+    return np.array(match_points), remaining_matches
+
+
+def get_2d_matches(descriptor_matches, image1_keypoints, image2_keypoints, num_matches=None):
+    """
+    Given a set of descriptor matches, finds the top num_matcheas with the highest score and returns those 2d-2d correspondences. 
+    
+    Parameters : 
+        descriptor_matches : (N, 3) where each entry is a tuple of (image1_index, image2_index, score)
+        image1_keypoints, image2_keypoints : (N, 2). 2d pixel wise keypoints
+        num_matches : the number of matches that we want to choose from, if it is less than descriptor_matches.shape[0]
+        
+    Returns : 
+        M x 4 : (image1_x, image1_y, image2_x, image2_y) where M is num_matches or len(descriptor_matches)
+    """
+    image1_keypoints = toNumpy(image1_keypoints)
+    image2_keypoints = toNumpy(image2_keypoints)
+
+
+    if num_matches:
+        sort_index = np.argsort(descriptor_matches[:, 2])
+        
+
+        if (len(sort_index) > num_matches):
+            sort_index = sort_index[-num_matches:]
+            
+        match_pts = np.zeros((len(sort_index), 4))
+
+        for idx, match in enumerate(sort_index):
+            match_indices = descriptor_matches[match]
+
+            match_pts[idx][:2] = image1_keypoints[int(match_indices[0])].astype(int)
+            match_pts[idx][2:] = image2_keypoints[int(match_indices[1])].astype(int)
+    else:
+        match_pts = np.zeros((len(descriptor_matches), 4))
+
+        for idx, match in enumerate(descriptor_matches):
+            match_pts[idx][:2] = image1_keypoints[int(match[0])].astype(int)
+            match_pts[idx][2:] = image2_keypoints[int(match[1])].astype(int)
+    
+    return match_pts
+
+
 
 def prep_superpoint_image(image, new_hw):
-    resized_image = cv2.resize(image, (new_hw[0], new_hw[1]))
-    return torch.from_numpy(cv2.cvtColor(resized_image, cv2.COLOR_RGB2GRAY)/ 255.0).cuda().float().unsqueeze(0)
+    resized_image = cv2.resize(image, (new_hw[1], new_hw[0])) #Why does the hw ordering convention change every three days..
+    return torch.from_numpy(cv2.cvtColor(resized_image, cv2.COLOR_RGB2GRAY)/ 255.0).cuda().float().unsqueeze(0).unsqueeze(0)
 
 def prep_trianflow_image(image, new_hw):
-    resized_image = cv2.resize(image, (new_hw[0], new_hw[1]))
-    return torch.from_numpy(np.transpose(resized_image/ 255.0, [2,0,1])).cuda().float().unsqueeze(0)
+    resized_image = cv2.resize(image, (new_hw[1], new_hw[0])) #God knows why this is wh not hw
+    return torch.from_numpy(np.transpose(resized_image/ 255.0, [2,0,1])).cuda().float().unsqueeze(0), resized_image
 
 
 def desc_to_sparseDesc(outs):
@@ -30,10 +183,10 @@ def desc_to_sparseDesc(outs):
     Returns : 
         desc : np [N,D]
     """
-    return squeezeToNumpy(model_utils.sample_desc_from_points(outs['desc'], outs['pts']))
+    return SuperPointNet_process.sample_desc_from_points(outs['desc'], outs['pts'])
      
 
-def get_configs(path): 
+def get_configs(path, mode='superflow'): 
     """
     Returns the configs for the model and general hyperparameters
 
@@ -48,7 +201,11 @@ def get_configs(path):
     for attr in list(cfg["models"]["trianflow"].keys()):
         setattr(trianflow_cfg, attr, cfg["models"]["trianflow"][attr])
 
-    model_cfg = { 'trianflow' : trianflow_cfg, 'superpoint' : cfg['models']['superpoint']}
+    if mode == 'superflow':
+        model_cfg = { 'trianflow' : trianflow_cfg, 'superpoint' : cfg['models']['superpoint']}
+    elif mode == 'superglueflow': 
+        model_cfg = { 'trianflow' : trianflow_cfg, 'superpoint' : cfg['models']['superpoint'], 'superglue' : cfg['models']['superglue']}
+        
 
     return model_cfg, cfg
 
