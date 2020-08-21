@@ -20,6 +20,8 @@ from collections import OrderedDict
 
 from utils.utils import get_configs, vehicle_to_world
 
+from TrianFlow.infer_vo import infer_vo_tum
+
 warnings.filterwarnings("ignore")
 
 def save_traj(path, poses):
@@ -400,6 +402,7 @@ if __name__ == '__main__':
         description="TrianFlow training pipeline."
     )
     arg_parser.add_argument('-c', '--config_file', default='./configs/superflow.yaml', help='config file.')
+        arg_parser.add_argument('--dataset', type=str, default='kitti', help='choose the dataset: kitti or tum')
     arg_parser.add_argument('-g', '--gpu', type=str, default=0, help='gpu id.')
     arg_parser.add_argument('-v', '--version', type=int, default=1, help='Superflow version (1) : Superflow. (2) : Superflow2 ')
     arg_parser.add_argument('--mode', type=str, default='superflow', help='(choose from : siftflow, superglueflow, superflow)')
@@ -412,7 +415,6 @@ if __name__ == '__main__':
 
     os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu)
 
-   
     #do config stuff
     model_cfg, cfg = get_configs(args.config_file)    
 
@@ -436,7 +438,12 @@ if __name__ == '__main__':
     print('Model Loaded.')
 
     print('Testing VO.')
-    vo_test = infer_vo(args.sequence, args.sequences_root_dir)
+    if args.dataset == 'kitti':
+        vo_test = infer_vo(args.sequence, args.sequences_root_dir)
+    elif args.dataset == 'tum':
+        vo_test = infer_vo_tum(args.sequence, args.sequences_root_dir)
+    else:
+        raise NotImplementedError
     images = vo_test.load_images()
     print('Images Loaded. Total ' + str(len(images)) + ' images found.')
     poses = vo_test.process_video_relative(images, model, args.mode)
