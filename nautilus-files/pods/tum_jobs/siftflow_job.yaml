@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name:  siftflow_job # deepsfm-pod
+  name:  siftflow-tum-job # deepsfm-pod
   namespace: mc-lab
   labels:
     user: jbk001 
