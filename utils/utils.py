@@ -54,13 +54,15 @@ def dense_sparse_hybrid_correspondences(image1_keypoints, image2_keypoints, flow
     
     #image1 keypoints
     common_matches_image1, flownet_matches = get_flownet_matches_from_superpoint_keypoints(image1_keypoints, flownet_matches)
-    matches[:common_matches_image1.shape[0]] = common_matches_image1
-    current_start_index = common_matches_image1.shape[0]
+    if common_matches_image1.shape[0] > 0:
+        matches[:common_matches_image1.shape[0]] = common_matches_image1
+        current_start_index = common_matches_image1.shape[0]
     
     #image2 keypoints 
     common_matches_image2, flownet_matches = get_flownet_matches_from_superpoint_keypoints(image2_keypoints, flownet_matches)
-    matches[current_start_index : current_start_index + common_matches_image2.shape[0]] = common_matches_image2
-    current_start_index += common_matches_image2.shape[0]
+    if common_matches_image2.shape[0] > 0:
+        matches[current_start_index : current_start_index + common_matches_image2.shape[0]] = common_matches_image2
+        current_start_index += common_matches_image2.shape[0]
     
     print(f'number of hybrid matches : {current_start_index}')
     

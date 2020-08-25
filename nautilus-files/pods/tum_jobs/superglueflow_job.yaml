@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name:  siftflow_job # deepsfm-pod
+  name:  superglueflow-job # deepsfm-pod
   namespace: mc-lab
   labels:
     user: jbk001 
@@ -15,7 +15,7 @@ spec:
         command:
         - "sh"
         - "-c"
-        - "/jbk001-data1/git/SuperPnP/nautilus-files/scripts/run_siftflow.sh"
+        - "/jbk001-data1/git/SuperPnP/nautilus-files/scripts/tum/run_superglueflow.sh"
         resources:
           requests:
             cpu: "8"
