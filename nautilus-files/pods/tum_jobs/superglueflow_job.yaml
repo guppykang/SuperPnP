@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name:  superglueflow-job # deepsfm-pod
+  name:  superglueflow-tum-job # deepsfm-pod
   namespace: mc-lab
   labels:
     user: jbk001 
