@@ -15,6 +15,7 @@ import code
 from tqdm import tqdm
 import copy
 from pathlib import Path
+import time
 
 from collections import OrderedDict
 
@@ -158,9 +159,11 @@ if __name__ == '__main__':
     arg_parser.add_argument('--traj_save_dir', type=str, default='/jbk001-data1/datasets/tum/vo_pred', help='directory for saving results')
     arg_parser.add_argument('--sequences_root_dir', type=str, default='/jbk001-data1/datasets/tum', help='Root directory for all datasets')
     arg_parser.add_argument('--sequence', type=str, default='rgbd_dataset_freiburg3_long_office_household', help='Test sequence id.')
+    arg_parser.add_argument('--iters', type=int, default='-1', help='For debugging')
     args = arg_parser.parse_args()
     
-    args.traj_save_dir = str(Path(args.traj_save_dir) / (args.sequence + '.txt')) #I just like this better than os.path
+    args.traj_save_dir = str(Path(args.traj_save_dir) / (args.sequence + '_' + args.model + '_' + time.strftime("%Y%m%d-%H%M%S")
+ + '.txt')) #I just like this better than os.path
 
     os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
@@ -169,15 +172,19 @@ if __name__ == '__main__':
     print(f'Using the {args.model} model')
     if args.model == 'superflow':
         config_file = './configs/superflow.yaml'
+        model_cfg, cfg = get_configs(config_file, mode='superflow')    
         from models.superflow import SuperFlow as Model
     elif args.model == 'superflow2':
         config_file = './configs/tum/superflow2.yaml'
+        model_cfg, cfg = get_configs(config_file, mode='superflow')    
         from models.superflow2 import SuperFlow as Model
     elif args.model == 'siftflow':
         config_file = './configs/siftflow.yaml'
+        model_cfg, cfg = get_configs(config_file)    
         from models.siftflow import SiftFlow as Model
     elif args.model == 'superglueflow':
         config_file = './configs/tum/superglueflow.yaml'
+        model_cfg, cfg = get_configs(config_file, mode='superglueflow')    
         from models.superglueflow import SuperGlueFlow as Model
 
     #do config stuff
@@ -194,14 +201,14 @@ if __name__ == '__main__':
     vo_test = infer_vo_tum(args.sequence, args.sequences_root_dir)
     
     #load and inference
-    images = vo_test.load_images()
+    images = vo_test.load_images(max_length=args.iters)
     print('Images Loaded. Total ' + str(len(images)) + ' images found.')
     print('Testing VO.')
     poses = vo_test.process_video_relative(images, model, args.model)
     print('Test completed.')
     
     traj_txt = args.traj_save_dir
-    vo_test.save_traj(traj_txt, poses[:,:3,:4].reshape(-1, 12))
+    vo_test.save_traj(traj_txt, poses[:][:3][:4].reshape(-1, 12))
     print(f'Predicted Trajectory saved at : {args.traj_save_dir}')
 
 

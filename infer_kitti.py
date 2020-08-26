@@ -15,6 +15,7 @@ import code
 from tqdm import tqdm
 import copy
 from pathlib import Path
+import time
 
 from collections import OrderedDict
 
@@ -156,7 +157,7 @@ class infer_vo():
         depth2 = outs['image2_depth'] # H, W
 
 
-        if mode == 'superflow':
+        if mode == 'superflow' or mode == 'superflow2':
             filt_depth_match = outs['superflow_correspondences']# N x 4
         elif mode == 'siftflow':
             filt_depth_match = outs['siftflow_correspondences']# num_matches x 4
@@ -206,6 +207,7 @@ class infer_vo():
             global_pose[:3,:3] = np.matmul(global_pose[:3,:3], rel_pose[:3,:3])
             poses.append(copy.deepcopy(global_pose))
             print(i)
+            break
         return poses
     
     def process_video_absolute(self, images, model, mode):
@@ -410,13 +412,15 @@ if __name__ == '__main__':
     arg_parser = argparse.ArgumentParser(
         description="Inferencing on kitti pipeline."
     )
+    arg_parser.add_argument('--mode', type=str, default='relative', help='(choose from : relative (hybrid), absolute')
     arg_parser.add_argument('--model', type=str, default='superglueflow', help='(choose from : siftflow, superglueflow, superflow, superflow2)')
     arg_parser.add_argument('--traj_save_dir', type=str, default='/jbk001-data1/datasets/kitti/kitti_vo/vo_preds/superflow', help='directory for saving results')
     arg_parser.add_argument('--sequences_root_dir', type=str, default='/jbk001-data1/datasets/kitti/kitti_vo/vo_dataset/sequences', help='Root directory for all datasets')
     arg_parser.add_argument('--sequence', type=str, default='10', help='Test sequence id.')
     args = arg_parser.parse_args()
     
-    args.traj_save_dir = str(Path(args.traj_save_dir) / (args.sequence + '.txt')) #I just like this better than os.path
+    args.traj_save_dir = str(Path(args.traj_save_dir) / (args.sequence + '_' + args.model + '_' + time.strftime("%Y%m%d-%H%M%S")
+ + '.txt')) #I just like this better than os.path
 
     os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
@@ -425,20 +429,23 @@ if __name__ == '__main__':
     print(f'Using the {args.model} model')
     if args.model == 'superflow':
         config_file = './configs/superflow.yaml'
+        model_cfg, cfg = get_configs(config_file, mode='superflow')    
         from models.superflow import SuperFlow as Model
     elif args.model == 'superflow2':
         config_file = './configs/kitti/superflow2.yaml'
+        model_cfg, cfg = get_configs(config_file, mode='superflow')    
         from models.superflow2 import SuperFlow as Model
     elif args.model == 'siftflow':
         config_file = './configs/siftflow.yaml'
+        model_cfg, cfg = get_configs(config_file)    
         from models.siftflow import SiftFlow as Model
     elif args.model == 'superglueflow':
         config_file = './configs/kitti/superglueflow.yaml'
+        model_cfg, cfg = get_configs(config_file, mode='superglueflow')    
         from models.superglueflow import SuperGlueFlow as Model
 
     #do config stuff
-    model_cfg, cfg = get_configs(config_file)    
-
+    
     #initialize the model
     model = Model(model_cfg)
     model.load_modules(model_cfg)
@@ -449,11 +456,16 @@ if __name__ == '__main__':
     #dataset
     vo_test = infer_vo(args.sequence, args.sequences_root_dir)
     
-    #load and inference
+    #load
     images = vo_test.load_images()
     print('Images Loaded. Total ' + str(len(images)) + ' images found.')
-    print('Testing VO.')
-    poses = vo_test.process_video_relative(images, model, args.model)
+    
+    #inference
+    print(f'Testing VO in {args.mode} mode.')
+    if args.mode == 'relative':
+        poses = vo_test.process_video_relative(images, model, args.model)
+    elif args.mode == 'absolute':
+        poses = vo_test.process_video_absolute(images, model, args.model)
     print('Test completed.')
     
     traj_txt = args.traj_save_dir
