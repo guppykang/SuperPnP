@@ -15,7 +15,7 @@ spec:
         command:
         - "sh"
         - "-c"
-        - "/jbk001-data1/git/SuperPnP/nautilus-files/scripts/tum/run_siftflow.sh"
+        - "/jbk001-data1/git/SuperPnP/nautilus-files/scripts/infer_tum.sh siftflow"
         resources:
           requests:
             cpu: "8"

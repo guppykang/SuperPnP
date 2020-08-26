@@ -15,7 +15,7 @@ spec:
         command:
         - "sh"
         - "-c"
-        - "/jbk001-data1/git/SuperPnP/nautilus-files/scripts/tum/run_superflow2.sh"
+        - "/jbk001-data1/git/SuperPnP/nautilus-files/scripts/run_tum.sh superflow2"
         resources:
           requests:
             cpu: "8"
