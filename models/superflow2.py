@@ -29,7 +29,7 @@ from deepF.dsac_tools.utils_opencv import KNN_match
 from utils.utils import desc_to_sparseDesc, prep_superpoint_image, prep_trianflow_image, get_2d_matches, dense_sparse_hybrid_correspondences
 
 class SuperFlow(torch.nn.Module):
-    def __init__(self, cfg):
+    def __init__(self, model_cfg, general_cfg):
         """
         Model consists of two modules for correspondences:
             TrianFlow : https://github.com/B1ueber2y/TrianFlow
@@ -39,12 +39,13 @@ class SuperFlow(torch.nn.Module):
         
         self.device = 'cuda:0'
         self.num_matches = 6000
+        self.ransac_num_matches = general_cfg["ransac_num_matches"]
 
         #TrianFlow
-        self.trianFlow = Model_depth_pose(cfg["trianflow"])
+        self.trianFlow = Model_depth_pose(model_cfg["trianflow"])
 
         #SuperPoint
-        self.superpoint = SuperPoint(cfg["superpoint"])
+        self.superpoint = SuperPoint(model_cfg["superpoint"])
        
     
     def load_modules(self, cfg):
@@ -148,7 +149,7 @@ class SuperFlow(torch.nn.Module):
         #SuperFLOW
         print(f'superpoint({outs["superpoint_correspondences"].shape[0]}) and flownet({outs["flownet_correspondences"].shape[0]}) took {mid_time - start_time} to run')
         print(f'keypoints : {outs["keypoints"][0].shape[0] + outs["keypoints"][1].shape[0]}, superpoint matches : {outs["superpoint_correspondences"].shape[0]}')
-        outs['superflow_correspondences'] = dense_sparse_hybrid_correspondences(outs['keypoints'][0], outs['keypoints'][1], outs['flownet_correspondences'], outs['superpoint_correspondences'], int(self.num_matches/2))
+        outs['superflow_correspondences'] = dense_sparse_hybrid_correspondences(outs['keypoints'][0], outs['keypoints'][1], outs['flownet_correspondences'], outs['superpoint_correspondences'], self.ransac_num_matches)
 
         
         end_time = datetime.utcnow()

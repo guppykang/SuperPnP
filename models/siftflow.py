@@ -33,7 +33,7 @@ from utils.utils import desc_to_sparseDesc, prep_superpoint_image, prep_trianflo
 
     
 class SiftFlow(torch.nn.Module):
-    def __init__(self, cfg):
+    def __init__(self, model_cfg, general_cfg):
         """
         Model consists of two modules for correspondences:
             TrianFlow : https://github.com/B1ueber2y/TrianFlow
@@ -43,9 +43,10 @@ class SiftFlow(torch.nn.Module):
         
         self.device = 'cuda:0'
         self.num_matches = 6000
+        self.ransac_num_matches = general_cfg["ransac_num_matches"]
 
         #TrianFlow
-        self.trianFlow = Model_depth_pose(cfg["trianflow"])
+        self.trianFlow = Model_depth_pose(model_cfg["trianflow"])
 
         #SIFT
     
@@ -147,7 +148,7 @@ class SiftFlow(torch.nn.Module):
         
         #SIFTFLOW
         print(f'keypoints : {outs["image1_sift_keypoints"].shape[0] + outs["image2_sift_keypoints"].shape[0]}, sift matches : {outs["sift_correspondences"].shape[0]}')
-        outs['siftflow_correspondences'] = dense_sparse_hybrid_correspondences(outs['image1_sift_keypoints'], outs['image2_sift_keypoints'], outs['flownet_correspondences'], outs['sift_correspondences'], self.num_matches)
+        outs['siftflow_correspondences'] = dense_sparse_hybrid_correspondences(outs['image1_sift_keypoints'], outs['image2_sift_keypoints'], outs['flownet_correspondences'], outs['sift_correspondences'], self.ransac_num_matches)
 
         
         end_time = datetime.utcnow()
