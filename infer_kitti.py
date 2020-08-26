@@ -178,7 +178,6 @@ class infer_vo():
         Register according to depth net predictions. Here we assume depth predictions have consistent scale.
         If not, pleas use process_video_tri which only use triangulated depth to get self-consistent scaled pose.
         '''
-        
         poses = []
         absolute_pose_t = np.zeros((3, 4))
         global_pose = np.eye(4)
@@ -207,7 +206,6 @@ class infer_vo():
             global_pose[:3,:3] = np.matmul(global_pose[:3,:3], rel_pose[:3,:3])
             poses.append(copy.deepcopy(global_pose))
             print(i)
-            break
         return poses
     
     def process_video_absolute(self, images, model, mode):

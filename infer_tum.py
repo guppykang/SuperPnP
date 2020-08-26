@@ -159,7 +159,7 @@ if __name__ == '__main__':
     arg_parser.add_argument('--traj_save_dir', type=str, default='/jbk001-data1/datasets/tum/vo_pred', help='directory for saving results')
     arg_parser.add_argument('--sequences_root_dir', type=str, default='/jbk001-data1/datasets/tum', help='Root directory for all datasets')
     arg_parser.add_argument('--sequence', type=str, default='rgbd_dataset_freiburg3_long_office_household', help='Test sequence id.')
-    arg_parser.add_argument('--iters', type=int, default='-1', help='For debugging')
+    arg_parser.add_argument('--iters', type=int, default='5', help='For debugging')
     args = arg_parser.parse_args()
     
     args.traj_save_dir = str(Path(args.traj_save_dir) / (args.sequence + '_' + args.model + '_' + time.strftime("%Y%m%d-%H%M%S")
@@ -204,7 +204,7 @@ if __name__ == '__main__':
     images = vo_test.load_images(max_length=args.iters)
     print('Images Loaded. Total ' + str(len(images)) + ' images found.')
     print('Testing VO.')
-    poses = vo_test.process_video_relative(images, model, args.model)
+    poses = np.array(vo_test.process_video_relative(images, model, args.model))
     print('Test completed.')
     
     traj_txt = args.traj_save_dir
