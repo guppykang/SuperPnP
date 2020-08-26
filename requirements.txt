@@ -1,4 +1,5 @@
 cffi==1.12.3
+evo==1.11.0
 opencv-contrib-python==3.4.2.17
 cycler==0.10.0
 Cython==0.29.13

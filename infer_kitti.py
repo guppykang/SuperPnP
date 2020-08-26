@@ -28,6 +28,9 @@ def save_traj(path, poses):
     path: file path of saved poses
     poses: list of global poses
     """
+    traj_dir = Path(path).parent
+    traj_dir.mkdir(exist_ok=True, parents=True)
+    
     f = open(path, 'w')
     for i in range(len(poses)):
         pose = poses[i].flatten()[:12] # [3x4]

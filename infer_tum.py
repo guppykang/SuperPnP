@@ -127,23 +127,24 @@ class infer_vo_tum(infer_vo):
         return vect
         
     
-    def save_traj(self, traj_txt, poses):
+    def save_traj(self, traj_txt, poses, save_time, model):
         time_stamps = self.timestamps
         time_stamps = np.array(time_stamps).flatten()
         time_stamps = time_stamps[:len(poses)].reshape(-1,1)
         
         poses_wTime = np.concatenate((time_stamps, poses), axis=1)
         # dir
-        traj_dir = Path(f"{traj_txt}").parent
-        traj_dir = traj_dir/f"{self.seq_id}"
+        traj_dir = Path(f"{traj_txt}")
+        traj_dir = traj_dir/f"{self.seq_id}"/f"{model}"
         traj_dir.mkdir(exist_ok=True, parents=True)
+        
         # save txt
-        filename = Path(f"{traj_dir}/{self.seq_id}.txt")
+        filename = Path(f"{traj_dir}/preds_{save_time}.txt")
         np.savetxt(filename, poses, delimiter=" ", fmt="%.4f")
-        filename = Path(f"{traj_dir}/{self.seq_id}_t.txt")
+        filename = Path(f"{traj_dir}/preds_{save_time}_t.txt")
         np.savetxt(filename, poses_wTime, delimiter=" ", fmt="%.4f")
         ## save tum txt
-        filename = Path(f"{traj_dir}/{self.seq_id}.tum")
+        filename = Path(f"{traj_dir}/preds_{save_time}.tum")
         pose_qua = np.array([infer_vo_tum.mat2quat(m.reshape(3,4)) for m in poses])
         poses_qua_wTime = np.concatenate((time_stamps, pose_qua), axis=1)
         np.savetxt(filename, poses_qua_wTime, delimiter=" ", fmt="%.4f")
@@ -159,11 +160,10 @@ if __name__ == '__main__':
     arg_parser.add_argument('--traj_save_dir', type=str, default='/jbk001-data1/datasets/tum/vo_pred', help='directory for saving results')
     arg_parser.add_argument('--sequences_root_dir', type=str, default='/jbk001-data1/datasets/tum', help='Root directory for all datasets')
     arg_parser.add_argument('--sequence', type=str, default='rgbd_dataset_freiburg3_long_office_household', help='Test sequence id.')
-    arg_parser.add_argument('--iters', type=int, default='5', help='For debugging')
+    arg_parser.add_argument('--iters', type=int, default='-1', help='Limited iterations for debugging')
     args = arg_parser.parse_args()
     
-    args.traj_save_dir = str(Path(args.traj_save_dir) / (args.sequence + '_' + args.model + '_' + time.strftime("%Y%m%d-%H%M%S")
- + '.txt')) #I just like this better than os.path
+   
 
     os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
@@ -206,10 +206,10 @@ if __name__ == '__main__':
     print('Testing VO.')
     poses = np.array(vo_test.process_video_relative(images, model, args.model))
     print('Test completed.')
-    
-    traj_txt = args.traj_save_dir
-    vo_test.save_traj(traj_txt, poses[:][:3][:4].reshape(-1, 12))
-    print(f'Predicted Trajectory saved at : {args.traj_save_dir}')
+
+    save_time = time.strftime("%Y%m%d-%H%M%S")
+    vo_test.save_traj(args.traj_save_dir, poses[:][:3][:4].reshape(-1, 12), save_time, args.model)
+    print(f'Predicted Trajectory saved at : {args.traj_save_dir}/{args.sequence}/{args.model}/preds_{save_time}.txt')
 
 
   
