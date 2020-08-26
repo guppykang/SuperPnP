@@ -242,7 +242,7 @@ class infer_vo():
             
             if np.linalg.norm(flow_pose[:3,3:]) == 0 or scale == -1:
                 print('PnP '+str(i))
-                global_pose = self.solve_absolute_pose_pnp(depth_match[:,:2], depth_match[:,2:], vehicle_to_world(depth1), poses[-1])   
+                global_pose = self.solve_absolute_pose_pnp(depth_match[:,:2], depth_match[:,2:], depth1, poses[-1])   
             
             poses.append(copy.deepcopy(global_pose))
             print(i)

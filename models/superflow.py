@@ -28,7 +28,7 @@ from TrianFlow.core.networks.model_depth_pose import Model_depth_pose
 from utils.utils import desc_to_sparseDesc, prep_superpoint_image, prep_trianflow_image, get_2d_matches, dense_sparse_hybrid_correspondences
 
 class SuperFlow(torch.nn.Module):
-    def __init__(self, cfg):
+    def __init__(self, model_cfg, general_cfg):
         """
         Model consists of two modules for correspondences:
             TrianFlow : https://github.com/B1ueber2y/TrianFlow
@@ -38,12 +38,14 @@ class SuperFlow(torch.nn.Module):
         
         self.device = 'cuda:0'
         self.num_matches = 6000
+        self.ransac_num_matches = general_cfg["ransac_num_matches"]
+
 
         #TrianFlow
-        self.trianFlow = Model_depth_pose(cfg["trianflow"])
+        self.trianFlow = Model_depth_pose(model_cfg["trianflow"])
 
         #SuperPoint
-        self.superpoint = Train_model_heatmap(cfg["superpoint"], device=self.device)
+        self.superpoint = Train_model_heatmap(model_cfg["superpoint"], device=self.device)
         
         self.superpoint_processor_params = {
             'out_num_points': 500,
@@ -156,7 +158,7 @@ class SuperFlow(torch.nn.Module):
         
         #SuperFLOW
         print(f'keypoints : {outs["keypoints"][0].shape[0] + outs["keypoints"][1].shape[0]}, superpoint matches : {outs["superpoint_correspondences"].shape[0]}')
-        outs['superflow_correspondences'] = dense_sparse_hybrid_correspondences(outs['keypoints'][0], outs['keypoints'][1], outs['flownet_correspondences'], outs['superpoint_correspondences'], self.num_matches)
+        outs['superflow_correspondences'] = dense_sparse_hybrid_correspondences(outs['keypoints'][0], outs['keypoints'][1], outs['flownet_correspondences'], outs['superpoint_correspondences'], self.ransac_num_matches)
 
         
         end_time = datetime.utcnow()
