@@ -191,7 +191,7 @@ if __name__ == '__main__':
     model_cfg, cfg = get_configs(config_file)  
 
     #initialize the model
-    model = Model(model_cfg)
+    model = Model(model_cfg, cfg)
     model.load_modules(model_cfg)
     model.cuda()
     model.eval()

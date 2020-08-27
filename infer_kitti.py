@@ -132,7 +132,7 @@ class infer_vo():
         cam_intrinsics[1,:] = cam_intrinsics[1,:] * new_img_h / raw_img_h
         return cam_intrinsics
     
-    def load_images(self, stride=1):
+    def load_images(self, stride=1, max_length=-1):
         """
         Stride is the number of images to skip between
         """
@@ -144,6 +144,11 @@ class infer_vo():
         image_dir = os.path.join(seq_dir, 'image_2')
         num = len(os.listdir(image_dir))
         images = []
+        
+        if max_length > 0:
+            num = min(int(max_length)+1, num)
+            
+            
         for i in tqdm(range(num)):
             if i % stride != 0:
                 continue
@@ -418,6 +423,7 @@ if __name__ == '__main__':
     arg_parser.add_argument('--traj_save_dir', type=str, default='/jbk001-data1/datasets/kitti/kitti_vo/vo_preds/superflow', help='directory for saving results')
     arg_parser.add_argument('--sequences_root_dir', type=str, default='/jbk001-data1/datasets/kitti/kitti_vo/vo_dataset/sequences', help='Root directory for all datasets')
     arg_parser.add_argument('--sequence', type=str, default='10', help='Test sequence id.')
+    arg_parser.add_argument('--iters', type=int, default='-1', help='Limited iterations for debugging')
     args = arg_parser.parse_args()
     
     args.traj_save_dir = str(Path(args.traj_save_dir) / (args.sequence + '_' + args.model + '_' + time.strftime("%Y%m%d-%H%M%S")
@@ -448,7 +454,7 @@ if __name__ == '__main__':
     #do config stuff
     
     #initialize the model
-    model = Model(model_cfg)
+    model = Model(model_cfg, cfg)
     model.load_modules(model_cfg)
     model.cuda()
     model.eval()
@@ -458,7 +464,7 @@ if __name__ == '__main__':
     vo_test = infer_vo(args.sequence, args.sequences_root_dir)
     
     #load
-    images = vo_test.load_images()
+    images = vo_test.load_images(max_length=args.iters)
     print('Images Loaded. Total ' + str(len(images)) + ' images found.')
     
     #inference

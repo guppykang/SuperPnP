@@ -9,21 +9,21 @@ echo himom
 if [ "$1" == "siftflow" ]; then 
     echo "siftflow"
     if [ "$2" == 'absolute' ]; then 
-        /opt/conda/bin/python infer_kitti.py --model siftflow --absolute
+        /opt/conda/bin/python infer_kitti.py --model siftflow --mode absolute
     else
         /opt/conda/bin/python infer_kitti.py --model siftflow     
     fi
 elif [ "$1" == "superflow2" ]; then 
     echo "superflow2"
     if [ "$2" == 'absolute' ]; then 
-        /opt/conda/bin/python infer_kitti.py --model superflow2 --absolute
+        /opt/conda/bin/python infer_kitti.py --model superflow2 --mode absolute
     else
         /opt/conda/bin/python infer_kitti.py --model superflow2     
     fi
 elif [ "$1" == "superglueflow" ]; then 
     echo "superglueflow"
     if [ "$2" == 'absolute' ]; then 
-        /opt/conda/bin/python infer_kitti.py --model superglueflow --absolute
+        /opt/conda/bin/python infer_kitti.py --model superglueflow --mode absolute
     else
         /opt/conda/bin/python infer_kitti.py --model superglueflow     
     fi
