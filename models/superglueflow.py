@@ -134,6 +134,8 @@ class SuperGlueFlow(torch.nn.Module):
 
         
         end_time = datetime.utcnow()
+        print(f'num matches for ransac : {self.ransac_num_matches}')
+
         print(f'Hybrid sampling took {end_time - mid_time} to run\n')
 
         return outs

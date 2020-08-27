@@ -208,7 +208,9 @@ if __name__ == '__main__':
     print('Test completed.')
 
     save_time = time.strftime("%Y%m%d-%H%M%S")
-    vo_test.save_traj(args.traj_save_dir, poses[:][:3][:4].reshape(-1, 12), save_time, args.model)
+    poses = poses[:,:3,:4].reshape(-1, 12)
+    print(f'Shape of poses : {poses.shape}')
+    vo_test.save_traj(args.traj_save_dir, poses, save_time, args.model)
     print(f'Predicted Trajectory saved at : {args.traj_save_dir}/{args.sequence}/{args.model}/preds_{save_time}.txt')
 
 

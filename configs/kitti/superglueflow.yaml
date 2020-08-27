@@ -37,7 +37,7 @@ num_iterations: 200000
 batch_size: 8 # 32
 iter_start : 0 #place the iteration that it last stopped at here
 num_workers : 6  
-ransac_num_matches : 1000
+ransac_num_matches : 6000
 
 
 #general
