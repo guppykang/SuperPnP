@@ -15,7 +15,7 @@ spec:
         command:
         - "sh"
         - "-c"
-        - "/jbk001-data1/git/SuperPnP/nautilus-files/scripts/infer_kitti.sh superflow2"
+        - "/jbk001-data1/git/SuperPnP/nautilus-files/scripts/infer_kitti.sh superflow2 relative 1"
         resources:
           requests:
             cpu: "8"
