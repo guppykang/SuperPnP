@@ -235,19 +235,9 @@ class infer_vo():
         for i in tqdm(range(seq_len-1)):
             img1, img2 = images[i], images[i+1]
             depth_match, depth1, depth2 = self.get_prediction(img1, img2, model, K, K_inv, mode)
-            
-            rel_pose = np.eye(4)
-            flow_pose = self.solve_pose_flow(depth_match[:,:2], depth_match[:,2:])
-            rel_pose[:3,:3] = copy.deepcopy(flow_pose[:3,:3])
-            if np.linalg.norm(flow_pose[:3,3:]) != 0:
-                scale = self.align_to_depth(depth_match[:,:2], depth_match[:,2:], flow_pose, depth2)
-                rel_pose[:3,3:] = flow_pose[:3,3:] * scale
-                global_pose[:3,3:] = np.matmul(global_pose[:3,:3], rel_pose[:3,3:]) + global_pose[:3,3:]
-                global_pose[:3,:3] = np.matmul(global_pose[:3,:3], rel_pose[:3,:3])
-            
-            if np.linalg.norm(flow_pose[:3,3:]) == 0 or scale == -1:
-                print('PnP '+str(i))
-                global_pose = self.solve_absolute_pose_pnp(depth_match[:,:2], depth_match[:,2:], depth1, poses[-1])   
+   
+            print('PnP '+str(i))
+            global_pose = self.solve_absolute_pose_pnp(depth_match[:,:2], depth_match[:,2:], depth1, poses[-1])   
             
             poses.append(copy.deepcopy(global_pose))
             print(i)
@@ -424,6 +414,7 @@ if __name__ == '__main__':
     arg_parser.add_argument('--sequences_root_dir', type=str, default='/jbk001-data1/datasets/kitti/kitti_vo/vo_dataset/sequences', help='Root directory for all datasets')
     arg_parser.add_argument('--sequence', type=str, default='10', help='Test sequence id.')
     arg_parser.add_argument('--iters', type=int, default='-1', help='Limited iterations for debugging')
+    arg_parser.add_argument('--stride', type=int, default='1', help='Stride between images')
     args = arg_parser.parse_args()
     
     args.traj_save_dir = str(Path(args.traj_save_dir) / (args.sequence + '_' + args.model + '_' + time.strftime("%Y%m%d-%H%M%S")
@@ -464,7 +455,8 @@ if __name__ == '__main__':
     vo_test = infer_vo(args.sequence, args.sequences_root_dir)
     
     #load
-    images = vo_test.load_images(max_length=args.iters)
+    print(f'Loading images at stride : {args.stride}')
+    images = vo_test.load_images(stride=args.stride, max_length=args.iters)
     print('Images Loaded. Total ' + str(len(images)) + ' images found.')
     
     #inference

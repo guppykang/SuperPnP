@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#$1 : model, $2 : absolute or relative
+#$1 : model, $2 : absolute or relative, $3 : stride
 
 cd /jbk001-data1/git/SuperPnP/
 ./setup_nautilus.sh
@@ -11,21 +11,21 @@ if [ "$1" == "siftflow" ]; then
     if [ "$2" == 'absolute' ]; then 
         /opt/conda/bin/python infer_kitti.py --model siftflow --mode absolute
     else
-        /opt/conda/bin/python infer_kitti.py --model siftflow     
+        /opt/conda/bin/python infer_kitti.py --model siftflow --stride $3
     fi
 elif [ "$1" == "superflow2" ]; then 
     echo "superflow2"
     if [ "$2" == 'absolute' ]; then 
         /opt/conda/bin/python infer_kitti.py --model superflow2 --mode absolute
     else
-        /opt/conda/bin/python infer_kitti.py --model superflow2     
+        /opt/conda/bin/python infer_kitti.py --model superflow2 --stride $3
     fi
 elif [ "$1" == "superglueflow" ]; then 
     echo "superglueflow"
     if [ "$2" == 'absolute' ]; then 
         /opt/conda/bin/python infer_kitti.py --model superglueflow --mode absolute
     else
-        /opt/conda/bin/python infer_kitti.py --model superglueflow     
+        /opt/conda/bin/python infer_kitti.py --model superglueflow --stride $3
     fi
     
 else

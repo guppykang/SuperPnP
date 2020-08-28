@@ -78,7 +78,7 @@ class KittiEvalOdom():
         self.lengths = [100, 200, 300, 400, 500, 600, 700, 800]
         self.num_lengths = len(self.lengths)
 
-    def loadPoses(self, file_name):
+    def loadPoses(self, file_name, stride=1):
         # ----------------------------------------------------------------------
 		# Each line in the file should follow one of the following structures
 		# (1) idx pose(3x4 matrix in terms of 12 numbers)
@@ -90,6 +90,8 @@ class KittiEvalOdom():
         file_len = len(s)
         poses = {}
         for cnt, line in enumerate(s):
+            if cnt % stride != 0:
+                continue
             P = np.eye(4)
             line_split = [float(i) for i in line.split(" ")]
             withIdx = int(len(line_split) == 13)
@@ -279,7 +281,7 @@ class KittiEvalOdom():
             pred_updated[i][:3, 3] *= scale
         return pred_updated
 
-    def eval(self, gt_txt, result_txt, seq=None):
+    def eval(self, gt_txt, result_txt, seq=None, stride=1):
         """
         Evaluate given predictions and ground truth poses and plot in pdf
         """
@@ -295,7 +297,7 @@ class KittiEvalOdom():
         ave_r_errs = []
 
         poses_result = self.loadPoses(result_txt)
-        poses_gt = self.loadPoses(self.gt_txt)
+        poses_gt = self.loadPoses(self.gt_txt, stride)
 
         # Pose alignment to first frame
         idx_0 = sorted(list(poses_result.keys()))[0]
@@ -360,7 +362,8 @@ if __name__ == '__main__':
     parser.add_argument('--gt_txt', type=str, required=True, help="Groundtruth directory")
     parser.add_argument('--result_txt', type=str, required=True, help="Result directory")
     parser.add_argument('--seq', type=str, help="sequences to be evaluated", default='09')
+    parser.add_argument('--stride', type=int, help="stride to evaluate under", default=1)
     args = parser.parse_args()
 
     eval_tool = KittiEvalOdom()
-    eval_tool.eval(args.gt_txt, args.result_txt, seq=args.seq)
+    eval_tool.eval(args.gt_txt, args.result_txt, seq=args.seq, stride=args.stride)

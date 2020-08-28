@@ -37,7 +37,7 @@ def sample_random_k(data, num_sample, num_total):
     indices = np.random.choice(num_total, num_sample, replace=False)
     return data[indices]
 
-def dense_sparse_hybrid_correspondences(image1_keypoints, image2_keypoints, flownet_matches, superpoint_matches, num_matches, flownet_ratio=0.5):
+def dense_sparse_hybrid_correspondences(image1_keypoints, image2_keypoints, flownet_matches, superpoint_matches, num_matches, superpoint_ratio=0.5):
     """
     Finds the flownet matches that lie on the keypoints from given keypoints. Fills in remaining num_matches with split given ratio of dense and sparse correspondences
     
@@ -68,18 +68,29 @@ def dense_sparse_hybrid_correspondences(image1_keypoints, image2_keypoints, flow
     
     
     #Fill with random choices from remaining flownet and superoints matches
-    temp_num_matches = int((num_matches-current_start_index) * flownet_ratio)
+    temp_num_matches = int((num_matches-current_start_index) * superpoint_ratio)
+    
+    #get superpoint correspondences
+    if superpoint_matches.shape[0] <= temp_num_matches:
+        temp_num_matches = superpoint_matches.shape[0]
+        matches[current_start_index : current_start_index + temp_num_matches] = superpoint_matches
+    else:
+        #I recognize here that I still possibly have the superpoint matches that I chose in "common_matches"
+        superpoint_indices = np.random.choice(superpoint_matches.shape[0], temp_num_matches, replace=False)
+        matches[current_start_index : current_start_index + temp_num_matches] = superpoint_matches[superpoint_indices]
+    print(f'Number of superpoint matches used : {temp_num_matches}')
+    current_start_index += temp_num_matches
+
     
     #get half flownet correspondences
-    flownet_indices = np.random.choice(flownet_matches.shape[0], temp_num_matches, replace=False)
-    matches[current_start_index : current_start_index + temp_num_matches] = flownet_matches[flownet_indices]
-    current_start_index += temp_num_matches
-    
-    #get half superpoint correspondences
     temp_num_matches = num_matches - current_start_index
-    #I recognize here that I still possibly have the superpoint matches that I chose in "common_matches"
-    superpoint_indices = np.random.choice(superpoint_matches.shape[0], temp_num_matches)
-    matches[current_start_index :] = superpoint_matches[superpoint_indices]
+    flownet_indices = np.random.choice(flownet_matches.shape[0], temp_num_matches, replace=False)
+    matches[current_start_index : ] = flownet_matches[flownet_indices]
+    print(f'Number of flownet matches used : {temp_num_matches}')
+
+    
+
+    
     
     return matches
 

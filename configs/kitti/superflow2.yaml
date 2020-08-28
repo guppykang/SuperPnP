@@ -28,7 +28,7 @@ models :
   superglue: 
     weights: 'outdoor' 
     sinkhorn_iterations: 20  
-    match_threshold: 0.5
+    match_threshold: 0.3
 
 
     

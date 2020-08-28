@@ -3,6 +3,7 @@ echo 'export JUPYTER_PATH="/jbk001-data1/git/SuperPnP:$JUPYTER_PATH"' >> ~/.bash
 pip install -r ./requirements_torch.txt
 pip install -r ./requirements.txt
 pip install opencv-contrib-python==3.4.2.17
+pip install evo
 git config --global user.email "guppykang@gmail.com"
 git config --global user.name "Joshua Kang"
 sudo apt update
