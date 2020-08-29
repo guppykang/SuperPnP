@@ -48,51 +48,49 @@ def dense_sparse_hybrid_correspondences(image1_keypoints, image2_keypoints, flow
     num_matches : number of 2d-2d matches to output
     flownet_ratio : ratio of remaining matches to fill in using the flownet dense matches
     """
-    matches = np.zeros((num_matches, 4))
+    matches = []
     
     current_start_index = 0
     
     #image1 keypoints
     common_matches_image1, flownet_matches = get_flownet_matches_from_superpoint_keypoints(image1_keypoints, flownet_matches)
     if common_matches_image1.shape[0] > 0:
-        matches[:common_matches_image1.shape[0]] = common_matches_image1
-        current_start_index = common_matches_image1.shape[0]
+        matches.extend(common_matches_image1)
     
     #image2 keypoints 
     common_matches_image2, flownet_matches = get_flownet_matches_from_superpoint_keypoints(image2_keypoints, flownet_matches)
     if common_matches_image2.shape[0] > 0:
-        matches[current_start_index : current_start_index + common_matches_image2.shape[0]] = common_matches_image2
-        current_start_index += common_matches_image2.shape[0]
+        matches.extend(common_matches_image2)
     
-    print(f'number of hybrid matches : {current_start_index}')
+    print(f'number of hybrid matches : {len(matches)}')
     
     
     #Fill with random choices from remaining flownet and superoints matches
-    temp_num_matches = int((num_matches-current_start_index) * superpoint_ratio)
+    temp_num_matches = int((num_matches-len(matches)) * superpoint_ratio)
     
     #get superpoint correspondences
     if superpoint_matches.shape[0] <= temp_num_matches:
-        temp_num_matches = superpoint_matches.shape[0]
-        matches[current_start_index : current_start_index + temp_num_matches] = superpoint_matches
+        matches.extend(superpoint_matches)
+        print(f'Number of superpoint matches used : {superpoint_matches.shape[0]}')
     else:
         #I recognize here that I still possibly have the superpoint matches that I chose in "common_matches"
         superpoint_indices = np.random.choice(superpoint_matches.shape[0], temp_num_matches, replace=False)
-        matches[current_start_index : current_start_index + temp_num_matches] = superpoint_matches[superpoint_indices]
-    print(f'Number of superpoint matches used : {temp_num_matches}')
-    current_start_index += temp_num_matches
+        matches.extend(superpoint_matches[superpoint_indices])
+        print(f'Number of superpoint matches used : {temp_num_matches}')
 
     
     #get half flownet correspondences
-    temp_num_matches = num_matches - current_start_index
-    flownet_indices = np.random.choice(flownet_matches.shape[0], temp_num_matches, replace=False)
-    matches[current_start_index : ] = flownet_matches[flownet_indices]
-    print(f'Number of flownet matches used : {temp_num_matches}')
-
+    temp_num_matches = num_matches - len(matches)
     
-
+    if flownet_matches.shape[0] <= temp_num_matches:
+        matches.extend(flownet_matches)
+        print(f'Number of flownet matches used : {flownet_matches.shape[0]}')
+    else:
+        flownet_indices = np.random.choice(flownet_matches.shape[0], temp_num_matches, replace=False)
+        matches.extend(flownet_matches[flownet_indices])
+        print(f'Number of flownet matches used : {temp_num_matches}')
     
-    
-    return matches
+    return np.array(matches)
 
 
 def get_random_sequence():

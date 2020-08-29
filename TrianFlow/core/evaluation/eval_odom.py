@@ -4,6 +4,7 @@ import numpy as np
 import os
 from glob import glob
 import pdb
+import code
 
 
 def scale_lse_solver(X, Y):
@@ -296,14 +297,20 @@ class KittiEvalOdom():
         ave_t_errs = []
         ave_r_errs = []
 
-        poses_result = self.loadPoses(result_txt)
+        temp_poses_result = self.loadPoses(result_txt)
+        poses_result = {}
+        for key in temp_poses_result.keys():
+            poses_result[key * stride] = temp_poses_result[key]
         poses_gt = self.loadPoses(self.gt_txt, stride)
-
+        del temp_poses_result
+        
         # Pose alignment to first frame
         idx_0 = sorted(list(poses_result.keys()))[0]
         pred_0 = poses_result[idx_0]
         gt_0 = poses_gt[idx_0]
         for cnt in poses_result:
+            if cnt % stride != 0:
+                continue
             poses_result[cnt] = np.linalg.inv(pred_0) @ poses_result[cnt]
             poses_gt[cnt] = np.linalg.inv(gt_0) @ poses_gt[cnt]
 
