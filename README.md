@@ -42,14 +42,14 @@ To infernce on superglueflow (superpoint + superglue + flownet correspondences) 
 ```bash
 python infer_tum --traj_save_dir path/to/save/tum/preds --sequence 09 --sequence_root_dir /path/to/tum/dataset --model superglueflow
 
-evo_ape tum -s --align /jbk001-data1/datasets/tum/rgbd_dataset_freiburg3_long_office_household/groundtruth.txt  /jbk001-data1/datasets/tum/vo_pred/rgbd_dataset_freiburg3_long_office_household_superglueflow_20200826-060456.txt
+evo_ape tum -s -a /jbk001-data1/datasets/tum/rgbd_dataset_freiburg3_long_office_household/groundtruth.txt /jbk001-data1/datasets/tum/vo_pred/rgbd_dataset_freiburg3_long_office_household/superglueflow/preds_20200828-023715.tum --save_plot /jbk001-data1/datasets/tum/vo_pred/rgbd_dataset_freiburg3_long_office_household/superglueflow/plot_20200828-023715.pdf
 ```
 ### Inference on siftflow
 To inference on siftflow (sift + flownet correspondences) : 
 ```bash
 python infer_tum --traj_save_dir path/to/save/tum/preds --sequence 09 --sequence_root_dir /path/to/tum/dataset --model siftflow
 
-evo_ape tum -s --align /jbk001-data1/datasets/tum/rgbd_dataset_freiburg3_long_office_household/groundtruth.txt  /jbk001-data1/datasets/tum/vo_pred/rgbd_dataset_freiburg3_long_office_household_siftflow_20200826-062406.txt
+evo_ape tum -s -a /jbk001-data1/datasets/tum/rgbd_dataset_freiburg3_long_office_household/groundtruth.txt /jbk001-data1/datasets/tum/vo_pred/rgbd_dataset_freiburg3_long_office_household/superglueflow/preds_20200828-023715.tum --save_plot /jbk001-data1/datasets/tum/vo_pred/rgbd_dataset_freiburg3_long_office_household/superglueflow/plot_20200828-023715.pdf
 ```
 
 
