@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name:  superflow-job # deepsfm-pod
+  name:  trianflow-job # deepsfm-pod
   namespace: mc-lab
   labels:
     user: jbk001 
