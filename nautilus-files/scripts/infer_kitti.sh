@@ -27,6 +27,14 @@ elif [ "$1" == "superglueflow" ]; then
     else
         /opt/conda/bin/python infer_kitti.py --model superglueflow --stride $3
     fi
+elif [ "$1" == "trianflow" ]; then 
+    echo "trianflow"
+    if [ "$2" == 'absolute' ]; then 
+        /opt/conda/bin/python infer_kitti.py --model superglueflow --mode absolute
+    else
+        /opt/conda/bin/python infer_kitti.py --model trianflow --stride $3
+    fi
+
     
 else
     echo "bad model"

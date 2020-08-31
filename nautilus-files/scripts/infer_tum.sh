@@ -30,7 +30,14 @@ elif [ "$1" == "superglueflow" ]; then
     else
         /opt/conda/bin/python infer_tum.py --model superglueflow     
     fi
-    
+elif [ "$1" == "trianflow" ]; then 
+    echo "trianflow"
+    if [ "$2" == 'absolute' ]; then 
+        echo "not implemented"
+#         /opt/conda/bin/python infer_tum.py --model superglueflow 
+    else
+        /opt/conda/bin/python infer_tum.py --model trianflow     
+    fi
 else
     echo "bad model"
 fi

@@ -186,6 +186,10 @@ if __name__ == '__main__':
         config_file = './configs/tum/superglueflow.yaml'
         model_cfg, cfg = get_configs(config_file, mode='superglueflow')    
         from models.superglueflow import SuperGlueFlow as Model
+    elif args.model == 'trianflow':
+        config_file = './configs/superflow.yaml'
+        model_cfg, cfg = get_configs(config_file, mode='superflow')    
+        from models.trianflow import TrianFlow as Model
 
     #do config stuff
     model_cfg, cfg = get_configs(config_file)  

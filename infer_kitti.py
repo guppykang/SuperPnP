@@ -171,10 +171,11 @@ class infer_vo():
             filt_depth_match = outs['siftflow_correspondences']# num_matches x 4
         elif mode == 'superglueflow':
             filt_depth_match = outs['superglueflow_correspondences']# N x 4
+        elif mode == 'trianflow':
+            filt_depth_match = outs['flownet_correspondences']# N x 4
         else:
             raise RuntimeError('bad correspondence mode')
 
-            #TODO : Do this
         
         return filt_depth_match, depth1, depth2
 
@@ -409,7 +410,7 @@ if __name__ == '__main__':
         description="Inferencing on kitti pipeline."
     )
     arg_parser.add_argument('--mode', type=str, default='relative', help='(choose from : relative (hybrid), absolute')
-    arg_parser.add_argument('--model', type=str, default='superglueflow', help='(choose from : siftflow, superglueflow, superflow, superflow2)')
+    arg_parser.add_argument('--model', type=str, default='superglueflow', help='(choose from : siftflow, superglueflow, superflow, superflow2, trianflow)')
     arg_parser.add_argument('--traj_save_dir', type=str, default='/jbk001-data1/datasets/kitti/kitti_vo/vo_preds/', help='directory for saving results')
     arg_parser.add_argument('--sequences_root_dir', type=str, default='/jbk001-data1/datasets/kitti/kitti_vo/vo_dataset/sequences', help='Root directory for all datasets')
     arg_parser.add_argument('--sequence', type=str, default='10', help='Test sequence id.')
@@ -441,8 +442,10 @@ if __name__ == '__main__':
         config_file = './configs/kitti/superglueflow.yaml'
         model_cfg, cfg = get_configs(config_file, mode='superglueflow')    
         from models.superglueflow import SuperGlueFlow as Model
-
-    #do config stuff
+    elif args.model == 'trianflow':
+        config_file = './configs/superflow.yaml'
+        model_cfg, cfg = get_configs(config_file, mode='superflow')    
+        from models.trianflow import TrianFlow as Model
     
     #initialize the model
     model = Model(model_cfg, cfg)
