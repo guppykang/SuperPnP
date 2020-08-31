@@ -52,17 +52,17 @@ def dense_sparse_hybrid_correspondences(image1_keypoints, image2_keypoints, flow
     
     current_start_index = 0
     
-    #image1 keypoints
-    common_matches_image1, flownet_matches = get_flownet_matches_from_superpoint_keypoints(image1_keypoints, flownet_matches)
-    if common_matches_image1.shape[0] > 0:
-        matches.extend(common_matches_image1)
+#     #image1 keypoints
+#     common_matches_image1, flownet_matches = get_flownet_matches_from_superpoint_keypoints(image1_keypoints, flownet_matches)
+#     if common_matches_image1.shape[0] > 0:
+#         matches.extend(common_matches_image1)
     
-    #image2 keypoints 
-    common_matches_image2, flownet_matches = get_flownet_matches_from_superpoint_keypoints(image2_keypoints, flownet_matches)
-    if common_matches_image2.shape[0] > 0:
-        matches.extend(common_matches_image2)
+#     #image2 keypoints 
+#     common_matches_image2, flownet_matches = get_flownet_matches_from_superpoint_keypoints(image2_keypoints, flownet_matches)
+#     if common_matches_image2.shape[0] > 0:
+#         matches.extend(common_matches_image2)
     
-    print(f'number of hybrid matches : {len(matches)}')
+#     print(f'number of hybrid matches : {len(matches)}')
     
     
     #Fill with random choices from remaining flownet and superoints matches
