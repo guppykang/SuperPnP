@@ -15,11 +15,15 @@ Must install exact versioning as given in the reqs.txt (most important being tor
 pip install -r ./requirements_torch.txt
 pip install -r ./requirements.txt
 ```
-### Datasets. 
+### Datasets
 This project uses the KITTI VO dataset and the TUM dataset.  
 Install KITTI vo from the kitti website, and install TUM from 
 ```bash
 ./utils/download_tum.py
+```
+### One line setup
+```bash
+./setup_nautilus.sh
 ```
 
 ## KITTI
