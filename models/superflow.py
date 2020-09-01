@@ -149,7 +149,7 @@ class SuperFlow(torch.nn.Module):
         correspondences, image1_depth_map, image2_depth_map = self.trianFlow.infer_vo(image1_t, image2_t, K, K_inverse, self.num_matches)
         
         mid_time = datetime.utcnow()
-        print(f'SIFT and flownet took {mid_time - start_time} to run')
+        print(f'superpoint and flownet took {mid_time - start_time} to run')
 
         #post process
         outs['flownet_correspondences'] = squeezeToNumpy(correspondences.T)
@@ -157,7 +157,6 @@ class SuperFlow(torch.nn.Module):
         outs['image2_depth'] = squeezeToNumpy(image2_depth_map)
         
         #SuperFLOW
-        print(f'keypoints : {outs["keypoints"][0].shape[0] + outs["keypoints"][1].shape[0]}, superpoint matches : {outs["superpoint_correspondences"].shape[0]}')
         outs['superflow_correspondences'] = dense_sparse_hybrid_correspondences(outs['keypoints'][0], outs['keypoints'][1], outs['flownet_correspondences'], outs['superpoint_correspondences'], self.ransac_num_matches)
 
         

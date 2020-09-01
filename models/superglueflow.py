@@ -129,7 +129,6 @@ class SuperGlueFlow(torch.nn.Module):
         
         
         #SuperFLOW
-        print(f'keypoints : {outs["keypoints"][0].shape[0] + outs["keypoints"][1].shape[0]}, superpoint matches : {outs["superglue_correspondences"].shape[0]}')
         outs['superglueflow_correspondences'] = dense_sparse_hybrid_correspondences(outs['keypoints'][0], outs['keypoints'][1], outs['flownet_correspondences'], outs['superglue_correspondences'], self.ransac_num_matches)
 
         

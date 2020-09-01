@@ -22,7 +22,7 @@ from utils.utils import load_image_pair, load_camera_intrinsics, pObject, get_co
 
 if __name__ == '__main__':
     arg_parser = argparse.ArgumentParser(description="Unit Tests for Correspondence_model")
-    arg_parser.add_argument('-c', '--config_file', default='./../../configs/superglueflow.yaml', help='config file.')
+    arg_parser.add_argument('-c', '--config_file', default='./../../configs/kitti/superglueflow.yaml', help='config file.')
     args = arg_parser.parse_args()
 
     #Require GPU
@@ -33,7 +33,7 @@ if __name__ == '__main__':
     model_cfg, cfg = get_configs(args.config_file)    
 
     #create the model
-    model = SuperFlow(model_cfg)
+    model = SuperFlow(model_cfg, cfg)
     model.load_modules(model_cfg)
     model.cuda()
     # model.eval()
@@ -42,7 +42,7 @@ if __name__ == '__main__':
     sequence = get_random_sequence()
 
     #load a pair of images
-    vo_sequences_root = Path(cfg["kitti"]["vo_path"])
+    vo_sequences_root = '/jbk001-data1/datasets/kitti/kitti_vo/vo_dataset/sequences'
     images = load_image_pair(vo_sequences_root, sequence)
     
     #load camera intrinsics
