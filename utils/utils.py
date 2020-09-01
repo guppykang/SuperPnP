@@ -9,6 +9,8 @@ import random
 import numpy as np
 import torch
 from scipy.spatial.transform import Rotation as R
+from datetime import datetime
+
 
 
 from superpoint.utils.var_dim import toNumpy, squeezeToNumpy
@@ -48,19 +50,23 @@ def dense_sparse_hybrid_correspondences(image1_keypoints, image2_keypoints, flow
     num_matches : number of 2d-2d matches to output
     flownet_ratio : ratio of remaining matches to fill in using the flownet dense matches
     """
+    print(f'keypoints : {image1_keypoints.shape[0] + image2_keypoints.shape[0]}, superpoint matches : {superpoint_matches.shape[0]}, flownet : {flownet_matches.shape[0]}')
+        
     matches = []
     
     current_start_index = 0
     
+    
 #     #image1 keypoints
-#     common_matches_image1, flownet_matches = get_flownet_matches_from_superpoint_keypoints(image1_keypoints, flownet_matches)
+#     common_matches_image1, flownet_matches = get_flownet_matches_from_superpoint_keypoints(image1_keypoints, flownet_matches, image_keypoints=1)
 #     if common_matches_image1.shape[0] > 0:
 #         matches.extend(common_matches_image1)
     
 #     #image2 keypoints 
-#     common_matches_image2, flownet_matches = get_flownet_matches_from_superpoint_keypoints(image2_keypoints, flownet_matches)
+#     common_matches_image2, flownet_matches = get_flownet_matches_from_superpoint_keypoints(image2_keypoints, flownet_matches, image_keypoints=2)
 #     if common_matches_image2.shape[0] > 0:
 #         matches.extend(common_matches_image2)
+    
     
 #     print(f'number of hybrid matches : {len(matches)}')
     
@@ -112,6 +118,9 @@ def get_flownet_matches_from_superpoint_keypoints(keypoints, matches, image_keyp
     Returns : 
         N x 4
     """
+    
+    start_time = datetime.utcnow()
+
     remaining_matches = copy.deepcopy(matches)
     chosen_indices = []
     
@@ -131,6 +140,9 @@ def get_flownet_matches_from_superpoint_keypoints(keypoints, matches, image_keyp
                 
     remaining_matches = np.delete(remaining_matches, chosen_indices, axis=0)
         
+    end_time = datetime.utcnow()
+    print(f'{end_time - start_time} to find hybrid matches in image {image_keypoints}')
+    
     return np.array(match_points), remaining_matches
 
 

@@ -26,7 +26,7 @@ warnings.filterwarnings("ignore")
 def save_traj(path, poses):
     """
     path: file path of saved poses
-    poses: list of global poses
+    poses: list of absolute global poses
     """
     traj_dir = Path(path).parent
     traj_dir.mkdir(exist_ok=True, parents=True)
