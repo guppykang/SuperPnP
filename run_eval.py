@@ -291,7 +291,7 @@ if __name__ == "__main__":
                 keyframe=args.keyframe
             )
             print(f"command: {command}")
-            # subprocess.run(f"{command}", shell=True, check=True)
+            subprocess.run(f"{command}", shell=True, check=True)
     
     if args.eval:
         # eval_fe = Eval_frontend(plot_mode="xy", plot=False)
