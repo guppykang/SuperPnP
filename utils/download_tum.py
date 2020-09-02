@@ -9,13 +9,12 @@ import glob
 if __name__ == "__main__":
     # download
     sequences = [
-        "freiburg1/rgbd_dataset_freiburg1_desk",
-        "freiburg1/rgbd_dataset_freiburg1_desk2",
-        "freiburg1/rgbd_dataset_freiburg1_room",
-        "freiburg2/rgbd_dataset_freiburg2_desk",
-        "freiburg2/rgbd_dataset_freiburg2_xyz",
-        "freiburg3/rgbd_dataset_freiburg3_long_office_household",
-        "freiburg3/rgbd_dataset_freiburg3_nostructure_texture_far",
+        'freiburg2/rgbd_dataset_freiburg2_desk',
+        'freiburg2/rgbd_dataset_freiburg2_360_kidnap',
+        'freiburg2/rgbd_dataset_freiburg2_pioneer_360',
+        'freiburg2/rgbd_dataset_freiburg2_pioneer_slam',
+        'freiburg3/rgbd_dataset_freiburg3_large_cabinet',
+        '/freiburg3/rgbd_dataset_freiburg3_sitting_static'
     ]
     # wget https://vision.in.tum.de/rgbd/dataset/freiburg1/rgbd_dataset_freiburg1_desk.tgz
     # wget https://vision.in.tum.de/rgbd/dataset/freiburg1/rgbd_dataset_freiburg1_desk2.tgz

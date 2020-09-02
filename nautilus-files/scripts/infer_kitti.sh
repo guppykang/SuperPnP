@@ -13,6 +13,13 @@ if [ "$1" == "siftflow" ]; then
     else
         /opt/conda/bin/python infer_kitti.py --model siftflow --stride $3
     fi
+elif [ "$1" == "superflow" ]; then 
+    echo "superflow"
+    if [ "$2" == 'absolute' ]; then 
+        /opt/conda/bin/python infer_kitti.py --model superflow --mode absolute
+    else
+        /opt/conda/bin/python infer_kitti.py --model superflow --stride $3
+    fi
 elif [ "$1" == "superflow2" ]; then 
     echo "superflow2"
     if [ "$2" == 'absolute' ]; then 
