@@ -148,6 +148,9 @@ class infer_vo_tum(infer_vo):
         pose_qua = np.array([infer_vo_tum.mat2quat(m.reshape(3,4)) for m in poses])
         poses_qua_wTime = np.concatenate((time_stamps, pose_qua), axis=1)
         np.savetxt(filename, poses_qua_wTime, delimiter=" ", fmt="%.4f")
+        # copy tum txt
+        filename = Path(f"{traj_dir}/preds.tum")
+        np.savetxt(filename, poses_qua_wTime, delimiter=" ", fmt="%.4f")
         pass
 
 
