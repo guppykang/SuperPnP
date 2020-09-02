@@ -309,17 +309,27 @@ class Tum_dataset(Euroc_dataset):
     def __init__(self):
         ## use scsfm split
         self.train_seqs = [ # only process train_set
-            "rgbd_dataset_freiburg3_long_office_household",
-            "rgbd_dataset_freiburg3_long_office_household_validation",
-            "rgbd_dataset_freiburg3_sitting_xyz",
-            "rgbd_dataset_freiburg3_structure_texture_far",
-            "rgbd_dataset_freiburg3_structure_texture_near",
-            "rgbd_dataset_freiburg3_teddy",
+            "rgbd_dataset_freiburg2_360_kidnap",
+            "rgbd_dataset_freiburg2_pioneer_slam",
+            "rgbd_dataset_freiburg2_desk",
+            "rgbd_dataset_freiburg3_large_cabinet",
+            "rgbd_dataset_freiburg2_pioneer_360",
+            "rgbd_dataset_freiburg3_sitting_static",
         ]
         self.test_seqs = [
-            "rgbd_dataset_freiburg3_walking_xyz",
-            "rgbd_dataset_freiburg3_large_cabinet_validation",
-        ]
+        ]        
+        # self.train_seqs = [ # only process train_set
+        #     "rgbd_dataset_freiburg3_long_office_household",
+        #     "rgbd_dataset_freiburg3_long_office_household_validation",
+        #     "rgbd_dataset_freiburg3_sitting_xyz",
+        #     "rgbd_dataset_freiburg3_structure_texture_far",
+        #     "rgbd_dataset_freiburg3_structure_texture_near",
+        #     "rgbd_dataset_freiburg3_teddy",
+        # ]
+        # self.test_seqs = [
+        #     "rgbd_dataset_freiburg3_walking_xyz",
+        #     "rgbd_dataset_freiburg3_large_cabinet_validation",
+        # ]
         
         # super.__init__()
         # self.train_seqs = [

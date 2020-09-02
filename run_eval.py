@@ -179,7 +179,7 @@ if __name__ == "__main__":
         "-sub", "--subfolder", type=str, default="./", help="result subfolder, can be separated using model name"
     )
     parser.add_argument(
-        "-m", "--model", type=str, default="orbslam2", help="model: [orbslam2 | scsfm | deepvo ]"
+        "-m", "--model", type=str, default="siftflow", choices=['superglueflow', 'siftflow', 'superglueflow', 'superflow', 'superflow2'], help="model to test"
     )
     parser.add_argument(
         "-d", "--dataset", type=str, default="kitti", help="[kitti |  euroc | tum ... ]"
