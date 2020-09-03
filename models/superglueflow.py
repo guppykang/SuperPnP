@@ -129,7 +129,7 @@ class SuperGlueFlow(torch.nn.Module):
         
         
         #SuperFLOW
-        outs['superglueflow_correspondences'] = dense_sparse_hybrid_correspondences(outs['keypoints'][0], outs['keypoints'][1], outs['flownet_correspondences'], outs['superglue_correspondences'], self.ransac_num_matches)
+        outs['matches'] = dense_sparse_hybrid_correspondences(outs['keypoints'][0], outs['keypoints'][1], outs['flownet_correspondences'], outs['superglue_correspondences'], self.ransac_num_matches)
 
         
         end_time = datetime.utcnow()

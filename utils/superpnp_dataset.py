@@ -3,6 +3,7 @@ import cv2
 import copy
 import os
 import sys
+import code
 from pathlib import Path
 
 import torch
@@ -124,18 +125,15 @@ class KITTI_Dataset(torch.utils.data.Dataset):
         data = self.data_list[idx]
         # load img
         img = cv2.imread(data['image_file'])
-        gray_img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
-
         img_hw_orig = (int(img.shape[0] / 2), img.shape[1])
         img = self.preprocess_img(img, self.img_hw) # (img_h * 2, img_w, 3)
         img = img.transpose(2,0,1)
-        gray_img = self.preprocess_img(gray_img, self.img_hw)
 
         # load intrinsic
         cam_intrinsic = self.read_cam_intrinsic(data['cam_intrinsic_file'])
         cam_intrinsic = self.rescale_intrinsics(cam_intrinsic, img_hw_orig, self.img_hw)
         K_ms, K_inv_ms = self.get_multiscale_intrinsics(cam_intrinsic, self.num_scales) # (num_scales, 3, 3), (num_scales, 3, 3)
-        return torch.from_numpy(img).float(), torch.from_numpy(gray_img), torch.from_numpy(K_ms).float(), torch.from_numpy(K_inv_ms).float()
+        return torch.from_numpy(img).float().cuda(), torch.from_numpy(K_ms).float().cuda(), torch.from_numpy(K_inv_ms).float().cuda()
 
 if __name__ == '__main__':
     pass

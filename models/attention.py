@@ -11,7 +11,23 @@ import torchvision.models.resnet as resnet
 Autoencoder modules for attention modeling
 
 Input shape : [B, C, H , W]
+
 """
+class AttentionMatching(nn.Module):
+    def __init__(self, matcher, attention_encoder, attention_decoder):
+        super(AttentionMatching, self).__init__()
+        self.matcher = matcher
+        self.encoder = attention_encoder
+        self.decoder = attention_decoder
+        
+    def get_matches(self, input_batch):
+        self.matcher_out = self.matcher(input_batch)
+        return self.matcher_out["matches"]
+        
+    def forward(self, matches):
+        pass
+    
+
 class ResBlock(nn.Module ):
     def __init__(self, inch, outch, stride=1, dilation=1 ):
         # Residual Block

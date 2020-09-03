@@ -159,23 +159,11 @@ class infer_vo():
         print('Loaded Images')
         return images
     
-    def get_prediction(self, img1, img2, model, K, K_inv, mode):
+    def get_prediction(self, img1, img2, model, K, K_inv):
         outs = model.inference(img1, img2, K, K_inv, (img1.shape[0], img1.shape[1]))
         depth1 = outs['image1_depth'] # H, W
         depth2 = outs['image2_depth'] # H, W
-
-
-        if mode == 'superflow' or mode == 'superflow2':
-            filt_depth_match = outs['superflow_correspondences']# N x 4
-        elif mode == 'siftflow':
-            filt_depth_match = outs['siftflow_correspondences']# num_matches x 4
-        elif mode == 'superglueflow':
-            filt_depth_match = outs['superglueflow_correspondences']# N x 4
-        elif mode == 'trianflow':
-            filt_depth_match = outs['flownet_correspondences']# N x 4
-        else:
-            raise RuntimeError('bad correspondence mode')
-
+        filt_depth_match = outs['matches'] # N x 4
         
         return filt_depth_match, depth1, depth2
 
@@ -197,7 +185,7 @@ class infer_vo():
         K_inv = np.linalg.inv(self.cam_intrinsics)
         for i in tqdm(range(seq_len-1)):
             img1, img2 = images[i], images[i+1]
-            depth_match, depth1, depth2 = self.get_prediction(img1, img2, model, K, K_inv, mode)
+            depth_match, depth1, depth2 = self.get_prediction(img1, img2, model, K, K_inv)
             
             rel_pose = np.eye(4)
             flow_pose = self.solve_pose_flow(depth_match[:,:2], depth_match[:,2:])
@@ -235,7 +223,7 @@ class infer_vo():
         K_inv = np.linalg.inv(self.cam_intrinsics)
         for i in tqdm(range(seq_len-1)):
             img1, img2 = images[i], images[i+1]
-            depth_match, depth1, depth2 = self.get_prediction(img1, img2, model, K, K_inv, mode)
+            depth_match, depth1, depth2 = self.get_prediction(img1, img2, model, K, K_inv)
    
             print('PnP '+str(i))
             global_pose = self.solve_absolute_pose_pnp(depth_match[:,:2], depth_match[:,2:], depth1, poses[-1])   
