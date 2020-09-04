@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name:  yyjau-pod
+  namespace: mc-lab
+  labels:
+    user: yyjau 
+spec:
+  containers:
+  - name: gpu-container
+    image: gitlab-registry.nautilus.optiputer.net/prp/jupyterlab 
+    command:
+    # imagePullPolicy: Always
+    args: ["sleep", "infinity"]
+    resources:
+      requests:
+        cpu: "2"
+        memory: "8Gi"
+        nvidia.com/gpu: 1
+      limits:
+        cpu: "2"
+        memory: "8Gi"
+        nvidia.com/gpu: 1
+    volumeMounts:
+    - mountPath: /jbk001-data1
+      name: jbk001-data1
+  restartPolicy: Never
+  volumes:
+    - name: jbk001-data1
+      persistentVolumeClaim:
+        claimName: jbk001-data1
