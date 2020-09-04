@@ -94,7 +94,7 @@ class TrianFlow(torch.nn.Module):
         print(f'Flownet took {end_time - start_time} to run')
 
         #post process
-        outs['flownet_correspondences'] = squeezeToNumpy(correspondences.T)
+        outs['matches'] = squeezeToNumpy(correspondences.T)
         outs['image1_depth'] = squeezeToNumpy(image1_depth_map)
         outs['image2_depth'] = squeezeToNumpy(image2_depth_map)
        

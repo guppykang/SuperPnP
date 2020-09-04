@@ -37,7 +37,7 @@ if __name__ == '__main__':
     model_cfg, cfg = get_configs(args.config_file)    
 
     #create the model
-    model = SuperFlow(model_cfg)
+    model = SuperFlow(model_cfg, cfg)
     model.load_modules(model_cfg)
     model.cuda()
     # model.eval()
