@@ -15,16 +15,38 @@ import torch.utils.data
 import pdb
 
 class KITTI_Dataset(torch.utils.data.Dataset):
-    def __init__(self, data_dir, num_scales=3, img_hw=(256, 832), num_iterations=None):
+    def __init__(self, data_dir, num_scales=3, img_hw=(256, 832), num_iterations=None, stride=1):
         super(KITTI_Dataset, self).__init__()
-        self.data_dir = data_dir
+        self.data_dir = str(data_dir) + f"_stride{stride}"
+
         self.num_scales = num_scales
         self.img_hw = img_hw
         self.num_iterations = num_iterations
 
         info_file = os.path.join(self.data_dir, 'train.txt')
-        #info_file = os.path.join(self.data_dir, 'train_flow.txt')
         self.data_list = self.get_data_list(info_file)
+        
+        gt_file = os.path.join(self.data_dir, 'gts.txt')        
+        self.gts = self.get_gt_poses(gt_file)
+        
+        assert(self.gts.shape[0] == self.data_list.shape[0])
+        
+    def get_gt_poses(self, gt_file):
+        with open(gt_file, 'r') as f:
+            lines = f.readlines()
+        gts = []
+        
+        for line in lines:
+            P = np.eye(4)
+            line_split = [float(i) for i in line.split(" ")]
+            withIdx = int(len(line_split) == 13)
+            for row in range(3):
+                for col in range(4):
+                    P[row, col] = line_split[row*4 + col + withIdx]
+            gts.append(P)
+        
+        return np.array(gts)
+        
 
     def get_data_list(self, info_file):
         with open(info_file, 'r') as f:
@@ -37,7 +59,7 @@ class KITTI_Dataset(torch.utils.data.Dataset):
             data['cam_intrinsic_file'] = os.path.join(self.data_dir, k[1])
             data_list.append(data)
         print('A total of {} image pairs found'.format(len(data_list)))
-        return data_list
+        return np.array(data_list)
 
     def count(self):
         return len(self.data_list)
@@ -66,6 +88,8 @@ class KITTI_Dataset(torch.utils.data.Dataset):
         img2_new = cv2.resize(img2, (img_hw[1], img_hw[0]))
         img_new = np.concatenate([img1_new, img2_new], 0)
         return img_new
+    
+    
 
     def random_flip_img(self, img):
         is_flip = (np.random.rand() > 0.5)
@@ -128,12 +152,15 @@ class KITTI_Dataset(torch.utils.data.Dataset):
         img_hw_orig = (int(img.shape[0] / 2), img.shape[1])
         img = self.preprocess_img(img, self.img_hw) # (img_h * 2, img_w, 3)
         img = img.transpose(2,0,1)
+        
+        #load gt
+        gt = self.gts[idx]
 
         # load intrinsic
         cam_intrinsic = self.read_cam_intrinsic(data['cam_intrinsic_file'])
         cam_intrinsic = self.rescale_intrinsics(cam_intrinsic, img_hw_orig, self.img_hw)
         K_ms, K_inv_ms = self.get_multiscale_intrinsics(cam_intrinsic, self.num_scales) # (num_scales, 3, 3), (num_scales, 3, 3)
-        return torch.from_numpy(img).float().cuda(), torch.from_numpy(K_ms).float().cuda(), torch.from_numpy(K_inv_ms).float().cuda()
+        return torch.from_numpy(img).float().cuda(), torch.from_numpy(K_ms).float().cuda(), torch.from_numpy(K_inv_ms).float().cuda(), torch.from_numpy(gt).float().cuda()
 
 if __name__ == '__main__':
     pass

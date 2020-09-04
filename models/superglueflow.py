@@ -138,6 +138,35 @@ class SuperGlueFlow(torch.nn.Module):
         print(f'Hybrid sampling took {end_time - mid_time} to run\n')
 
         return outs
+    
+    def inference_batch(self, image1_batch, image2_batch, K_batchx, Kinv_batch):
+        """ 
+        Inferences a batch of images
+        """
+        outs = {}
+        #SuperGlue
+        pred = self.superglue_matcher({'image0' : image1_batch, 'image1' : image2_batch})
+        code.interact(local=locals())
+        pred = {k: toNumpy(v[0]) for k, v in pred.items()}
+        outs['keypoints'] = [pred['keypoints0'], pred['keypoints1']]
+        matches, conf = pred['matches0'], pred['matching_scores0']
+        valid = matches > -1
+        outs['superglue_correspondences'] = np.concatenate((outs['keypoints'][0][valid], outs['keypoints'][1][matches[valid]]), axis=1)
+        outs['superglue_scores'] = conf[valid]
+
+
+        #TrianFlow
+        K = torch.from_numpy(K).cuda().float().unsqueeze(0)
+        K_inverse = torch.from_numpy(K_inv).cuda().float().unsqueeze(0)
+        correspondences, image1_depth_map, image2_depth_map = self.trianFlow.infer_vo(image1_t, image2_t, K, K_inverse, self.num_matches)
+        outs['flownet_correspondences'] = squeezeToNumpy(correspondences.T)
+        outs['image1_depth'] = squeezeToNumpy(image1_depth_map)
+        outs['image2_depth'] = squeezeToNumpy(image2_depth_map)
+
+
+        #SuperFLOW
+        outs['matches'] = dense_sparse_hybrid_correspondences(outs['keypoints'][0], outs['keypoints'][1], outs['flownet_correspondences'], outs['superglue_correspondences'], self.ransac_num_matches)
+        return outs
 
 
     def forward(self, x):

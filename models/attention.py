@@ -20,8 +20,9 @@ class AttentionMatching(nn.Module):
         self.encoder = attention_encoder
         self.decoder = attention_decoder
         
-    def get_matches(self, input_batch):
-        self.matcher_out = self.matcher(input_batch)
+    def get_matches(self, image1_batch, image2_batch, K_batch, Kinv_batch):
+        assert(image1_batch.shape[0] == image2_batch.shape[0])
+        self.matcher_out = self.matcher.inference_batch(image1_batch, image2_batch, K_batch, Kinv_batch)
         return self.matcher_out["matches"]
         
     def forward(self, matches):

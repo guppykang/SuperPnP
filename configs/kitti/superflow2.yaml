@@ -1,8 +1,9 @@
 #where the kitti datasets are on Nautilus
 kitti : 
   raw_path : '/jbk001-data1/kitti_raw'
-  vo_path : '/jbk001-data1/kitti_vo/vo_dataset/sequences'
-  procressed_data_path : '/jbk001-data1/kitti_vo/vo_dataset_processed'
+  vo_path : '/jbk001-data1/datasets/kitti/kitti_vo/vo_dataset/sequences'
+  procressed_data_path : '/jbk001-data1/datasets/kitti/kitti_vo/vo_dataset_processed'
+  vo_gts : '/jbk001-data1/datasets/kitti/kitti_vo/vo_gts'
 
 #config details for the models
 models : 

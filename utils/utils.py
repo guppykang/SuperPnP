@@ -191,6 +191,7 @@ def prep_superpoint_image(image, new_hw):
     resized_image = cv2.resize(image, (new_hw[1], new_hw[0])) #Why does the hw ordering convention change every three days..
     return torch.from_numpy(cv2.cvtColor(resized_image, cv2.COLOR_RGB2GRAY)/ 255.0).cuda().float().unsqueeze(0).unsqueeze(0)
 
+
 def prep_trianflow_image(image, new_hw):
     resized_image = cv2.resize(image, (new_hw[1], new_hw[0])) #God knows why this is wh not hw
     return torch.from_numpy(np.transpose(resized_image/ 255.0, [2,0,1])).cuda().float().unsqueeze(0), resized_image
