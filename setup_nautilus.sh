@@ -6,5 +6,6 @@ pip install opencv-contrib-python==3.4.2.17
 pip install evo
 git config --global user.email "guppykang@gmail.com"
 git config --global user.name "Joshua Kang"
+pip install pypng
 sudo apt update
 sudo apt install -y tmux

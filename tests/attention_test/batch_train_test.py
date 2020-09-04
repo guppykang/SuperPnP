@@ -36,9 +36,11 @@ model = AttentionMatching(matcher, encoder, decoder).cuda().eval()
 
 for iteration, inputs in enumerate(tqdm(dataloader)):
     print(f'iteration {iteration}')
-    images, K_batch, Kinv_batch, gt = inputs
+    images, images_gray, K_batch, Kinv_batch, gt = inputs
     h = int(images.shape[2]/2)
-    image1_batch, image2_batch = images[:, :, :h, :], images[:, :, h:, :]
-#     preds = model(model.get_matches(image1_batch, image2_batch, K_batch, Kinv_batch))
+    image1_batch, image2_batch = torch.unsqueeze(images[:, :, :h, :], 0), torch.unsqueeze(images[:, :, h:, :], 0)
+    image1_gray_batch, image2_gray_batch = torch.unsqueeze(images_gray[:, :, :h, :], 0), torch.unsqueeze(images_gray[:, :, h:, :], 0)
+    
+    preds = model(model.get_matches(image1_batch, image2_batch, image1_gray_batch, image2_gray_batch, K_batch, Kinv_batch))
     
     break

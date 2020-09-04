@@ -139,14 +139,13 @@ class SuperGlueFlow(torch.nn.Module):
 
         return outs
     
-    def inference_batch(self, image1_batch, image2_batch, K_batchx, Kinv_batch):
+    def inference_preprocessed(self, image1, image2, image1_gray, image2_gray, K, K_inv):
         """ 
-        Inferences a batch of images
+        Inferences a pair of images that were outputted by the appropriate dataloader
         """
         outs = {}
         #SuperGlue
-        pred = self.superglue_matcher({'image0' : image1_batch, 'image1' : image2_batch})
-        code.interact(local=locals())
+        pred = self.superglue_matcher({'image0' : image1_gray, 'image1' : image2_gray})
         pred = {k: toNumpy(v[0]) for k, v in pred.items()}
         outs['keypoints'] = [pred['keypoints0'], pred['keypoints1']]
         matches, conf = pred['matches0'], pred['matching_scores0']
@@ -156,9 +155,9 @@ class SuperGlueFlow(torch.nn.Module):
 
 
         #TrianFlow
-        K = torch.from_numpy(K).cuda().float().unsqueeze(0)
-        K_inverse = torch.from_numpy(K_inv).cuda().float().unsqueeze(0)
-        correspondences, image1_depth_map, image2_depth_map = self.trianFlow.infer_vo(image1_t, image2_t, K, K_inverse, self.num_matches)
+        K = K.float().unsqueeze(0)
+        K_inv = K_inv.float().unsqueeze(0)
+        correspondences, image1_depth_map, image2_depth_map = self.trianFlow.infer_vo(image1, image2, K, K_inv, self.num_matches)
         outs['flownet_correspondences'] = squeezeToNumpy(correspondences.T)
         outs['image1_depth'] = squeezeToNumpy(image1_depth_map)
         outs['image2_depth'] = squeezeToNumpy(image2_depth_map)

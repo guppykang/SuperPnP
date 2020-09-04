@@ -83,10 +83,18 @@ class KITTI_Dataset(torch.utils.data.Dataset):
         '''
         img_h, img_w = img.shape[0], img.shape[1]
         img_hw_orig = (int(img_h / 2), img_w) 
-        img1, img2 = img[:img_hw_orig[0], :, :], img[img_hw_orig[0]:, :, :]
-        img1_new = cv2.resize(img1, (img_hw[1], img_hw[0]))
-        img2_new = cv2.resize(img2, (img_hw[1], img_hw[0]))
-        img_new = np.concatenate([img1_new, img2_new], 0)
+        
+        if len(img.shape) == 3: #rgb
+            img1, img2 = img[:img_hw_orig[0], :, :], img[img_hw_orig[0]:, :, :]
+            img1_new = cv2.resize(img1, (img_hw[1], img_hw[0])) #hi my name is opencv I like to swap (h,w) convention every other day
+            img2_new = cv2.resize(img2, (img_hw[1], img_hw[0]))
+            img_new = np.concatenate([img1_new, img2_new], 0)            
+        elif len(img.shape) == 2: #grayscale
+            img1, img2 = img[:img_hw_orig[0], :], img[img_hw_orig[0]:, :]
+            img1_new = cv2.resize(img1, (img_hw[1], img_hw[0]))
+            img2_new = cv2.resize(img2, (img_hw[1], img_hw[0]))
+            img_new = np.concatenate([img1_new, img2_new], 0)
+
         return img_new
     
     
@@ -149,9 +157,16 @@ class KITTI_Dataset(torch.utils.data.Dataset):
         data = self.data_list[idx]
         # load img
         img = cv2.imread(data['image_file'])
+        img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         img_hw_orig = (int(img.shape[0] / 2), img.shape[1])
+        
+        #rgb
         img = self.preprocess_img(img, self.img_hw) # (img_h * 2, img_w, 3)
         img = img.transpose(2,0,1)
+        
+        #grayscale
+        img_gray = self.preprocess_img(img_gray, self.img_hw) # (img_h * 2, img_w)
+        img_gray = img_gray[np.newaxis, ...]
         
         #load gt
         gt = self.gts[idx]
@@ -160,7 +175,7 @@ class KITTI_Dataset(torch.utils.data.Dataset):
         cam_intrinsic = self.read_cam_intrinsic(data['cam_intrinsic_file'])
         cam_intrinsic = self.rescale_intrinsics(cam_intrinsic, img_hw_orig, self.img_hw)
         K_ms, K_inv_ms = self.get_multiscale_intrinsics(cam_intrinsic, self.num_scales) # (num_scales, 3, 3), (num_scales, 3, 3)
-        return torch.from_numpy(img).float().cuda(), torch.from_numpy(K_ms).float().cuda(), torch.from_numpy(K_inv_ms).float().cuda(), torch.from_numpy(gt).float().cuda()
+        return torch.from_numpy(img).float().cuda(), torch.from_numpy(img_gray).float().cuda(), torch.from_numpy(K_ms).float().cuda(), torch.from_numpy(K_inv_ms).float().cuda(), torch.from_numpy(gt).float().cuda()
 
 if __name__ == '__main__':
     pass
