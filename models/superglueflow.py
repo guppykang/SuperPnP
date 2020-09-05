@@ -144,6 +144,9 @@ class SuperGlueFlow(torch.nn.Module):
         Inferences a pair of images that were outputted by the appropriate dataloader
         """
         outs = {}
+        
+        outs['inputs'] = { 'image1' : squeezeToNumpy(image1).transpose(1,2,0) , 'image2' : squeezeToNumpy(image2).transpose(1,2,0) }
+
         #SuperGlue
         pred = self.superglue_matcher({'image0' : image1_gray, 'image1' : image2_gray})
         pred = {k: toNumpy(v[0]) for k, v in pred.items()}

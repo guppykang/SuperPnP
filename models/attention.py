@@ -23,19 +23,37 @@ class AttentionMatching(nn.Module):
         self.decoder = attention_decoder
         self.matcher_out = []
         
+    def get_match(self, image1, image2, image1_gray, image2_gray, K, K_inv):
+        return self.matcher.inference_preprocessed(image1, image2, image1_gray, image2_gray, K, K_inv)
+    
     def get_matches(self, image1_batch, image2_batch, image1_gray_batch, image2_gray_batch, K_batch, Kinv_batch):
         assert(image1_batch.shape[0] == image2_batch.shape[0])
         
         for batch_idx in range(image1_batch.shape[1]):
 
-            self.matcher_out.append(self.matcher.inference_preprocessed(image1_batch[:, batch_idx], image2_batch[:, batch_idx], image1_gray_batch[:, batch_idx], image2_gray_batch[:, batch_idx], K_batch[batch_idx, 0], Kinv_batch[batch_idx, 0])["matches"]) # nx4
-        return torch.from_numpy(np.array(self.matcher_out)).float().cuda()
+            self.matcher_out.append(self.get_match(image1_batch[:, batch_idx], image2_batch[:, batch_idx], image1_gray_batch[:, batch_idx], image2_gray_batch[:, batch_idx], K_batch[batch_idx, 0], Kinv_batch[batch_idx, 0])) # nx4
+        return self.matcher_out
         
-    def forward(self, matches):
+    def forward(self, imBatch):
         """
-        matches : shape (
+        
         """
-        code.interact(local=locals())
+        x1, x2, x3, x4, x5 = encoder(imBatch )
+        pred = decoder(imBatch, x1, x2, x3, x4, x5)
+
+        
+#         loss = torch.mean( pred * labelBatch )
+#         loss.backward()
+        return pred
+
+class CustomLoss(nn.Module):
+    def __init__(self ):
+        super(CustomLoss, self).__init__()
+
+    def forward(self, input):
+        """
+        can we scale the loss by how close xFx' was to 0?
+        """
         pass
     
 
