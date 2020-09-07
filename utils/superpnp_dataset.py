@@ -161,12 +161,12 @@ class KITTI_Dataset(torch.utils.data.Dataset):
         img_hw_orig = (int(img.shape[0] / 2), img.shape[1])
         
         #rgb
-        img = self.preprocess_img(img, self.img_hw) # (img_h * 2, img_w, 3)
-        img = img.transpose(2,0,1)
+        flownet_input = self.preprocess_img(img, self.img_hw) # (img_h * 2, img_w, 3)
+        flownet_input = flownet_input.transpose(2,0,1)
         
         #grayscale
-        img_gray = self.preprocess_img(img_gray, self.img_hw) # (img_h * 2, img_w)
-        img_gray = img_gray[np.newaxis, ...]
+        superpoint_input = self.preprocess_img(img_gray, self.img_hw) # (img_h * 2, img_w)
+        superpoint_input = superpoint_input[np.newaxis, ...]
         
         #load gt
         gt = self.gts[idx]
@@ -175,7 +175,7 @@ class KITTI_Dataset(torch.utils.data.Dataset):
         cam_intrinsic = self.read_cam_intrinsic(data['cam_intrinsic_file'])
         cam_intrinsic = self.rescale_intrinsics(cam_intrinsic, img_hw_orig, self.img_hw)
         K_ms, K_inv_ms = self.get_multiscale_intrinsics(cam_intrinsic, self.num_scales) # (num_scales, 3, 3), (num_scales, 3, 3)
-        return torch.from_numpy(img).float().cuda(), torch.from_numpy(img_gray).float().cuda(), torch.from_numpy(K_ms).float().cuda(), torch.from_numpy(K_inv_ms).float().cuda(), torch.from_numpy(gt).float().cuda()
+        return torch.from_numpy(flownet_input).float().cuda(), torch.from_numpy(superpoint_input).float().cuda(), torch.from_numpy(K_ms).float().cuda(), torch.from_numpy(K_inv_ms).float().cuda(), torch.from_numpy(gt).float().cuda()
 
 if __name__ == '__main__':
     pass

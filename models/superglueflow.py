@@ -39,20 +39,31 @@ class SuperGlueFlow(torch.nn.Module):
 
         #TrianFlow
         self.trianFlow = Model_depth_pose(model_cfg["trianflow"])
+        
 
         self.superglue_matcher = Matching(model_cfg)
+
+        self.did_load_modules = False
+        self.load_modules(model_cfg)
        
     
     def load_modules(self, cfg):
         """
         Loads specific modules that were pretrained into the pipeline, rather than the entire model
         """
+        
+        if self.did_load_modules:
+            return 
+        
+        print('Loading Superglueflow with learned weights')
         #load trian flow
         weights = torch.load(cfg["trianflow"].pretrained)
         self.trianFlow.load_state_dict(weights['model_state_dict'])
 
         #load superpoint
         #superglue matcher loads superoint and superglue in their resepctive __init__ functions
+        
+        self.did_load_modules = True
 
         pass
 
@@ -95,10 +106,11 @@ class SuperGlueFlow(torch.nn.Module):
         outs = {}
         start_time = datetime.utcnow()
 
-        
+
         #superpoint
         image1_t = prep_superpoint_image(image1, hw)
         image2_t = prep_superpoint_image(image2, hw)
+#         print(f'superpoint shape : {image1_t.shape}')
         
         pred = self.superglue_matcher({'image0' : image1_t, 'image1' : image2_t})
         pred = {k: toNumpy(v[0]) for k, v in pred.items()}
@@ -114,6 +126,8 @@ class SuperGlueFlow(torch.nn.Module):
         #TrianFlow
         image1_t, image1_resized = prep_trianflow_image(image1, hw)
         image2_t, image2_resized = prep_trianflow_image(image2, hw)
+#         print(f'flownet shape : {image1_t.shape}')
+
         outs['inputs'] = { 'image1' : image1_resized , 'image2' : image2_resized }
         K = torch.from_numpy(K).cuda().float().unsqueeze(0)
         K_inverse = torch.from_numpy(K_inv).cuda().float().unsqueeze(0)
@@ -146,7 +160,9 @@ class SuperGlueFlow(torch.nn.Module):
         outs = {}
         
         outs['inputs'] = { 'image1' : squeezeToNumpy(image1).transpose(1,2,0) , 'image2' : squeezeToNumpy(image2).transpose(1,2,0) }
-
+#         print(f'superpoint shape : {image1.shape}, flownet shape : {image1_gray.shape}')
+              
+              
         #SuperGlue
         pred = self.superglue_matcher({'image0' : image1_gray, 'image1' : image2_gray})
         pred = {k: toNumpy(v[0]) for k, v in pred.items()}

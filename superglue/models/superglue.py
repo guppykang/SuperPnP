@@ -205,7 +205,7 @@ class SuperGlue(nn.Module):
     def __init__(self, config):
         super().__init__()
         self.config = {**self.default_config, **config}
-
+        
         self.kenc = KeypointEncoder(
             self.config['descriptor_dim'], self.config['keypoint_encoder'])
 
