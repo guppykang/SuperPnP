@@ -21,39 +21,43 @@ class AttentionMatching(nn.Module):
         self.matcher = matcher
         self.encoder = attention_encoder
         self.decoder = attention_decoder
-        self.matcher_out = []
         
-    def get_match(self, image1, image2, image1_gray, image2_gray, K, K_inv):
-        return self.matcher.inference_preprocessed(image1, image2, image1_gray, image2_gray, K, K_inv)
     
-    def get_matches(self, image1_batch, image2_batch, image1_gray_batch, image2_gray_batch, K_batch, Kinv_batch):
-        assert(image1_batch.shape[0] == image2_batch.shape[0])
+    def get_match_outs(self, images, images_gray, K_batch, Kinv_batch):
+        h = int(images.shape[2]/2)
+        image1_batch, image2_batch = torch.unsqueeze(images[:, :, :h, :], 0), torch.unsqueeze(images[:, :, h:, :], 0)
+        image1_gray_batch, image2_gray_batch = torch.unsqueeze(images_gray[:, :, :h, :], 0), torch.unsqueeze(images_gray[:, :, h:, :], 0)
         
+        matcher_out = []
         for batch_idx in range(image1_batch.shape[1]):
-
-            self.matcher_out.append(self.get_match(image1_batch[:, batch_idx], image2_batch[:, batch_idx], image1_gray_batch[:, batch_idx], image2_gray_batch[:, batch_idx], K_batch[batch_idx, 0], Kinv_batch[batch_idx, 0])) # nx4
-        return self.matcher_out
+            matcher_out.append(self.matcher.inference_preprocessed(image1_batch[:, batch_idx], image2_batch[:, batch_idx], image1_gray_batch[:, batch_idx], image2_gray_batch[:, batch_idx], K_batch[batch_idx, 0], Kinv_batch[batch_idx, 0])) # nx4. 0th index of K is scale=1
+        return matcher_out
         
     def forward(self, imBatch):
         """
+        Forward for spatial attention modeling
         
+        channels : 3
         """
-        x1, x2, x3, x4, x5 = encoder(imBatch )
-        pred = decoder(imBatch, x1, x2, x3, x4, x5)
+        x1, x2, x3, x4, x5 = self.encoder(imBatch )
+        pred = self.decoder(imBatch, x1, x2, x3, x4, x5)
 
         
 #         loss = torch.mean( pred * labelBatch )
 #         loss.backward()
         return pred
 
-class CustomLoss(nn.Module):
+class AttentionLoss(nn.Module):
     def __init__(self ):
-        super(CustomLoss, self).__init__()
+        super(AttentionLoss, self).__init__()
+        pass
 
     def forward(self, input):
         """
-        can we scale the loss by how close xFx' was to 0?
+        can we scale the loss by how close (x'.T)F(x) was to 0?
+        For now I am using the ratio (ransac inliers/num matches) as a scaling factor for loss
         """
+        print('hi mom')
         pass
     
 

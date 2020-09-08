@@ -200,6 +200,8 @@ class SuperGlueFlow(torch.nn.Module):
         #nms (val fastnms or process_output())
         #pts
         #desc to sparse
+        
+        raise RuntimeError('Not implemented yet')
         pass
 
    

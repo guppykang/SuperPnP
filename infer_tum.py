@@ -183,7 +183,7 @@ if __name__ == '__main__':
         from models.superflow2 import SuperFlow as Model
     elif args.model == 'siftflow':
         config_file = './configs/siftflow.yaml'
-        model_cfg, cfg = get_configs(config_file)    
+        model_cfg, cfg = get_configs(config_file, mode='siftflow')    
         from models.siftflow import SiftFlow as Model
     elif args.model == 'superglueflow':
         config_file = './configs/tum/superglueflow.yaml'

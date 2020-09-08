@@ -7,6 +7,9 @@ kitti :
 
 #config details for the models
 models : 
+  attention:
+    encoder_lr : 1e-5
+    decoder_lr : 1e-4
   trianflow : 
     match_num : 5000
     mode : 'depth_pose' 

@@ -73,7 +73,6 @@ def dense_sparse_hybrid_correspondences(image1_keypoints, image2_keypoints, flow
     
     #Fill with random choices from remaining flownet and superoints matches
     temp_num_matches = int((num_matches-len(matches)) * superpoint_ratio)
-    
     #get superpoint correspondences
     if superpoint_matches.shape[0] <= temp_num_matches:
         matches.extend(superpoint_matches)
@@ -227,8 +226,12 @@ def get_configs(path, mode='superflow'):
 
     if mode == 'superflow':
         model_cfg = { 'trianflow' : trianflow_cfg, 'superpoint' : cfg['models']['superpoint']}
+    elif mode == 'siftflow':
+        model_cfg = { 'trianflow' : trianflow_cfg}
     elif mode == 'superglueflow': 
         model_cfg = { 'trianflow' : trianflow_cfg, 'superpoint' : cfg['models']['superpoint'], 'superglue' : cfg['models']['superglue']}
+    elif mode == 'attention':
+        model_cfg = { 'trianflow' : trianflow_cfg, 'superpoint' : cfg['models']['superpoint'], 'superglue' : cfg['models']['superglue'], 'attention' : cfg['models']['attention']}
         
 
     return model_cfg, cfg

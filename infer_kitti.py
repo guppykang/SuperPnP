@@ -94,6 +94,7 @@ class infer_vo():
         self.new_img_w = 832#1024
         self.max_depth = 50.0
         self.min_depth = 0.0
+        
         self.cam_intrinsics = self.read_rescale_camera_intrinsics(os.path.join(self.img_dir, seq_id) + '/calib.txt')
         self.flow_pose_ransac_thre = 0.1 #0.2
         self.flow_pose_ransac_times = 10 #5
@@ -372,6 +373,7 @@ class infer_vo():
         if avg_flow > self.flow_pose_min_flow:
             for i in range(max_ransac_iter):
                 E, inliers = cv2.findEssentialMat(xy2, xy1, focal=self.cam_intrinsics[0,0], pp=pp, method=cv2.RANSAC, prob=0.99, threshold=self.flow_pose_ransac_thre)
+                loss_scale = inliers[inliers == 1].shape[0]/inliers.shape[0]
                 cheirality_cnt, R, t, _ = cv2.recoverPose(E, xy2, xy1, focal=self.cam_intrinsics[0,0], pp=pp)
                 if inliers.sum() > max_inlier_num and cheirality_cnt > 50:
                     best_rt = [R, t]
@@ -389,7 +391,7 @@ class infer_vo():
         pose = np.eye(4)
         pose[:3,:3] = R
         pose[:3,3:] = t
-        return pose
+        return pose, loss_scale
 
 
 if __name__ == '__main__':
@@ -424,7 +426,7 @@ if __name__ == '__main__':
         from models.superflow2 import SuperFlow as Model
     elif args.model == 'siftflow':
         config_file = './configs/siftflow.yaml'
-        model_cfg, cfg = get_configs(config_file)    
+        model_cfg, cfg = get_configs(config_file, mode='siftflow')    
         from models.siftflow import SiftFlow as Model
     elif args.model == 'superglueflow':
         config_file = './configs/kitti/superglueflow.yaml'

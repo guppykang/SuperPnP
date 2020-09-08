@@ -147,12 +147,9 @@ class SiftFlow(torch.nn.Module):
         
         
         #SIFTFLOW
-        print(f'keypoints : {outs["image1_sift_keypoints"].shape[0] + outs["image2_sift_keypoints"].shape[0]}, sift matches : {outs["sift_correspondences"].shape[0]}')
         outs['matches'] = dense_sparse_hybrid_correspondences(outs['image1_sift_keypoints'], outs['image2_sift_keypoints'], outs['flownet_correspondences'], outs['sift_correspondences'], self.ransac_num_matches)
 
         
-        end_time = datetime.utcnow()
-        print(f'Hybrid sampling took {end_time - mid_time} to run\n')
         
         return outs
 

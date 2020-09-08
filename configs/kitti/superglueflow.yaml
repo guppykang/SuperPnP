@@ -30,6 +30,9 @@ models :
     weights: 'outdoor' 
     sinkhorn_iterations: 20  
     match_threshold: 0.25
+  attention:
+    encoder_lr : 1e-5
+    decoder_lr : 1e-4
 
 
     
