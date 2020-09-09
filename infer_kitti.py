@@ -301,7 +301,6 @@ class infer_vo():
         if avg_flow > self.flow_pose_min_flow:
             for i in range(max_ransac_iter):
                 E, inliers = cv2.findEssentialMat(xy2, xy1, focal=self.cam_intrinsics[0,0], pp=pp, method=cv2.RANSAC, prob=0.99, threshold=self.flow_pose_ransac_thre)
-                loss_scale = inliers[inliers == 1].shape[0]/inliers.shape[0]
                 cheirality_cnt, R, t, _ = cv2.recoverPose(E, xy2, xy1, focal=self.cam_intrinsics[0,0], pp=pp)
                 if inliers.sum() > max_inlier_num and cheirality_cnt > 50:
                     best_rt = [R, t]
@@ -319,7 +318,7 @@ class infer_vo():
         pose = np.eye(4)
         pose[:3,:3] = R
         pose[:3,3:] = t
-        return pose, loss_scale
+        return pose
 
 
 if __name__ == '__main__':
