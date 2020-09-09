@@ -117,7 +117,7 @@ class KittiEvalOdom():
         poses = {}
         for cnt, line in enumerate(s):
             #I would truncate enumeration of s, but cnt would be altered which sounds annoying
-            if cnt < (stride - 1):
+            if cnt != 0 and cnt < stride:
                 continue
                 
             P = np.eye(4)
@@ -328,6 +328,7 @@ class KittiEvalOdom():
         poses_gt = self.load_gt_poses(self.gt_txt, stride=stride)
         
         #sanity check here for testing new stride eval method
+        code.interact(local=locals())
         assert(len(poses_result) == len(poses_gt))
         
         # Pose alignment to first frame

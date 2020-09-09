@@ -145,6 +145,7 @@ class infer_vo():
         num = len(os.listdir(image_dir))
         images = []
         
+        
         if max_length > 0:
             num = min(int(max_length)+1, num)
             
@@ -181,6 +182,7 @@ class infer_vo():
         seq_len = len(images)
         K = self.cam_intrinsics
         K_inv = np.linalg.inv(self.cam_intrinsics)
+        print(f'Number of frames to predict : {seq_len-stride}')
         for i in tqdm(range(seq_len-stride)):
             img1, img2 = images[i], images[i+stride]
             depth_match, depth1, depth2 = self.get_prediction(img1, img2, model, K, K_inv)
@@ -201,6 +203,7 @@ class infer_vo():
             global_pose[:3,:3] = np.matmul(global_pose[:3,:3], rel_pose[:3,:3])
             poses.append(copy.deepcopy(global_pose))
             print(i)
+        print(f'Number of predicted poses (including start) : {len(poses)}')
         return poses
     
   
@@ -335,7 +338,7 @@ if __name__ == '__main__':
     arg_parser.add_argument('--stride', type=int, default='1', help='Stride between images')
     args = arg_parser.parse_args()
     
-    args.traj_save_dir = str(Path(args.traj_save_dir) / args.model / (args.sequence + '_' + args.model + '_' + time.strftime("%Y%m%d-%H%M%S")
+    args.traj_save_dir = str(Path(args.traj_save_dir) / args.model / (args.sequence + '_' + args.model + '_stride' + str(args.stride) + '_' + time.strftime("%Y%m%d-%H%M%S")
  + '.txt')) #I just like this better than os.path
 
     os.environ['CUDA_VISIBLE_DEVICES'] = '0'
@@ -382,7 +385,7 @@ if __name__ == '__main__':
     #inference
     print(f'Testing VO in {args.mode} mode.')
     if args.mode == 'relative':
-        poses = vo_test.process_video_relative(images, model, args.model)
+        poses = vo_test.process_video_relative(images, model, args.model, stride=args.stride)
     else : 
         raise RuntimeError('Absolute pose estimation feature was discontinued')
     print('Test completed.')
