@@ -195,6 +195,10 @@ def prep_trianflow_image(image, new_hw):
     resized_image = cv2.resize(image, (new_hw[1], new_hw[0])) #God knows why this is wh not hw
     return torch.from_numpy(np.transpose(resized_image/ 255.0, [2,0,1])).cuda().float().unsqueeze(0), resized_image
 
+def prep_scsfm_image(image, new_hw):
+    resized_image = cv2.resize(image, (new_hw[1], new_hw[0])) #God knows why this is wh not hw
+    return torch.from_numpy(np.transpose( (resized_image/ 255.0 - 0.5) / 0.5, [2,0,1])).cuda().float().unsqueeze(0), resized_image
+
 
 def desc_to_sparseDesc(outs):
     """

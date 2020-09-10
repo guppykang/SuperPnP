@@ -27,8 +27,9 @@ from deepF.dsac_tools.utils_opencv import KNN_match
 from TrianFlow.core.networks.model_depth_pose import Model_depth_pose 
 
 #My Utils
-from utils.utils import desc_to_sparseDesc, prep_superpoint_image, prep_trianflow_image, get_2d_matches, dense_sparse_hybrid_correspondences, sample_random_k
+from utils.utils import desc_to_sparseDesc, prep_superpoint_image, prep_trianflow_image, prep_scsfm_image, get_2d_matches, dense_sparse_hybrid_correspondences, sample_random_k
 
+import models
 from models.siftflow import SiftFlow
 
     
@@ -49,18 +50,18 @@ class SiftFlow_scsfm(SiftFlow):
         self.trianFlow = Model_depth_pose(model_cfg["trianflow"])
         
         # scsfm
-        self.disp_net = getattr(models, model_cfg["net"])().to(self.device)
-        self.load_modules(model_cfg["pretrained"], self.disp_net)
+        self.disp_net = getattr(models, general_cfg["models"]["scsfm"]["net"])().to(self.device)
+        self.load_pretrained_net(general_cfg["models"]["scsfm"], self.disp_net)
         print(f"dispnet: {self.disp_net}")
 
         #SIFT
 
-    def load_modules(self, cfg_net, net):
+    def load_pretrained_net(self, cfg_net, net):
         """
         Loads specific modules that were pretrained into the pipeline, rather than the entire model
         """
         #load trian flow
-        weights = torch.load(cfg_net.pretrained)
+        weights = torch.load(cfg_net["pretrained"])
         net.load_state_dict(weights['model_state_dict'])
         pass
     
@@ -131,6 +132,14 @@ class SiftFlow_scsfm(SiftFlow):
         K = torch.from_numpy(K).cuda().float().unsqueeze(0)
         K_inverse = torch.from_numpy(K_inv).cuda().float().unsqueeze(0)
         correspondences, image1_depth_map, image2_depth_map = self.trianFlow.infer_vo(image1_t, image2_t, K, K_inverse, self.num_matches)
+        
+        # scsfm - depthNet
+        image1_sc, image1_resized = prep_scsfm_image(image1, hw)
+        image2_sc, image2_resized = prep_scsfm_image(image2, hw)
+        image1_depth_map = 1/(disp_net(image1_sc)[0][0, 0] ) # overwrite depth_map
+        image2_depth_map = 1/(disp_net(image2_sc)[0][0, 0] ) # overwrite depth_map
+        print(f"sc image1_depth_map: {image1_depth_map.shape}")
+        
 
         #post process
         outs['flownet_correspondences'] = squeezeToNumpy(correspondences.T)
