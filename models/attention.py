@@ -153,7 +153,7 @@ class decoder(nn.Module ):
 
         _, _, nh, nw = im.size()
         y4 = F.interpolate(y4, [nh, nw], mode='bilinear')
-        pred = torch.log(torch.clamp(y4, min=1e-8) )
+        pred = torch.clamp(y4, min=1e-8)
 
         return pred
 
@@ -267,7 +267,7 @@ class decoderDilation(nn.Module ):
 
         _, _, nh, nw = im.size()
         y4 = F.interpolate(y4, [nh, nw], mode='bilinear')
-        pred = torch.log(torch.clamp(y4, min=1e-8) )
+        pred = torch.clamp(y4, min=1e-8)
 
 
         return pred

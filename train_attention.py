@@ -12,6 +12,7 @@ import torch.optim as optim
 import numpy as np 
 from tqdm import tqdm
 from utils.train_vo import train_vo
+import torch.nn as nn
 
 #datasets
 from TrianFlow.core.dataset.kitti_odo import KITTI_Odo
@@ -50,35 +51,31 @@ decoder = decoder()
 model = AttentionMatching(matcher, encoder, decoder).cuda().eval()
 encoder_optimizer = optim.Adam(model.encoder.parameters(), lr=float(model_cfg['attention']['encoder_lr']), betas=(0.5, 0.999) )
 decoder_optimizer = optim.Adam(model.decoder.parameters(), lr=float(model_cfg['attention']['decoder_lr']), betas=(0.5, 0.999) )
+loss_function = nn.MSELoss()
 
 for iteration, inputs in enumerate(tqdm(dataloader)):
     print(f'iteration {iteration}')
     images, images_gray, K_batch, K_inv_batch, gt = inputs
     
-    #For now we will try it on the left image only
+    
     encoder_optimizer.zero_grad()
     decoder_optimizer.zero_grad()
     h = int(images.shape[2]/2)
-    attention_out = model(images[:, :, :h, :])
-
-    code.interact(local=locals())
+    attention_out = model(images[:-1, :, :h, :]) #For now we will try it on the left image only
     
     #TODO : choose matches in the regions of interest
     
     batch_poses, batch_loss_scale, gt_attention = train_vo.process_video(images, images_gray, K_batch, K_inv_batch, model)
     
-    loss = torch.mean(-attention_out * gt_attention) * batch_loss_scale
+    code.interact(local=locals())
+    loss = loss_function(attention_out, gt_attention) * batch_loss_scale
+#     loss = torch.mean(-attention_out * gt_attention) * batch_loss_scale
+    
+
     loss.backward()
     encoder_optimizer.step()
     decoder_optimizer.step()
-    
-    
-    #TODO : back prop
-    
-    
-    
-    print(f'loss scale : {batch_loss_scale}\n')
-    
+    print(f'loss : {loss}. loss scale : {batch_loss_scale}\n')
     
     
     

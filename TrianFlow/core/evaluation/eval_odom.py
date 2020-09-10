@@ -79,7 +79,7 @@ class KittiEvalOdom():
         self.lengths = [100, 200, 300, 400, 500, 600, 700, 800]
         self.num_lengths = len(self.lengths)
 
-    def load_pred_poses(self, file_name):
+    def load_pred_poses(self, file_name, stride=1):
         # ----------------------------------------------------------------------
 		# Each line in the file should follow one of the following structures
 		# (1) idx pose(3x4 matrix in terms of 12 numbers)
@@ -101,7 +101,12 @@ class KittiEvalOdom():
                 frame_idx = line_split[0]
             else:
                 frame_idx = cnt
-            poses[frame_idx] = P
+                
+            if cnt != 0:
+                poses[frame_idx + stride - 1] = P
+            else:
+                poses[frame_idx] = P
+                
         return poses
     
     def load_gt_poses(self, file_name, stride=1):
@@ -324,11 +329,10 @@ class KittiEvalOdom():
         ave_t_errs = []
         ave_r_errs = []
 
-        poses_result = self.load_pred_poses(result_txt)
+        poses_result = self.load_pred_poses(result_txt, stride=stride)
         poses_gt = self.load_gt_poses(self.gt_txt, stride=stride)
         
         #sanity check here for testing new stride eval method
-        code.interact(local=locals())
         assert(len(poses_result) == len(poses_gt))
         
         # Pose alignment to first frame

@@ -69,6 +69,7 @@ class train_vo():
         seq_len = len(images)
 
         total_loss_scale = 0
+        gt_attentions = []
         for i in range(seq_len-1):
             K = Ks[i]
             self.cam_intrinsics = toNumpy(K[0])
@@ -92,14 +93,18 @@ class train_vo():
                 pnp_pose, loss_scale, inliers = self.solve_relative_pose_pnp(depth_match[:,:2], depth_match[:,2:], depth1)
                 gt_attention = self.get_gt_attention(inliers, depth_match, 'pnp', (h, w))
                 rel_pose = pnp_pose
+            else:
+                print(f'Five point {i}')
                 
             global_pose[:3,3:] = np.matmul(global_pose[:3,:3], rel_pose[:3,3:]) + global_pose[:3,3:]
             global_pose[:3,:3] = np.matmul(global_pose[:3,:3], rel_pose[:3,:3])
             poses.append(copy.deepcopy(global_pose))
             total_loss_scale += loss_scale
-            print(f'pose : {i}')
             
-        return poses, total_loss_scale/seq_len, gt_attention
+            
+            gt_attentions.append(gt_attention)
+            
+        return poses, total_loss_scale/seq_len, torch.from_numpy(np.array(gt_attentions)).cuda().float()
 
     def get_gt_attention(self, inliers, matches, mode, hw):
         """
@@ -113,7 +118,6 @@ class train_vo():
             for idx, i in enumerate(inliers):
                 if i[0] == 1:
                     out[int(matches[idx][1])][int(matches[idx][0])] = 1 #because of flownet subpixel accuracy
-        
         return out
     
     def normalize_coord(self, xy, K):
@@ -208,7 +212,7 @@ class train_vo():
         best_rt = []
         max_inlier_num = 0
         max_ransac_iter = self.flow_pose_ransac_times
-        best_inliers = None
+        best_inliers = []
         pp = (self.cam_intrinsics[0,2], self.cam_intrinsics[1,2])
         
         # flow magnitude
