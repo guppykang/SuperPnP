@@ -31,7 +31,7 @@ class AttentionMatching(nn.Module):
         self.decoder = attention_decoder
         
     
-    def get_match_outs(self, images, images_gray, K_batch, Kinv_batch):
+    def get_match_outs(self, images, images_gray, K_batch, Kinv_batch, attention_map):
         """
         Must use input from Kitti Dataloader
         """
@@ -41,7 +41,7 @@ class AttentionMatching(nn.Module):
         
         matcher_out = []
         for batch_idx in range(image1_batch.shape[1]):
-            matcher_out.append(self.matcher.inference_preprocessed(image1_batch[:, batch_idx], image2_batch[:, batch_idx], image1_gray_batch[:, batch_idx], image2_gray_batch[:, batch_idx], K_batch[batch_idx, 0], Kinv_batch[batch_idx, 0])) # nx4. 0th index of K is scale=1
+            matcher_out.append(self.matcher.inference_preprocessed(image1_batch[:, batch_idx], image2_batch[:, batch_idx], image1_gray_batch[:, batch_idx], image2_gray_batch[:, batch_idx], K_batch[batch_idx, 0], Kinv_batch[batch_idx, 0], attention_map=attention_map)) # nx4. 0th index of K is scale=1
         return matcher_out
         
     def forward(self, imBatch):

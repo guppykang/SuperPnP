@@ -44,8 +44,8 @@ class train_vo():
         self.PnP_ransac_times = 5
     
     
-    def get_prediction(self, images, images_gray, model, K, K_inv):
-        outs = model.get_match_outs(images, images_gray, K, K_inv)[0]
+    def get_prediction(self, images, images_gray, model, K, K_inv, attention_map):
+        outs = model.get_match_outs(images, images_gray, K, K_inv, attention_map)[0]
         
         depth1 = outs['image1_depth'] # H, W
         depth2 = outs['image2_depth'] # H, W
@@ -54,7 +54,7 @@ class train_vo():
         return filt_depth_match, depth1, depth2
 
     
-    def process_video(self, images, images_gray, Ks, K_invs, model):
+    def process_video(self, images, images_gray, Ks, K_invs, model, attention_maps):
         '''
         Done in relative pose estimation fashion
         Process a sequence to get scale consistent trajectory results. 
@@ -76,9 +76,10 @@ class train_vo():
             K_inv = K_invs[i]
             h = int(images[i].shape[1]/2)
             w = int(images[i].shape[2])
+            attention_map = attention_map[i]
 
                         
-            depth_match, depth1, depth2 = self.get_prediction(images[i].unsqueeze(0), images_gray[i].unsqueeze(0), model, K.unsqueeze(0), K_inv.unsqueeze(0))
+            depth_match, depth1, depth2 = self.get_prediction(images[i].unsqueeze(0), images_gray[i].unsqueeze(0), model, K.unsqueeze(0), K_inv.unsqueeze(0), attention_map)
             
             rel_pose = np.eye(4)
             flow_pose, loss_scale, inliers = self.solve_pose_flow(depth_match[:,:2], depth_match[:,2:])

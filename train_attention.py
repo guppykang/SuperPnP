@@ -61,14 +61,14 @@ for iteration, inputs in enumerate(tqdm(dataloader)):
     encoder_optimizer.zero_grad()
     decoder_optimizer.zero_grad()
     h = int(images.shape[2]/2)
-    attention_out = model(images[:-1, :, :h, :]) #For now we will try it on the left image only
+    pred_attention = model(images[:-1, :, :h, :]) #For now we will try it on the left image only
     
     #TODO : choose matches in the regions of interest
     
-    batch_poses, batch_loss_scale, gt_attention = train_vo.process_video(images, images_gray, K_batch, K_inv_batch, model)
+    batch_poses, batch_loss_scale, gt_attention = train_vo.process_video(images, images_gray, K_batch, K_inv_batch, model, pred_attention)
     
     code.interact(local=locals())
-    loss = loss_function(attention_out, gt_attention) * batch_loss_scale
+    loss = loss_function(pred_attention, gt_attention) * batch_loss_scale
 #     loss = torch.mean(-attention_out * gt_attention) * batch_loss_scale
     
 

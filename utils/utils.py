@@ -39,7 +39,23 @@ def sample_random_k(data, num_sample, num_total):
     indices = np.random.choice(num_total, num_sample, replace=False)
     return data[indices]
 
-def dense_sparse_hybrid_correspondences(image1_keypoints, image2_keypoints, flownet_matches, superpoint_matches, num_matches, superpoint_ratio=0.5):
+def matches_attention(attention_map, matches, k):
+    """
+    Parameters : 
+        attention_map : HxWx1 of proabilities of a good keypoint location
+    Returns : 
+        Chosen flownet matches
+    """
+    code.interact(local=locals())
+    hw = attention_map.shape
+    attention_map_flat = attention_map.flatten()
+    top_k_ind = np.argpartition(attention_map_flat, -k)[-k:]
+    top_k_yx = np.array([np.array([int(ind/w), ind%w]) for ind in top_k_ind])
+    
+    
+    pass
+
+def dense_sparse_hybrid_correspondences(image1_keypoints, image2_keypoints, flownet_matches, superpoint_matches, num_matches, attention_map=None, superpoint_ratio=0.5):
     """
     Finds the flownet matches that lie on the keypoints from given keypoints. Fills in remaining num_matches with split given ratio of dense and sparse correspondences
     
@@ -87,14 +103,17 @@ def dense_sparse_hybrid_correspondences(image1_keypoints, image2_keypoints, flow
     #get half flownet correspondences
     temp_num_matches = num_matches - len(matches)
     
+    
     if flownet_matches.shape[0] <= temp_num_matches:
         matches.extend(flownet_matches)
         print(f'Number of flownet matches used : {flownet_matches.shape[0]}')
     else:
-        flownet_indices = np.random.choice(flownet_matches.shape[0], temp_num_matches, replace=False)
-        matches.extend(flownet_matches[flownet_indices])
-        print(f'Number of flownet matches used : {temp_num_matches}')
-    
+        if attention_map is not None: 
+            matches.extend(matches_attention(attention_map, flownet_matches, temp_num_matches)
+        else:
+            flownet_indices = np.random.choice(flownet_matches.shape[0], temp_num_matches, replace=False)
+            matches.extend(flownet_matches[flownet_indices])
+            print(f'Number of flownet matches used : {temp_num_matches}')
     return np.array(matches)
 
 

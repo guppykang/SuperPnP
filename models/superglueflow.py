@@ -153,7 +153,7 @@ class SuperGlueFlow(torch.nn.Module):
 
         return outs
     
-    def inference_preprocessed(self, image1, image2, image1_gray, image2_gray, K, K_inv):
+    def inference_preprocessed(self, image1, image2, image1_gray, image2_gray, K, K_inv, attention_map=None):
         """ 
         Inferences a pair of images that were outputted by the appropriate dataloader
         """
@@ -182,7 +182,7 @@ class SuperGlueFlow(torch.nn.Module):
 
 
         #SuperFLOW
-        outs['matches'] = dense_sparse_hybrid_correspondences(outs['keypoints'][0], outs['keypoints'][1], outs['flownet_correspondences'], outs['superglue_correspondences'], self.ransac_num_matches)
+        outs['matches'] = dense_sparse_hybrid_correspondences(outs['keypoints'][0], outs['keypoints'][1], outs['flownet_correspondences'], outs['superglue_correspondences'], self.ransac_num_matches, attention_map=attention_map)
         return outs
 
 
