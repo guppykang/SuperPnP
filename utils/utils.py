@@ -55,7 +55,7 @@ def dense_sparse_hybrid_correspondences(image1_keypoints, image2_keypoints, flow
     matches = []
     
     current_start_index = 0
-    
+        
     
 #     #image1 keypoints
 #     common_matches_image1, flownet_matches = get_flownet_matches_from_superpoint_keypoints(image1_keypoints, flownet_matches, image_keypoints=1)

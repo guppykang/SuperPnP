@@ -160,7 +160,6 @@ class SuperGlueFlow(torch.nn.Module):
         outs = {}
         
         outs['inputs'] = { 'image1' : squeezeToNumpy(image1).transpose(1,2,0) , 'image2' : squeezeToNumpy(image2).transpose(1,2,0) }
-#         print(f'superpoint shape : {image1.shape}, flownet shape : {image1_gray.shape}')
               
               
         #SuperGlue

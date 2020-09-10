@@ -16,6 +16,14 @@ Input shape : [B, C, H , W]
 
 """
 class AttentionMatching(nn.Module):
+    """
+    For now I am using the ratio (ransac inliers/num matches) as a scaling factor for loss
+        
+    ransac_inliers : shape (n , 4)
+    pred : shape (H, W, 1)
+
+    Ground Truth is self supervised by Ransac, in which cells in a (H, W, 1) array have values 1 if it is an inlier, and 0 otherwise
+    """
     def __init__(self, matcher, attention_encoder, attention_decoder):
         super(AttentionMatching, self).__init__()
         self.matcher = matcher
@@ -24,6 +32,9 @@ class AttentionMatching(nn.Module):
         
     
     def get_match_outs(self, images, images_gray, K_batch, Kinv_batch):
+        """
+        Must use input from Kitti Dataloader
+        """
         h = int(images.shape[2]/2)
         image1_batch, image2_batch = torch.unsqueeze(images[:, :, :h, :], 0), torch.unsqueeze(images[:, :, h:, :], 0)
         image1_gray_batch, image2_gray_batch = torch.unsqueeze(images_gray[:, :, :h, :], 0), torch.unsqueeze(images_gray[:, :, h:, :], 0)
@@ -42,24 +53,8 @@ class AttentionMatching(nn.Module):
         x1, x2, x3, x4, x5 = self.encoder(imBatch )
         pred = self.decoder(imBatch, x1, x2, x3, x4, x5)
 
-        
-#         loss = torch.mean( pred * labelBatch )
-#         loss.backward()
         return pred
 
-class AttentionLoss(nn.Module):
-    def __init__(self ):
-        super(AttentionLoss, self).__init__()
-        pass
-
-    def forward(self, input):
-        """
-        can we scale the loss by how close (x'.T)F(x) was to 0?
-        For now I am using the ratio (ransac inliers/num matches) as a scaling factor for loss
-        """
-        print('hi mom')
-        pass
-    
 
 class ResBlock(nn.Module ):
     def __init__(self, inch, outch, stride=1, dilation=1 ):
@@ -158,7 +153,7 @@ class decoder(nn.Module ):
 
         _, _, nh, nw = im.size()
         y4 = F.interpolate(y4, [nh, nw], mode='bilinear')
-        pred = -torch.log(torch.clamp(y4, min=1e-8) )
+        pred = torch.log(torch.clamp(y4, min=1e-8) )
 
         return pred
 
@@ -272,7 +267,7 @@ class decoderDilation(nn.Module ):
 
         _, _, nh, nw = im.size()
         y4 = F.interpolate(y4, [nh, nw], mode='bilinear')
-        pred = -torch.log(torch.clamp(y4, min=1e-8) )
+        pred = torch.log(torch.clamp(y4, min=1e-8) )
 
 
         return pred

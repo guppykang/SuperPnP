@@ -36,12 +36,9 @@ model = AttentionMatching(matcher, encoder, decoder).cuda().eval()
 
 #Since I don't know why my datloader or something is not working 100% correclty I want to compare it with the vanilla superglueflow testing I was previously using
 for iteration, inputs in enumerate(dataloader):
-    images, images_gray, K_batch, Kinv_batch, gt = inputs
-    h = int(images.shape[2]/2)
-    image1_batch, image2_batch = torch.unsqueeze(images[:, :, :h, :], 0), torch.unsqueeze(images[:, :, h:, :], 0)
-    image1_gray_batch, image2_gray_batch = torch.unsqueeze(images_gray[:, :, :h, :], 0), torch.unsqueeze(images_gray[:, :, h:, :], 0)
-
-    outs = model.get_matches(image1_batch, image2_batch, image1_gray_batch, image2_gray_batch, K_batch, Kinv_batch)[0]
+    images, images_gray, K_batch, K_inv_batch, gt = inputs
+   
+    outs = model.get_match_outs(images, images_gray, K_batch, K_inv_batch)[0]
     torch.save(outs, 'inference_outs.pth')
     break
 

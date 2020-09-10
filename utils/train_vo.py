@@ -73,19 +73,24 @@ class train_vo():
             K = Ks[i]
             self.cam_intrinsics = toNumpy(K[0])
             K_inv = K_invs[i]
+            h = int(images[i].shape[1]/2)
+            w = int(images[i].shape[2])
+
                         
             depth_match, depth1, depth2 = self.get_prediction(images[i].unsqueeze(0), images_gray[i].unsqueeze(0), model, K.unsqueeze(0), K_inv.unsqueeze(0))
             
             rel_pose = np.eye(4)
-            flow_pose, loss_scale = self.solve_pose_flow(depth_match[:,:2], depth_match[:,2:])
+            flow_pose, loss_scale, inliers = self.solve_pose_flow(depth_match[:,:2], depth_match[:,2:])
+            gt_attention = self.get_gt_attention(inliers, depth_match, 'five_point', (h, w))
             rel_pose[:3,:3] = copy.deepcopy(flow_pose[:3,:3])
             if np.linalg.norm(flow_pose[:3,3:]) != 0:
                 scale = self.align_to_depth(depth_match[:,:2], depth_match[:,2:], flow_pose, depth2)
                 rel_pose[:3,3:] = flow_pose[:3,3:] * scale
             
-            if np.linalg.norm(flow_pose[:3,3:]) == 0 or scale == -1:
+            if np.linalg.norm(flow_pose[:3,3:]) == 0 or scale == -1 or inliers is not None:
                 print('PnP '+str(i))
-                pnp_pose, loss_scale = self.solve_relative_pose_pnp(depth_match[:,:2], depth_match[:,2:], depth1)
+                pnp_pose, loss_scale, inliers = self.solve_relative_pose_pnp(depth_match[:,:2], depth_match[:,2:], depth1)
+                gt_attention = self.get_gt_attention(inliers, depth_match, 'pnp', (h, w))
                 rel_pose = pnp_pose
                 
             global_pose[:3,3:] = np.matmul(global_pose[:3,:3], rel_pose[:3,3:]) + global_pose[:3,3:]
@@ -94,9 +99,23 @@ class train_vo():
             total_loss_scale += loss_scale
             print(f'pose : {i}')
             
-        return poses, total_loss_scale/seq_len
+        return poses, total_loss_scale/seq_len, gt_attention
 
+    def get_gt_attention(self, inliers, matches, mode, hw):
+        """
+        matches : In train_attention.py attention is predicted based on the first image
+        """
+        out = np.zeros(hw)
+        if mode == 'pnp':
+            for i in inliers:
+                out[int(matches[i[0]][1])][int(matches[i[0]][0])] = 1
+        elif mode == 'five_point':
+            for idx, i in enumerate(inliers):
+                if i[0] == 1:
+                    out[int(matches[idx][1])][int(matches[idx][0])] = 1 #because of flownet subpixel accuracy
         
+        return out
+    
     def normalize_coord(self, xy, K):
         xy_norm = copy.deepcopy(xy)
         xy_norm[:,0] = (xy[:,0] - K[0,2]) / K[0,0]
@@ -163,20 +182,23 @@ class train_vo():
         max_inlier_num = 0
         max_ransac_iter = self.PnP_ransac_times
         loss_scale = 0
+        best_inliers = None
         for i in range(max_ransac_iter):
             if xy2.shape[0] > 4:
                 flag, r, t, inlier = cv2.solvePnPRansac(objectPoints=points1, imagePoints=xy2, cameraMatrix=self.cam_intrinsics, distCoeffs=None, iterationsCount=self.PnP_ransac_iter, reprojectionError=self.PnP_ransac_thre)
                 if flag and inlier.shape[0] > max_inlier_num:
                     best_rt = [r, t]
-                    loss_scale = inlier.shape[0]/xy1.shape[0]
                     max_inlier_num = inlier.shape[0]
+                    best_inliers = inlier
         pose = np.eye(4)
+        loss_scale = max_inlier_num/xy1.shape[0]
+
         if len(best_rt) != 0:
             r, t = best_rt
             pose[:3,:3] = cv2.Rodrigues(r)[0]
             pose[:3,3:] = t
         pose = np.linalg.inv(pose)
-        return pose, loss_scale
+        return pose, loss_scale, best_inliers
     
     
     def solve_pose_flow(self, xy1, xy2):
@@ -186,7 +208,7 @@ class train_vo():
         best_rt = []
         max_inlier_num = 0
         max_ransac_iter = self.flow_pose_ransac_times
-        best_inliers = np.ones((xy1.shape[0])) == 1
+        best_inliers = None
         pp = (self.cam_intrinsics[0,2], self.cam_intrinsics[1,2])
         
         # flow magnitude
@@ -197,13 +219,15 @@ class train_vo():
                 cheirality_cnt, R, t, _ = cv2.recoverPose(E, xy2, xy1, focal=self.cam_intrinsics[0,0], pp=pp)
                 if inliers.sum() > max_inlier_num and cheirality_cnt > 50:
                     best_rt = [R, t]
-                    loss_scale = inliers[inliers == 1].shape[0]/inliers.shape[0]
                     max_inlier_num = inliers.sum()
                     best_inliers = inliers
             if len(best_rt) == 0:
                 R = np.eye(3)
                 t = np.zeros((3,1))
                 best_rt = [R, t]
+                
+            loss_scale = max_inlier_num/inliers.shape[0]
+
         else:
             R = np.eye(3)
             t = np.zeros((3,1))
@@ -214,4 +238,6 @@ class train_vo():
         pose = np.eye(4)
         pose[:3,:3] = R
         pose[:3,3:] = t
-        return pose, loss_scale
+        
+        
+        return pose, loss_scale, best_inliers
