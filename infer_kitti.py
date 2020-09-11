@@ -167,7 +167,7 @@ class infer_vo():
         return filt_depth_match, depth1, depth2
 
     
-    def process_video_relative(self, images, model, mode, stride=1):
+    def process_video_relative(self, images, model, mode):
         '''
         Done in relative pose estimation fashion
         Process a sequence to get scale consistent trajectory results. 
@@ -182,9 +182,9 @@ class infer_vo():
         seq_len = len(images)
         K = self.cam_intrinsics
         K_inv = np.linalg.inv(self.cam_intrinsics)
-        print(f'Number of frames to predict : {seq_len-stride}')
-        for i in tqdm(range(seq_len-stride)):
-            img1, img2 = images[i], images[i+stride]
+        print(f'Number of frames to predict : {seq_len-1}')
+        for i in tqdm(range(seq_len-1)):
+            img1, img2 = images[i], images[i+1]
             depth_match, depth1, depth2 = self.get_prediction(img1, img2, model, K, K_inv)
             
             rel_pose = np.eye(4)
@@ -380,13 +380,13 @@ if __name__ == '__main__':
     
     #load
     print(f'Loading images at stride : {args.stride}')
-    images = vo_test.load_images(max_length=args.iters)
+    images = vo_test.load_images(stride=args.stride, max_length=args.iters)
     print('Images Loaded. Total ' + str(len(images)) + ' images found.')
     
     #inference
     print(f'Testing VO in {args.mode} mode.')
     if args.mode == 'relative':
-        poses = vo_test.process_video_relative(images, model, args.model, stride=args.stride)
+        poses = vo_test.process_video_relative(images, model, args.model)
     else : 
         raise RuntimeError('Absolute pose estimation feature was discontinued')
     print('Test completed.')

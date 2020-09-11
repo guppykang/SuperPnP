@@ -79,7 +79,7 @@ class KittiEvalOdom():
         self.lengths = [100, 200, 300, 400, 500, 600, 700, 800]
         self.num_lengths = len(self.lengths)
 
-    def load_pred_poses(self, file_name, stride=1):
+    def loadPoses(self, file_name, stride=1):
         # ----------------------------------------------------------------------
 		# Each line in the file should follow one of the following structures
 		# (1) idx pose(3x4 matrix in terms of 12 numbers)
@@ -91,40 +91,8 @@ class KittiEvalOdom():
         file_len = len(s)
         poses = {}
         for cnt, line in enumerate(s):
-            P = np.eye(4)
-            line_split = [float(i) for i in line.split(" ")]
-            withIdx = int(len(line_split) == 13)
-            for row in range(3):
-                for col in range(4):
-                    P[row, col] = line_split[row*4 + col + withIdx]
-            if withIdx:
-                frame_idx = line_split[0]
-            else:
-                frame_idx = cnt
-                
-            if cnt != 0:
-                poses[frame_idx + stride - 1] = P
-            else:
-                poses[frame_idx] = P
-                
-        return poses
-    
-    def load_gt_poses(self, file_name, stride=1):
-        # ----------------------------------------------------------------------
-		# Each line in the file should follow one of the following structures
-		# (1) idx pose(3x4 matrix in terms of 12 numbers)
-		# (2) pose(3x4 matrix in terms of 12 numbers)
-		# ----------------------------------------------------------------------
-        f = open(file_name, 'r')
-        s = f.readlines()
-        f.close()
-        file_len = len(s)
-        poses = {}
-        for cnt, line in enumerate(s):
-            #I would truncate enumeration of s, but cnt would be altered which sounds annoying
-            if cnt != 0 and cnt < stride:
+            if cnt % stride != 0:
                 continue
-                
             P = np.eye(4)
             line_split = [float(i) for i in line.split(" ")]
             withIdx = int(len(line_split) == 13)
@@ -329,17 +297,20 @@ class KittiEvalOdom():
         ave_t_errs = []
         ave_r_errs = []
 
-        poses_result = self.load_pred_poses(result_txt, stride=stride)
-        poses_gt = self.load_gt_poses(self.gt_txt, stride=stride)
-        
-        #sanity check here for testing new stride eval method
-        assert(len(poses_result) == len(poses_gt))
+        temp_poses_result = self.loadPoses(result_txt)
+        poses_result = {}
+        for key in temp_poses_result.keys():
+            poses_result[key * stride] = temp_poses_result[key]
+        poses_gt = self.loadPoses(self.gt_txt, stride)
+        del temp_poses_result
         
         # Pose alignment to first frame
         idx_0 = sorted(list(poses_result.keys()))[0]
         pred_0 = poses_result[idx_0]
         gt_0 = poses_gt[idx_0]
         for cnt in poses_result:
+            if cnt % stride != 0:
+                continue
             poses_result[cnt] = np.linalg.inv(pred_0) @ poses_result[cnt]
             poses_gt[cnt] = np.linalg.inv(gt_0) @ poses_gt[cnt]
 
