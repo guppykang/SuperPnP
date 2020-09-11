@@ -39,7 +39,23 @@ def sample_random_k(data, num_sample, num_total):
     indices = np.random.choice(num_total, num_sample, replace=False)
     return data[indices]
 
-def dense_sparse_hybrid_correspondences(image1_keypoints, image2_keypoints, flownet_matches, superpoint_matches, num_matches, superpoint_ratio=0.5):
+def matches_attention(attention_map, matches, k):
+    """
+    Parameters : 
+        attention_map : HxWx1 of proabilities of a good keypoint location
+    Returns : 
+        Chosen flownet matches
+    """
+    code.interact(local=locals())
+    hw = attention_map.shape
+    attention_map_flat = attention_map.flatten()
+    top_k_ind = np.argpartition(attention_map_flat, -k)[-k:]
+    top_k_yx = np.array([np.array([int(ind/w), ind%w]) for ind in top_k_ind])
+    assert RuntimeError('Not finished implementing this yet')
+    
+    pass
+
+def dense_sparse_hybrid_correspondences(image1_keypoints, image2_keypoints, flownet_matches, superpoint_matches, num_matches, attention_map=None, superpoint_ratio=0.5):
     """
     Finds the flownet matches that lie on the keypoints from given keypoints. Fills in remaining num_matches with split given ratio of dense and sparse correspondences
     
@@ -55,7 +71,7 @@ def dense_sparse_hybrid_correspondences(image1_keypoints, image2_keypoints, flow
     matches = []
     
     current_start_index = 0
-    
+        
     
 #     #image1 keypoints
 #     common_matches_image1, flownet_matches = get_flownet_matches_from_superpoint_keypoints(image1_keypoints, flownet_matches, image_keypoints=1)
@@ -73,7 +89,6 @@ def dense_sparse_hybrid_correspondences(image1_keypoints, image2_keypoints, flow
     
     #Fill with random choices from remaining flownet and superoints matches
     temp_num_matches = int((num_matches-len(matches)) * superpoint_ratio)
-    
     #get superpoint correspondences
     if superpoint_matches.shape[0] <= temp_num_matches:
         matches.extend(superpoint_matches)
@@ -88,14 +103,17 @@ def dense_sparse_hybrid_correspondences(image1_keypoints, image2_keypoints, flow
     #get half flownet correspondences
     temp_num_matches = num_matches - len(matches)
     
+    
     if flownet_matches.shape[0] <= temp_num_matches:
         matches.extend(flownet_matches)
         print(f'Number of flownet matches used : {flownet_matches.shape[0]}')
     else:
-        flownet_indices = np.random.choice(flownet_matches.shape[0], temp_num_matches, replace=False)
-        matches.extend(flownet_matches[flownet_indices])
-        print(f'Number of flownet matches used : {temp_num_matches}')
-    
+        if attention_map is not None: 
+            matches.extend(matches_attention(attention_map, flownet_matches, temp_num_matches)
+        else:
+            flownet_indices = np.random.choice(flownet_matches.shape[0], temp_num_matches, replace=False)
+            matches.extend(flownet_matches[flownet_indices])
+            print(f'Number of flownet matches used : {temp_num_matches}')
     return np.array(matches)
 
 
@@ -191,6 +209,7 @@ def prep_superpoint_image(image, new_hw):
     resized_image = cv2.resize(image, (new_hw[1], new_hw[0])) #Why does the hw ordering convention change every three days..
     return torch.from_numpy(cv2.cvtColor(resized_image, cv2.COLOR_RGB2GRAY)/ 255.0).cuda().float().unsqueeze(0).unsqueeze(0)
 
+
 def prep_trianflow_image(image, new_hw):
     resized_image = cv2.resize(image, (new_hw[1], new_hw[0])) #God knows why this is wh not hw
     return torch.from_numpy(np.transpose(resized_image/ 255.0, [2,0,1])).cuda().float().unsqueeze(0), resized_image
@@ -226,8 +245,12 @@ def get_configs(path, mode='superflow'):
 
     if mode == 'superflow':
         model_cfg = { 'trianflow' : trianflow_cfg, 'superpoint' : cfg['models']['superpoint']}
+    elif mode == 'siftflow':
+        model_cfg = { 'trianflow' : trianflow_cfg}
     elif mode == 'superglueflow': 
         model_cfg = { 'trianflow' : trianflow_cfg, 'superpoint' : cfg['models']['superpoint'], 'superglue' : cfg['models']['superglue']}
+    elif mode == 'attention':
+        model_cfg = { 'trianflow' : trianflow_cfg, 'superpoint' : cfg['models']['superpoint'], 'superglue' : cfg['models']['superglue'], 'attention' : cfg['models']['attention']}
         
 
     return model_cfg, cfg

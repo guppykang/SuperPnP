@@ -60,7 +60,7 @@ class reduced_ransac(nn.Module):
                 f, m = cv2.findFundamentalMat(check_match[i,:2,:].transpose(0,1).detach().cpu().numpy(), check_match[i,2:,:].transpose(0,1).detach().cpu().numpy(), cv2.FM_RANSAC, 0.1, 0.99)
             cv_f.append(f)
         cv_f = np.stack(cv_f, axis=0)
-        cv_f = torch.from_numpy(cv_f).float().to(match.get_device())
+        cv_f = torch.from_numpy(cv_f.astype(dtype='float32')).float().to(match.get_device())
         
         return cv_f
 

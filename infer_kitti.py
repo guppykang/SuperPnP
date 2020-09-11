@@ -94,6 +94,7 @@ class infer_vo():
         self.new_img_w = 832#1024
         self.max_depth = 50.0
         self.min_depth = 0.0
+        
         self.cam_intrinsics = self.read_rescale_camera_intrinsics(os.path.join(self.img_dir, seq_id) + '/calib.txt')
         self.flow_pose_ransac_thre = 0.1 #0.2
         self.flow_pose_ransac_times = 10 #5
@@ -132,9 +133,8 @@ class infer_vo():
         cam_intrinsics[1,:] = cam_intrinsics[1,:] * new_img_h / raw_img_h
         return cam_intrinsics
     
-    def load_images(self, stride=1, max_length=-1):
+    def load_images(self, max_length=-1):
         """
-        Stride is the number of images to skip between
         """
         path = self.img_dir
         seq = self.seq_id
@@ -145,13 +145,12 @@ class infer_vo():
         num = len(os.listdir(image_dir))
         images = []
         
+        
         if max_length > 0:
             num = min(int(max_length)+1, num)
             
             
         for i in tqdm(range(num)):
-            if i % stride != 0:
-                continue
             image = cv2.imread(os.path.join(image_dir, '%.6d'%i)+'.png')
             image = cv2.resize(image, (new_img_w, new_img_h))
             images.append(image)
@@ -159,23 +158,11 @@ class infer_vo():
         print('Loaded Images')
         return images
     
-    def get_prediction(self, img1, img2, model, K, K_inv, mode):
+    def get_prediction(self, img1, img2, model, K, K_inv):
         outs = model.inference(img1, img2, K, K_inv, (img1.shape[0], img1.shape[1]))
         depth1 = outs['image1_depth'] # H, W
         depth2 = outs['image2_depth'] # H, W
-
-
-        if mode == 'superflow' or mode == 'superflow2':
-            filt_depth_match = outs['superflow_correspondences']# N x 4
-        elif mode == 'siftflow':
-            filt_depth_match = outs['siftflow_correspondences']# num_matches x 4
-        elif mode == 'superglueflow':
-            filt_depth_match = outs['superglueflow_correspondences']# N x 4
-        elif mode == 'trianflow':
-            filt_depth_match = outs['flownet_correspondences']# N x 4
-        else:
-            raise RuntimeError('bad correspondence mode')
-
+        filt_depth_match = outs['matches'] # N x 4
         
         return filt_depth_match, depth1, depth2
 
@@ -195,9 +182,10 @@ class infer_vo():
         seq_len = len(images)
         K = self.cam_intrinsics
         K_inv = np.linalg.inv(self.cam_intrinsics)
+        print(f'Number of frames to predict : {seq_len-1}')
         for i in tqdm(range(seq_len-1)):
             img1, img2 = images[i], images[i+1]
-            depth_match, depth1, depth2 = self.get_prediction(img1, img2, model, K, K_inv, mode)
+            depth_match, depth1, depth2 = self.get_prediction(img1, img2, model, K, K_inv)
             
             rel_pose = np.eye(4)
             flow_pose = self.solve_pose_flow(depth_match[:,:2], depth_match[:,2:])
@@ -215,34 +203,10 @@ class infer_vo():
             global_pose[:3,:3] = np.matmul(global_pose[:3,:3], rel_pose[:3,:3])
             poses.append(copy.deepcopy(global_pose))
             print(i)
+        print(f'Number of predicted poses (including start) : {len(poses)}')
         return poses
     
-    def process_video_absolute(self, images, model, mode):
-        '''
-        Done in absolute pose estimation fashion
-        Process a sequence to get scale consistent trajectory results. 
-        Register according to depth net predictions. Here we assume depth predictions have consistent scale.
-        If not, pleas use process_video_tri which only use triangulated depth to get self-consistent scaled pose.
-        '''
-        
-        poses = []
-        absolute_pose_t = np.zeros((3, 4))
-        global_pose = np.eye(4)
-        # The first one global pose is origin.
-        poses.append(copy.deepcopy(global_pose))
-        seq_len = len(images)
-        K = self.cam_intrinsics
-        K_inv = np.linalg.inv(self.cam_intrinsics)
-        for i in tqdm(range(seq_len-1)):
-            img1, img2 = images[i], images[i+1]
-            depth_match, depth1, depth2 = self.get_prediction(img1, img2, model, K, K_inv, mode)
-   
-            print('PnP '+str(i))
-            global_pose = self.solve_absolute_pose_pnp(depth_match[:,:2], depth_match[:,2:], depth1, poses[-1])   
-            
-            poses.append(copy.deepcopy(global_pose))
-            print(i)
-        return poses
+  
         
     def normalize_coord(self, xy, K):
         xy_norm = copy.deepcopy(xy)
@@ -324,50 +288,6 @@ class infer_vo():
         pose = np.linalg.inv(pose)
         return pose
     
-    def solve_absolute_pose_pnp(self, xy1, xy2, depth1, pose_t):
-        # Use pnp to solve relative poses.
-        # xy1, xy2: [N, 2] depth1: [H, W]
-
-        img_h, img_w = np.shape(depth1)[0], np.shape(depth1)[1]
-        
-        # Ensure all the correspondences are inside the image.
-        x_idx = (xy2[:, 0] >= 0) * (xy2[:, 0] < img_w)
-        y_idx = (xy2[:, 1] >= 0) * (xy2[:, 1] < img_h)
-        idx = y_idx * x_idx
-        xy1 = xy1[idx]
-        xy2 = xy2[idx]
-
-        xy1_int = xy1.astype(np.int)
-        sample_depth = depth1[xy1_int[:,1], xy1_int[:,0]]
-        valid_depth_mask = (sample_depth < self.max_depth) * (sample_depth > self.min_depth)
-
-        xy1 = xy1[valid_depth_mask]
-        xy2 = xy2[valid_depth_mask]
-
-        # Unproject to 3d space
-        points1 = unprojection(xy1, sample_depth[valid_depth_mask], self.cam_intrinsics)
-        
-        # Project to world coordinate space
-        world_points1 = vehicle_to_world(pose_t, points1)
-
-        # ransac
-        best_rt = []
-        max_inlier_num = 0
-        max_ransac_iter = self.PnP_ransac_times
-        
-        for i in range(max_ransac_iter):
-            if xy2.shape[0] > 4:
-                flag, r, t, inlier = cv2.solvePnPRansac(objectPoints=points1, imagePoints=xy2, cameraMatrix=self.cam_intrinsics, distCoeffs=None, iterationsCount=self.PnP_ransac_iter, reprojectionError=self.PnP_ransac_thre)
-                if flag and inlier.shape[0] > max_inlier_num:
-                    best_rt = [r, t]
-                    max_inlier_num = inlier.shape[0]
-        pose = np.eye(4)
-        if len(best_rt) != 0:
-            r, t = best_rt
-            pose[:3,:3] = cv2.Rodrigues(r)[0]
-            pose[:3,3:] = t
-        pose = np.linalg.inv(pose)
-        return pose
     
     def solve_pose_flow(self, xy1, xy2):
         # Solve essential matrix to find relative pose from flow.
@@ -384,6 +304,7 @@ class infer_vo():
         if avg_flow > self.flow_pose_min_flow:
             for i in range(max_ransac_iter):
                 E, inliers = cv2.findEssentialMat(xy2, xy1, focal=self.cam_intrinsics[0,0], pp=pp, method=cv2.RANSAC, prob=0.99, threshold=self.flow_pose_ransac_thre)
+                                
                 cheirality_cnt, R, t, _ = cv2.recoverPose(E, xy2, xy1, focal=self.cam_intrinsics[0,0], pp=pp)
                 if inliers.sum() > max_inlier_num and cheirality_cnt > 50:
                     best_rt = [R, t]
@@ -418,7 +339,7 @@ if __name__ == '__main__':
     arg_parser.add_argument('--stride', type=int, default='1', help='Stride between images')
     args = arg_parser.parse_args()
     
-    args.traj_save_dir = str(Path(args.traj_save_dir) / args.model / (args.sequence + '_' + args.model + '_' + time.strftime("%Y%m%d-%H%M%S")
+    args.traj_save_dir = str(Path(args.traj_save_dir) / args.model / (args.sequence + '_' + args.model + '_stride' + str(args.stride) + '_' + time.strftime("%Y%m%d-%H%M%S")
  + '.txt')) #I just like this better than os.path
 
     os.environ['CUDA_VISIBLE_DEVICES'] = '0'
@@ -436,7 +357,7 @@ if __name__ == '__main__':
         from models.superflow2 import SuperFlow as Model
     elif args.model == 'siftflow':
         config_file = './configs/siftflow.yaml'
-        model_cfg, cfg = get_configs(config_file)    
+        model_cfg, cfg = get_configs(config_file, mode='siftflow')    
         from models.siftflow import SiftFlow as Model
     elif args.model == 'superglueflow':
         config_file = './configs/kitti/superglueflow.yaml'
@@ -466,8 +387,8 @@ if __name__ == '__main__':
     print(f'Testing VO in {args.mode} mode.')
     if args.mode == 'relative':
         poses = vo_test.process_video_relative(images, model, args.model)
-    elif args.mode == 'absolute':
-        poses = vo_test.process_video_absolute(images, model, args.model)
+    else : 
+        raise RuntimeError('Absolute pose estimation feature was discontinued')
     print('Test completed.')
     
     
