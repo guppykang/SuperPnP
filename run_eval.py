@@ -178,8 +178,11 @@ if __name__ == "__main__":
     parser.add_argument(
         "-sub", "--subfolder", type=str, default="./", help="result subfolder, can be separated using model name"
     )
+    models = ['superglueflow', 'siftflow', 'siftflow_scsfm', 'superglueflow', 'superflow', 'superflow2']
+    print(f"models: {models} are supported")
+    
     parser.add_argument(
-        "-m", "--model", type=str, default="siftflow", choices=['superglueflow', 'siftflow', 'superglueflow', 'superflow', 'superflow2'], help="model to test"
+        "-m", "--model", type=str, default="siftflow", choices=models, help="model to test"
     )
     parser.add_argument(
         "-d", "--dataset", type=str, default="kitti", help="[kitti |  euroc | tum ... ]"
@@ -217,6 +220,7 @@ if __name__ == "__main__":
     # --output_path ...
     
 
+     
     parser.add_argument(
         "--table", action="store_true", help="collect the evaluation to table"
     )
@@ -269,7 +273,7 @@ if __name__ == "__main__":
     print(f"w_time: {w_time}")
     args.exper_name = args.exper_name + "_t" if args.wTime else args.exper_name
 
-    if args.model in ['superglueflow', 'siftflow', 'superglueflow', 'superflow', 'superflow2']:
+    if args.model in models:
         model_fe = flow_frontend(args.model)
     
     if args.run:
