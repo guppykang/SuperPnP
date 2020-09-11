@@ -1,0 +1,38 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name:  superglueflow-tum-job # deepsfm-pod
+  namespace: mc-lab
+  labels:
+    user: jbk001 
+spec:
+  ttlSecondsAfterFinished: 86400 # Wait one day to delete completed jobs
+  template:
+    spec:
+      containers:
+      - name: gpu-container
+        image: gitlab-registry.nautilus.optiputer.net/prp/jupyterlab # pytorch/pytorch:1.0.1-cuda10.0-cudnn7-runtime
+        command:
+        - "sh"
+        - "-c"
+        - "/jbk001-data1/git/SuperPnP/nautilus-files/scripts/infer_tum_all.sh"
+        resources:
+          requests:
+            cpu: "8"
+            memory: "8Gi"
+            nvidia.com/gpu: 1
+            ephemeral-storage: 100Gi
+          limits:
+            cpu: "8"
+            memory: "8Gi"
+            nvidia.com/gpu: 1
+            ephemeral-storage: 100Gi
+        volumeMounts:
+        - mountPath: /jbk001-data1
+          name: jbk001-data1
+      volumes:
+      - name: jbk001-data1
+        persistentVolumeClaim:
+          claimName: jbk001-data1
+      restartPolicy: Never
+  backoffLimit: 5
