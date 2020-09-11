@@ -39,20 +39,31 @@ class SuperGlueFlow(torch.nn.Module):
 
         #TrianFlow
         self.trianFlow = Model_depth_pose(model_cfg["trianflow"])
+        
 
         self.superglue_matcher = Matching(model_cfg)
+
+        self.did_load_modules = False
+        self.load_modules(model_cfg)
        
     
     def load_modules(self, cfg):
         """
         Loads specific modules that were pretrained into the pipeline, rather than the entire model
         """
+        
+        if self.did_load_modules:
+            return 
+        
+        print('Loading Superglueflow with learned weights')
         #load trian flow
         weights = torch.load(cfg["trianflow"].pretrained)
         self.trianFlow.load_state_dict(weights['model_state_dict'])
 
         #load superpoint
         #superglue matcher loads superoint and superglue in their resepctive __init__ functions
+        
+        self.did_load_modules = True
 
         pass
 
@@ -95,10 +106,11 @@ class SuperGlueFlow(torch.nn.Module):
         outs = {}
         start_time = datetime.utcnow()
 
-        
+
         #superpoint
         image1_t = prep_superpoint_image(image1, hw)
         image2_t = prep_superpoint_image(image2, hw)
+#         print(f'superpoint shape : {image1_t.shape}')
         
         pred = self.superglue_matcher({'image0' : image1_t, 'image1' : image2_t})
         pred = {k: toNumpy(v[0]) for k, v in pred.items()}
@@ -114,6 +126,8 @@ class SuperGlueFlow(torch.nn.Module):
         #TrianFlow
         image1_t, image1_resized = prep_trianflow_image(image1, hw)
         image2_t, image2_resized = prep_trianflow_image(image2, hw)
+#         print(f'flownet shape : {image1_t.shape}')
+
         outs['inputs'] = { 'image1' : image1_resized , 'image2' : image2_resized }
         K = torch.from_numpy(K).cuda().float().unsqueeze(0)
         K_inverse = torch.from_numpy(K_inv).cuda().float().unsqueeze(0)
@@ -129,7 +143,7 @@ class SuperGlueFlow(torch.nn.Module):
         
         
         #SuperFLOW
-        outs['superglueflow_correspondences'] = dense_sparse_hybrid_correspondences(outs['keypoints'][0], outs['keypoints'][1], outs['flownet_correspondences'], outs['superglue_correspondences'], self.ransac_num_matches)
+        outs['matches'] = dense_sparse_hybrid_correspondences(outs['keypoints'][0], outs['keypoints'][1], outs['flownet_correspondences'], outs['superglue_correspondences'], self.ransac_num_matches)
 
         
         end_time = datetime.utcnow()
@@ -137,6 +151,38 @@ class SuperGlueFlow(torch.nn.Module):
 
         print(f'Hybrid sampling took {end_time - mid_time} to run\n')
 
+        return outs
+    
+    def inference_preprocessed(self, image1, image2, image1_gray, image2_gray, K, K_inv, attention_map=None):
+        """ 
+        Inferences a pair of images that were outputted by the appropriate dataloader
+        """
+        outs = {}
+        
+        outs['inputs'] = { 'image1' : squeezeToNumpy(image1).transpose(1,2,0) , 'image2' : squeezeToNumpy(image2).transpose(1,2,0) }
+              
+              
+        #SuperGlue
+        pred = self.superglue_matcher({'image0' : image1_gray, 'image1' : image2_gray})
+        pred = {k: toNumpy(v[0]) for k, v in pred.items()}
+        outs['keypoints'] = [pred['keypoints0'], pred['keypoints1']]
+        matches, conf = pred['matches0'], pred['matching_scores0']
+        valid = matches > -1
+        outs['superglue_correspondences'] = np.concatenate((outs['keypoints'][0][valid], outs['keypoints'][1][matches[valid]]), axis=1)
+        outs['superglue_scores'] = conf[valid]
+
+
+        #TrianFlow
+        K = K.float().unsqueeze(0)
+        K_inv = K_inv.float().unsqueeze(0)
+        correspondences, image1_depth_map, image2_depth_map = self.trianFlow.infer_vo(image1, image2, K, K_inv, self.num_matches)
+        outs['flownet_correspondences'] = squeezeToNumpy(correspondences.T)
+        outs['image1_depth'] = squeezeToNumpy(image1_depth_map)
+        outs['image2_depth'] = squeezeToNumpy(image2_depth_map)
+
+
+        #SuperFLOW
+        outs['matches'] = dense_sparse_hybrid_correspondences(outs['keypoints'][0], outs['keypoints'][1], outs['flownet_correspondences'], outs['superglue_correspondences'], self.ransac_num_matches, attention_map=attention_map)
         return outs
 
 
@@ -153,6 +199,8 @@ class SuperGlueFlow(torch.nn.Module):
         #nms (val fastnms or process_output())
         #pts
         #desc to sparse
+        
+        raise RuntimeError('Not implemented yet')
         pass
 
    

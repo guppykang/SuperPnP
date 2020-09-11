@@ -44,6 +44,7 @@ import torch
 
 from .superpoint import SuperPoint
 from .superglue import SuperGlue
+import code
 
 
 class Matching(torch.nn.Module):
@@ -72,12 +73,13 @@ class Matching(torch.nn.Module):
         # Batch all features
         # We should either have i) one image per batch, or
         # ii) the same number of local features for all images in the batch.
+
         data = {**data, **pred}
 
         for k in data:
             if isinstance(data[k], (list, tuple)):
                 data[k] = torch.stack(data[k])
-
+                
         # Perform the matching
         pred = {**pred, **self.superglue(data)}
 

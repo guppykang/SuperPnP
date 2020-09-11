@@ -148,6 +148,9 @@ class infer_vo_tum(infer_vo):
         pose_qua = np.array([infer_vo_tum.mat2quat(m.reshape(3,4)) for m in poses])
         poses_qua_wTime = np.concatenate((time_stamps, pose_qua), axis=1)
         np.savetxt(filename, poses_qua_wTime, delimiter=" ", fmt="%.4f")
+        # copy tum txt
+        filename = Path(f"{traj_dir}/preds.tum")
+        np.savetxt(filename, poses_qua_wTime, delimiter=" ", fmt="%.4f")
         pass
 
 
@@ -159,7 +162,7 @@ if __name__ == '__main__':
     arg_parser.add_argument('--model', type=str, default='superglueflow', help='(choose from : siftflow, superglueflow, superflow, superflow2)')
     arg_parser.add_argument('--traj_save_dir', type=str, default='/jbk001-data1/datasets/tum/vo_pred', help='directory for saving results')
     arg_parser.add_argument('--sequences_root_dir', type=str, default='/jbk001-data1/datasets/tum', help='Root directory for all datasets')
-    arg_parser.add_argument('--sequence', type=str, default='rgbd_dataset_freiburg3_long_office_household', help='Test sequence id.')
+    arg_parser.add_argument('--sequence', type=str, default='rgbd_dataset_freiburg2_desk', help='Test sequence id.')
     arg_parser.add_argument('--iters', type=int, default='-1', help='Limited iterations for debugging')
     args = arg_parser.parse_args()
     
@@ -180,7 +183,7 @@ if __name__ == '__main__':
         from models.superflow2 import SuperFlow as Model
     elif args.model == 'siftflow':
         config_file = './configs/siftflow.yaml'
-        model_cfg, cfg = get_configs(config_file)    
+        model_cfg, cfg = get_configs(config_file, mode='siftflow')    
         from models.siftflow import SiftFlow as Model
     elif args.model == 'superglueflow':
         config_file = './configs/tum/superglueflow.yaml'
