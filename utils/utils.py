@@ -51,7 +51,7 @@ def matches_attention(attention_map, matches, k):
     attention_map_flat = attention_map.flatten()
     top_k_ind = np.argpartition(attention_map_flat, -k)[-k:]
     top_k_yx = np.array([np.array([int(ind/w), ind%w]) for ind in top_k_ind])
-    
+    assert RuntimeError('Not finished implementing this yet')
     
     pass
 
