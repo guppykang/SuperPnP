@@ -194,8 +194,6 @@ if __name__ == '__main__':
         model_cfg, cfg = get_configs(config_file, mode='superflow')    
         from models.trianflow import TrianFlow as Model
 
-    #do config stuff
-    model_cfg, cfg = get_configs(config_file)  
 
     #initialize the model
     model = Model(model_cfg, cfg)
@@ -212,6 +210,7 @@ if __name__ == '__main__':
     print('Images Loaded. Total ' + str(len(images)) + ' images found.')
     print('Testing VO.')
     poses = np.array(vo_test.process_video_relative(images, model, args.model))
+    del images
     print('Test completed.')
 
     save_time = time.strftime("%Y%m%d-%H%M%S")

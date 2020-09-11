@@ -16,6 +16,7 @@ from tqdm import tqdm
 import copy
 from pathlib import Path
 import time
+import gc
 
 from collections import OrderedDict
 
@@ -133,7 +134,7 @@ class infer_vo():
         cam_intrinsics[1,:] = cam_intrinsics[1,:] * new_img_h / raw_img_h
         return cam_intrinsics
     
-    def load_images(self, max_length=-1):
+    def load_images(self, stride=1, max_length=-1):
         """
         """
         path = self.img_dir
@@ -151,6 +152,8 @@ class infer_vo():
             
             
         for i in tqdm(range(num)):
+            if i % stride != 0:
+                continue
             image = cv2.imread(os.path.join(image_dir, '%.6d'%i)+'.png')
             image = cv2.resize(image, (new_img_w, new_img_h))
             images.append(image)
@@ -391,6 +394,8 @@ if __name__ == '__main__':
         raise RuntimeError('Absolute pose estimation feature was discontinued')
     print('Test completed.')
     
+    del images
+    gc.collect()
     
     traj_txt = args.traj_save_dir
     save_traj(traj_txt, poses)

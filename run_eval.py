@@ -14,6 +14,7 @@ import subprocess
 from pathlib import Path
 from glob import glob
 import logging
+import code
 
 
 from utils.eval_utils import flow_frontend
@@ -176,7 +177,7 @@ if __name__ == "__main__":
         "exper_name", type=str, help="The experiment name for exporting results"
     )
     parser.add_argument(
-        "-sub", "--subfolder", type=str, default="./", help="result subfolder, can be separated using model name"
+        "-sub", "--subfolder", type=str, default="", help="result subfolder, can be separated using model name"
     )
     parser.add_argument(
         "-m", "--model", type=str, default="siftflow", choices=['superglueflow', 'siftflow', 'superglueflow', 'superflow', 'superflow2'], help="model to test"
@@ -269,7 +270,7 @@ if __name__ == "__main__":
     print(f"w_time: {w_time}")
     args.exper_name = args.exper_name + "_t" if args.wTime else args.exper_name
 
-    if args.model in ['superglueflow', 'siftflow', 'superglueflow', 'superflow', 'superflow2']:
+    if args.model in ['superglueflow', 'siftflow', 'superflow', 'superflow2']:
         model_fe = flow_frontend(args.model)
     
     if args.run:
@@ -283,7 +284,7 @@ if __name__ == "__main__":
         dump_config(args, model_fe.get_saved_base(subfolder, args.exper_name, dataset))
         for s in seqs:
 #             save_folder = model_fe.get_saved_folder(subfolder, args.exper_name, dataset, s)
-            save_folder = model_fe.get_saved_folder(subfolder, args.exper_name, dataset, '.')
+            save_folder = model_fe.get_saved_folder(subfolder, args.exper_name, dataset, '')
             command = model_fe.get_command_scsfmlearner(
                 args,
                 save_folder, dataset, sequence=s, skip_frame=args.skip_frame,

@@ -109,7 +109,7 @@ def dense_sparse_hybrid_correspondences(image1_keypoints, image2_keypoints, flow
         print(f'Number of flownet matches used : {flownet_matches.shape[0]}')
     else:
         if attention_map is not None: 
-            matches.extend(matches_attention(attention_map, flownet_matches, temp_num_matches)
+            matches.extend(matches_attention(attention_map, flownet_matches, temp_num_matches))
         else:
             flownet_indices = np.random.choice(flownet_matches.shape[0], temp_num_matches, replace=False)
             matches.extend(flownet_matches[flownet_indices])
