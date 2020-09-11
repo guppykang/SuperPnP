@@ -52,7 +52,7 @@ class SiftFlow_scsfm(SiftFlow):
         # scsfm
         self.disp_net = getattr(models, general_cfg["models"]["scsfm"]["net"])().to(self.device)
         self.load_pretrained_net(general_cfg["models"]["scsfm"], self.disp_net)
-        print(f"dispnet: {self.disp_net}")
+        # print(f"dispnet: {self.disp_net}")
 
         #SIFT
 
@@ -132,14 +132,14 @@ class SiftFlow_scsfm(SiftFlow):
         K = torch.from_numpy(K).cuda().float().unsqueeze(0)
         K_inverse = torch.from_numpy(K_inv).cuda().float().unsqueeze(0)
         correspondences, image1_depth_map, image2_depth_map = self.trianFlow.infer_vo(image1_t, image2_t, K, K_inverse, self.num_matches)
-        print(f"image1_depth_map: {image1_depth_map.shape}")
+        # print(f"image1_depth_map: {image1_depth_map.shape}")
         
         # scsfm - depthNet
         image1_sc, image1_resized = prep_scsfm_image(image1, hw)
         image2_sc, image2_resized = prep_scsfm_image(image2, hw)
         image1_depth_map = 1/(self.disp_net(image1_sc)[0][0, 0] ) # overwrite depth_map
         image2_depth_map = 1/(self.disp_net(image2_sc)[0][0, 0] ) # overwrite depth_map
-        print(f"sc image1_depth_map: {image1_depth_map.shape}")
+        # print(f"sc image1_depth_map: {image1_depth_map.shape}")
         
 
         #post process
