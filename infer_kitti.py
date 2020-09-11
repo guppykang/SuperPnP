@@ -167,7 +167,7 @@ class infer_vo():
 
         if mode == 'superflow' or mode == 'superflow2':
             filt_depth_match = outs['superflow_correspondences']# N x 4
-        elif mode == 'siftflow':
+        elif mode == 'siftflow' or mode == 'siftflow_scsfm':
             filt_depth_match = outs['siftflow_correspondences']# num_matches x 4
         elif mode == 'superglueflow':
             filt_depth_match = outs['superglueflow_correspondences']# N x 4

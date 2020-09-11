@@ -62,7 +62,7 @@ class SiftFlow_scsfm(SiftFlow):
         """
         #load trian flow
         weights = torch.load(cfg_net["pretrained"])
-        net.load_state_dict(weights['model_state_dict'])
+        net.load_state_dict(weights['state_dict'])
         pass
     
     def load_modules(self, cfg):
@@ -132,12 +132,13 @@ class SiftFlow_scsfm(SiftFlow):
         K = torch.from_numpy(K).cuda().float().unsqueeze(0)
         K_inverse = torch.from_numpy(K_inv).cuda().float().unsqueeze(0)
         correspondences, image1_depth_map, image2_depth_map = self.trianFlow.infer_vo(image1_t, image2_t, K, K_inverse, self.num_matches)
+        print(f"image1_depth_map: {image1_depth_map.shape}")
         
         # scsfm - depthNet
         image1_sc, image1_resized = prep_scsfm_image(image1, hw)
         image2_sc, image2_resized = prep_scsfm_image(image2, hw)
-        image1_depth_map = 1/(disp_net(image1_sc)[0][0, 0] ) # overwrite depth_map
-        image2_depth_map = 1/(disp_net(image2_sc)[0][0, 0] ) # overwrite depth_map
+        image1_depth_map = 1/(self.disp_net(image1_sc)[0][0, 0] ) # overwrite depth_map
+        image2_depth_map = 1/(self.disp_net(image2_sc)[0][0, 0] ) # overwrite depth_map
         print(f"sc image1_depth_map: {image1_depth_map.shape}")
         
 
