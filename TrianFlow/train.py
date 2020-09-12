@@ -1,12 +1,13 @@
+#!/usr/bin/env python 
+
 import os, sys
 import yaml
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from core.dataset import KITTI_RAW, KITTI_Prepared, NYU_Prepare, NYU_v2, KITTI_Odo
-from core.networks import get_model
-from core.config import generate_loss_weights_dict
-from core.visualize import Visualizer
-from core.evaluation import load_gt_flow_kitti, load_gt_mask
-from test import test_kitti_2012, test_kitti_2015, test_eigen_depth, test_nyu, load_nyu_test_data
+from TrianFlow.core.dataset import KITTI_RAW, KITTI_Prepared, NYU_Prepare, NYU_v2, KITTI_Odo
+from TrianFlow.core.networks import get_model
+from TrianFlow.core.config import generate_loss_weights_dict
+from TrianFlow.core.visualize import Visualizer
+from TrianFlow.core.evaluation import load_gt_flow_kitti, load_gt_mask
+from TrianFlow.test import test_kitti_2012, test_kitti_2015, test_eigen_depth, test_nyu, load_nyu_test_data
 
 from collections import OrderedDict
 import torch
@@ -15,6 +16,7 @@ from tqdm import tqdm
 import shutil
 import pickle
 import pdb
+import code
 
 def save_model(iter_, model_dir, filename, model, optimizer):
     torch.save({"iteration": iter_, "model_state_dict": model.state_dict(), 'optimizer_state_dict': optimizer.state_dict()}, os.path.join(model_dir, filename))
@@ -26,9 +28,27 @@ def load_model(model_dir, filename, model, optimizer):
     optimizer.load_state_dict(data['optimizer_state_dict'])
     return iter_, model, optimizer
 
+def freeze_all_but_depth(model, mode):
+    """
+    
+    """
+    if mode != 'depth_pose': 
+        return
+    
+    for param in model.depth_net.encoder.parameters():
+        param.requires_grad = False
+        
+    for param in model.model_pose.parameters():
+        param.requires_grad = False
+        
+    code.interact(local=locals()) #check here that they are indeed false
+    return model
+
 def train(cfg):
     # load model and optimizer
     model = get_model(cfg.mode)(cfg)
+    model = freeze_all_but_depth(model, cfg.mode)
+
     if cfg.multi_gpu:
         model = torch.nn.DataParallel(model)
     model = model.cuda()
@@ -151,8 +171,8 @@ if __name__ == '__main__':
     arg_parser = argparse.ArgumentParser(
         description="TrianFlow training pipeline."
     )
-    arg_parser.add_argument('-c', '--config_file', default=None, help='config file.')
-    arg_parser.add_argument('-g', '--gpu', type=str, default=0, help='gpu id.')
+    arg_parser.add_argument('-c', '--config_file', default='../configs/kitti/superglueflow.yaml', help='config file.')
+    arg_parser.add_argument('-g', '--gpu', type=str, default='0', help='gpu id.')
     arg_parser.add_argument('--batch_size', type=int, default=8, help='batch size.')
     arg_parser.add_argument('--iter_start', type=int, default=0, help='starting iteration.')
     arg_parser.add_argument('--lr', type=float, default=0.0001, help='learning rate')
@@ -160,14 +180,15 @@ if __name__ == '__main__':
     arg_parser.add_argument('--log_interval', type=int, default=100, help='interval for printing loss.')
     arg_parser.add_argument('--test_interval', type=int, default=2000, help='interval for evaluation.')
     arg_parser.add_argument('--save_interval', type=int, default=2000, help='interval for saving models.')
-    arg_parser.add_argument('--mode', type=str, default='flow', help='training mode.')
-    arg_parser.add_argument('--model_dir', type=str, default=None, help='directory for saving models')
-    arg_parser.add_argument('--prepared_save_dir', type=str, default='data_s1', help='directory name for generated training dataset')
+    arg_parser.add_argument('--mode', type=str, default='depth_pose', help='training mode.')
+    arg_parser.add_argument('--model_dir', type=str, default='/jbk001-data1/git/SuperPnP/TrianFlow/models/pretrained', help='directory for saving models')
+    arg_parser.add_argument('--prepared_save_dir', type=str, default='/jbk001-data1/datasets/kitti/kitti_vo/vo_dataset_processed_stride1', help='directory name for generated training dataset')
     arg_parser.add_argument('--flow_pretrained_model', type=str, default=None, help='directory for loading flow pretrained models')
-    arg_parser.add_argument('--depth_pretrained_model', type=str, default=None, help='directory for loading depth pretrained models')
+    arg_parser.add_argument('--depth_pretrained_model', type=str, default='/jbk001-data1/git/SuperPnP/TrianFlow/models/pretrained/kitti_depth_pretrained.pth', help='directory for loading depth pretrained models')
     arg_parser.add_argument('--resume', action='store_true', help='to resume training.')
     arg_parser.add_argument('--multi_gpu', action='store_true', help='to use multiple gpu for training.')
     arg_parser.add_argument('--no_test', action='store_true', help='without evaluation.')
+    arg_parser.add_argument('--finetune_depth', default=False, help='To enable depthnet adaptation.')
     args = arg_parser.parse_args()
         #args.config_file = 'config/debug.yaml'
     if args.config_file is None:
@@ -205,8 +226,8 @@ if __name__ == '__main__':
         def __init__(self):
             pass
     cfg_new = pObject()
-    for attr in list(cfg.keys()):
-        setattr(cfg_new, attr, cfg[attr])
+    for attr in list(cfg['models']['trianflow'].keys()):
+        setattr(cfg_new, attr, cfg['models']['trianflow'][attr])
     with open(os.path.join(args.model_dir, 'config.pkl'), 'wb') as f:
         pickle.dump(cfg_new, f)
 

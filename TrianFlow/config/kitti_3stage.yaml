@@ -7,7 +7,7 @@ gt_2012_dir: '/home/zhaow/data/kitti_stereo/kitti_2012/training'
 gt_2015_dir: '/home/zhaow/data/kitti_stereo/kitti_2015/training'
 static_frames_txt: '/home/zhaow/data/kitti_seq/static_frames.txt'
 test_scenes_txt: '/home5/zhaow/release/data/eigen/test_scenes.txt'
-dataset: 'kitti_depth'
+dataset: 'kitti_odo' #can be kitti_depth
 num_scales: 3
 
 # training
