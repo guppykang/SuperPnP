@@ -1,12 +1,12 @@
 cfg_name: 'default'
 
 # dataset
-raw_base_dir: '/home/zhaow/data/kitti'
-prepared_base_dir: '/home/zhaow/data/kitti_seq'
-gt_2012_dir: '/home/zhaow/data/kitti_stereo/kitti_2012/training'
-gt_2015_dir: '/home/zhaow/data/kitti_stereo/kitti_2015/training'
-static_frames_txt: '/home/zhaow/data/kitti_seq/static_frames.txt'
-test_scenes_txt: '/home5/zhaow/release/data/eigen/test_scenes.txt'
+raw_base_dir: '/jbk001-data1/datasets/kitti/kitti_vo/vo_dataset/sequences'
+prepared_base_dir: '/jbk001-data1/datasets/kitti/kitti_vo/vo_dataset_processed'
+# gt_2012_dir: '/home/zhaow/data/kitti_stereo/kitti_2012/training'
+# gt_2015_dir: '/home/zhaow/data/kitti_stereo/kitti_2015/training'
+# static_frames_txt: '/home/zhaow/data/kitti_seq/static_frames.txt'
+# test_scenes_txt: '/home5/zhaow/release/data/eigen/test_scenes.txt'
 dataset: 'kitti_odo' #can be kitti_depth
 num_scales: 3
 

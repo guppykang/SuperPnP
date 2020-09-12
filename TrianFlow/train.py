@@ -118,12 +118,12 @@ def train(cfg):
         raise NotImplementedError
     
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=cfg.batch_size, shuffle=True, num_workers=cfg.num_workers, drop_last=False)
-    if cfg.dataset == 'kitti_depth' or cfg.dataset == 'kitti_odo':
-        gt_flows_2012, noc_masks_2012 = load_gt_flow_kitti(cfg.gt_2012_dir, 'kitti_2012')
-        gt_flows_2015, noc_masks_2015 = load_gt_flow_kitti(cfg.gt_2015_dir, 'kitti_2015')
-        gt_masks_2015 = load_gt_mask(cfg.gt_2015_dir)
-    elif cfg.dataset == 'nyuv2':
-        test_images, test_gt_depths = load_nyu_test_data(cfg.nyu_test_dir)
+#     if cfg.dataset == 'kitti_depth' or cfg.dataset == 'kitti_odo':
+#         gt_flows_2012, noc_masks_2012 = load_gt_flow_kitti(cfg.gt_2012_dir, 'kitti_2012')
+#         gt_flows_2015, noc_masks_2015 = load_gt_flow_kitti(cfg.gt_2015_dir, 'kitti_2015')
+#         gt_masks_2015 = load_gt_mask(cfg.gt_2015_dir)
+#     elif cfg.dataset == 'nyuv2':
+#         test_images, test_gt_depths = load_nyu_test_data(cfg.nyu_test_dir)
 
     # training
     print('starting iteration: {}.'.format(cfg.iter_start))
@@ -134,16 +134,16 @@ def train(cfg):
                 model_eval = model.module
             else:
                 model_eval = model
-            if cfg.dataset == 'kitti_depth' or cfg.dataset == 'kitti_odo':
-                if not (cfg.mode == 'depth' or cfg.mode == 'flowposenet'):
-                    eval_2012_res = test_kitti_2012(cfg, model_eval, gt_flows_2012, noc_masks_2012)
-                    eval_2015_res = test_kitti_2015(cfg, model_eval, gt_flows_2015, noc_masks_2015, gt_masks_2015, depth_save_dir=os.path.join(cfg.model_dir, 'results'))
-                    visualizer.add_log_pack({'eval_2012_res': eval_2012_res, 'eval_2015_res': eval_2015_res})
-            elif cfg.dataset == 'nyuv2':
-                if not cfg.mode == 'flow':
-                    eval_nyu_res = test_nyu(cfg, model_eval, test_images, test_gt_depths)
-                    visualizer.add_log_pack({'eval_nyu_res': eval_nyu_res})
-            visualizer.dump_log(os.path.join(cfg.model_dir, 'log.pkl'))
+#             if cfg.dataset == 'kitti_depth' or cfg.dataset == 'kitti_odo':
+#                 if not (cfg.mode == 'depth' or cfg.mode == 'flowposenet'):
+#                     eval_2012_res = test_kitti_2012(cfg, model_eval, gt_flows_2012, noc_masks_2012)
+#                     eval_2015_res = test_kitti_2015(cfg, model_eval, gt_flows_2015, noc_masks_2015, gt_masks_2015, depth_save_dir=os.path.join(cfg.model_dir, 'results'))
+#                     visualizer.add_log_pack({'eval_2012_res': eval_2012_res, 'eval_2015_res': eval_2015_res})
+#             elif cfg.dataset == 'nyuv2':
+#                 if not cfg.mode == 'flow':
+#                     eval_nyu_res = test_nyu(cfg, model_eval, test_images, test_gt_depths)
+#                     visualizer.add_log_pack({'eval_nyu_res': eval_nyu_res})
+#             visualizer.dump_log(os.path.join(cfg.model_dir, 'log.pkl'))
         model.train()
         iter_ = iter_ + cfg.iter_start
         optimizer.zero_grad()
@@ -182,7 +182,7 @@ if __name__ == '__main__':
     arg_parser.add_argument('--save_interval', type=int, default=2000, help='interval for saving models.')
     arg_parser.add_argument('--mode', type=str, default='depth_pose', help='training mode.')
     arg_parser.add_argument('--model_dir', type=str, default='/jbk001-data1/git/SuperPnP/TrianFlow/models/pretrained', help='directory for saving models')
-    arg_parser.add_argument('--prepared_save_dir', type=str, default='/jbk001-data1/datasets/kitti/kitti_vo/vo_dataset_processed_stride1', help='directory name for generated training dataset')
+    arg_parser.add_argument('--prepared_save_dir', type=str, default='', help='directory name for generated training dataset')
     arg_parser.add_argument('--flow_pretrained_model', type=str, default=None, help='directory for loading flow pretrained models')
     arg_parser.add_argument('--depth_pretrained_model', type=str, default='/jbk001-data1/git/SuperPnP/TrianFlow/models/pretrained/kitti_depth_pretrained.pth', help='directory for loading depth pretrained models')
     arg_parser.add_argument('--resume', action='store_true', help='to resume training.')

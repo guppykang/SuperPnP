@@ -7,7 +7,7 @@ iters: -1
 keyframe: ''
 lstm: false
 metric: ape_xy
-model: siftflow
+model: superglueflow
 pretrained: ./pretrained/pose/cs+k_pose.tar
 run: true
 seq: all
