@@ -41,16 +41,17 @@ def freeze_all_but_depth(model, mode):
     for param in model.model_pose.parameters():
         param.requires_grad = False
         
-    code.interact(local=locals()) #check here that they are indeed false
     return model
 
 def train(cfg):
     # load model and optimizer
     model = get_model(cfg.mode)(cfg)
-    model = freeze_all_but_depth(model, cfg.mode)
+    if cfg.finetune_depth:
+        model = freeze_all_but_depth(model, cfg.mode)
 
     if cfg.multi_gpu:
         model = torch.nn.DataParallel(model)
+    
     model = model.cuda()
     optimizer = torch.optim.Adam([{'params': filter(lambda p: p.requires_grad, model.parameters()), 'lr': cfg.lr}])
 
@@ -72,8 +73,8 @@ def train(cfg):
                 name = 'model_pose.model_flow.' + k
             renamed_dict[name] = v
         missing_keys, unexp_keys = model.load_state_dict(renamed_dict, strict=False)
-        print(missing_keys)
-        print(unexp_keys)
+        print(f'Missing keys : {missing_keys}')
+        print(f'Unseen Keys : {unexp_keys}')
         print('Load Flow Pretrained Model from ' + cfg.flow_pretrained_model)
     if cfg.depth_pretrained_model and not cfg.resume:
         data = torch.load(cfg.depth_pretrained_model)['model_state_dict']
@@ -85,23 +86,23 @@ def train(cfg):
             missing_keys, unexp_keys = model.load_state_dict(renamed_dict, strict=False)
         else:
             missing_keys, unexp_keys = model.load_state_dict(data, strict=False)
-        print(missing_keys)
+        print(f'Missing keys : {missing_keys}')
         print('##############')
-        print(unexp_keys)
+        print(f'Unseen Keys : {unexp_keys}')
         print('Load Depth Pretrained Model from ' + cfg.depth_pretrained_model)
    
     loss_weights_dict = generate_loss_weights_dict(cfg)
     visualizer = Visualizer(loss_weights_dict, cfg.log_dump_dir)
 
     # load dataset
-    data_dir = os.path.join(cfg.prepared_base_dir, cfg.prepared_save_dir)
+    data_dir = cfg.prepared_base_dir
     if not os.path.exists(os.path.join(data_dir, 'train.txt')):
         if cfg.dataset == 'kitti_depth':
             kitti_raw_dataset = KITTI_RAW(cfg.raw_base_dir, cfg.static_frames_txt, cfg.test_scenes_txt)
-            kitti_raw_dataset.prepare_data_mp(data_dir, stride=1)
+            kitti_raw_dataset.prepare_data_mp(data_dir, stride=cfg.stride)
         elif cfg.dataset == 'kitti_odo':
-            kitti_raw_dataset = KITTI_Odo(cfg.raw_base_dir)
-            kitti_raw_dataset.prepare_data_mp(data_dir, stride=1)
+            kitti_raw_dataset = KITTI_Odo(cfg.raw_base_dir, cfg.vo_gts)
+            kitti_raw_dataset.prepare_data_mp(data_dir, stride=cfg.stride)
         elif cfg.dataset == 'nyuv2':
             nyu_raw_dataset = NYU_Prepare(cfg.raw_base_dir, cfg.nyu_test_dir)
             nyu_raw_dataset.prepare_data_mp(data_dir, stride=10)
@@ -111,7 +112,8 @@ def train(cfg):
     if cfg.dataset == 'kitti_depth':
         dataset = KITTI_Prepared(data_dir, num_scales=cfg.num_scales, img_hw=cfg.img_hw, num_iterations=(cfg.num_iterations - cfg.iter_start) * cfg.batch_size)
     elif cfg.dataset == 'kitti_odo':
-        dataset = KITTI_Prepared(data_dir, num_scales=cfg.num_scales, img_hw=cfg.img_hw, num_iterations=(cfg.num_iterations - cfg.iter_start) * cfg.batch_size)
+        from utils.superpnp_dataset import KITTI_Dataset as KITTI_Prepared
+        dataset = KITTI_Prepared(data_dir, num_scales=cfg.num_scales, img_hw=cfg.img_hw, num_iterations=(cfg.num_iterations - cfg.iter_start) * cfg.batch_size, stride=cfg.stride)
     elif cfg.dataset == 'nyuv2':
         dataset = NYU_v2(data_dir, num_scales=cfg.num_scales, img_hw=cfg.img_hw, num_iterations=(cfg.num_iterations - cfg.iter_start) * cfg.batch_size)
     else:
@@ -171,12 +173,12 @@ if __name__ == '__main__':
     arg_parser = argparse.ArgumentParser(
         description="TrianFlow training pipeline."
     )
-    arg_parser.add_argument('-c', '--config_file', default='../configs/kitti/superglueflow.yaml', help='config file.')
+    arg_parser.add_argument('-c', '--config_file', default='./config/kitti_3stage.yaml', help='config file.')
     arg_parser.add_argument('-g', '--gpu', type=str, default='0', help='gpu id.')
     arg_parser.add_argument('--batch_size', type=int, default=8, help='batch size.')
     arg_parser.add_argument('--iter_start', type=int, default=0, help='starting iteration.')
     arg_parser.add_argument('--lr', type=float, default=0.0001, help='learning rate')
-    arg_parser.add_argument('--num_workers', type=int, default=6, help='number of workers.')
+    arg_parser.add_argument('--num_workers', type=int, default=1, help='number of workers.')
     arg_parser.add_argument('--log_interval', type=int, default=100, help='interval for printing loss.')
     arg_parser.add_argument('--test_interval', type=int, default=2000, help='interval for evaluation.')
     arg_parser.add_argument('--save_interval', type=int, default=2000, help='interval for saving models.')
@@ -189,6 +191,8 @@ if __name__ == '__main__':
     arg_parser.add_argument('--multi_gpu', action='store_true', help='to use multiple gpu for training.')
     arg_parser.add_argument('--no_test', action='store_true', help='without evaluation.')
     arg_parser.add_argument('--finetune_depth', default=False, help='To enable depthnet adaptation.')
+    arg_parser.add_argument('--stride', default=1, help='Stride between image pairs to train under')
+    
     args = arg_parser.parse_args()
         #args.config_file = 'config/debug.yaml'
     if args.config_file is None:
@@ -226,8 +230,10 @@ if __name__ == '__main__':
         def __init__(self):
             pass
     cfg_new = pObject()
-    for attr in list(cfg['models']['trianflow'].keys()):
-        setattr(cfg_new, attr, cfg['models']['trianflow'][attr])
+    for attr in list(cfg.keys()):
+        setattr(cfg_new, attr, cfg[attr])
+    
+    
     with open(os.path.join(args.model_dir, 'config.pkl'), 'wb') as f:
         pickle.dump(cfg_new, f)
 
