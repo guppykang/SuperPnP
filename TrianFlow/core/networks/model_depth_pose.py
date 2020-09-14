@@ -538,8 +538,8 @@ class Model_depth_pose(nn.Module):
             flow_error += flow_loss
 
         if self.dataset == 'nyuv2':
-            loss_pack['pt_depth_loss'] = pt_depth_loss * flags
-            loss_pack['pj_depth_loss'], loss_pack['flow_error'] = pj_depth_loss * flags, flow_error * flags
+            loss_pack['pt_depth_loss'] = pt_depth_loss * flags #triangulation loss
+            loss_pack['pj_depth_loss'], loss_pack['flow_error'] = pj_depth_loss * flags, flow_error * flags #reprojection loss : depth + flow reconstruction error
             loss_pack['depth_smooth_loss'] = depth_smooth_loss * flags
         else:
             loss_pack['pt_depth_loss'] = pt_depth_loss

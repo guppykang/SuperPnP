@@ -17,6 +17,8 @@ import shutil
 import pickle
 import pdb
 import code
+from tensorboardX import SummaryWriter
+import datetime
 
 def save_model(iter_, model_dir, filename, model, optimizer):
     torch.save({"iteration": iter_, "model_state_dict": model.state_dict(), 'optimizer_state_dict': optimizer.state_dict()}, os.path.join(model_dir, filename))
@@ -118,14 +120,9 @@ def train(cfg):
         dataset = NYU_v2(data_dir, num_scales=cfg.num_scales, img_hw=cfg.img_hw, num_iterations=(cfg.num_iterations - cfg.iter_start) * cfg.batch_size)
     else:
         raise NotImplementedError
-    
-    dataloader = torch.utils.data.DataLoader(dataset, batch_size=cfg.batch_size, shuffle=True, num_workers=cfg.num_workers, drop_last=False)
-#     if cfg.dataset == 'kitti_depth' or cfg.dataset == 'kitti_odo':
-#         gt_flows_2012, noc_masks_2012 = load_gt_flow_kitti(cfg.gt_2012_dir, 'kitti_2012')
-#         gt_flows_2015, noc_masks_2015 = load_gt_flow_kitti(cfg.gt_2015_dir, 'kitti_2015')
-#         gt_masks_2015 = load_gt_mask(cfg.gt_2015_dir)
-#     elif cfg.dataset == 'nyuv2':
-#         test_images, test_gt_depths = load_nyu_test_data(cfg.nyu_test_dir)
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size=cfg.batch_size, shuffle=True, drop_last=False)
+
+    writer = SummaryWriter(f'./tensorboard/trianflow_finetuning_{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}', flush_secs=1)
 
     # training
     print('starting iteration: {}.'.format(cfg.iter_start))
@@ -136,23 +133,19 @@ def train(cfg):
                 model_eval = model.module
             else:
                 model_eval = model
-#             if cfg.dataset == 'kitti_depth' or cfg.dataset == 'kitti_odo':
-#                 if not (cfg.mode == 'depth' or cfg.mode == 'flowposenet'):
-#                     eval_2012_res = test_kitti_2012(cfg, model_eval, gt_flows_2012, noc_masks_2012)
-#                     eval_2015_res = test_kitti_2015(cfg, model_eval, gt_flows_2015, noc_masks_2015, gt_masks_2015, depth_save_dir=os.path.join(cfg.model_dir, 'results'))
-#                     visualizer.add_log_pack({'eval_2012_res': eval_2012_res, 'eval_2015_res': eval_2015_res})
-#             elif cfg.dataset == 'nyuv2':
-#                 if not cfg.mode == 'flow':
-#                     eval_nyu_res = test_nyu(cfg, model_eval, test_images, test_gt_depths)
-#                     visualizer.add_log_pack({'eval_nyu_res': eval_nyu_res})
-#             visualizer.dump_log(os.path.join(cfg.model_dir, 'log.pkl'))
+                
         model.train()
         iter_ = iter_ + cfg.iter_start
+        
         optimizer.zero_grad()
-        inputs = [k.cuda() for k in inputs]
-        loss_pack = model(inputs)
+        trianflow_inputs = (inputs[0], inputs[2], inputs[3])
+        loss_pack = model(trianflow_inputs)
         if iter_ % cfg.log_interval == 0:
             visualizer.print_loss(loss_pack, iter_=iter_)
+        writer.add_scalar('loss_train/triangulation loss', loss_pack['pt_depth_loss'].mean().data.item(), iter_)
+        writer.add_scalar('loss_train/reprojection loss', loss_pack['pj_depth_loss'].mean().data.item(), iter_)
+        writer.add_scalar('loss_train/depth smooth loss', loss_pack['depth_smooth_loss'].mean().data.item(), iter_)
+        writer.flush()
 
         loss_list = []
         for key in list(loss_pack.keys()):
@@ -179,7 +172,7 @@ if __name__ == '__main__':
     arg_parser.add_argument('--iter_start', type=int, default=0, help='starting iteration.')
     arg_parser.add_argument('--lr', type=float, default=0.0001, help='learning rate')
     arg_parser.add_argument('--num_workers', type=int, default=1, help='number of workers.')
-    arg_parser.add_argument('--log_interval', type=int, default=100, help='interval for printing loss.')
+    arg_parser.add_argument('--log_interval', type=int, default=10, help='interval for printing loss.')
     arg_parser.add_argument('--test_interval', type=int, default=2000, help='interval for evaluation.')
     arg_parser.add_argument('--save_interval', type=int, default=2000, help='interval for saving models.')
     arg_parser.add_argument('--mode', type=str, default='depth_pose', help='training mode.')

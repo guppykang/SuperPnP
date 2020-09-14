@@ -311,8 +311,8 @@ class Tum_dataset(Euroc_dataset):
         self.train_seqs = [ # only process train_set
         'rgbd_dataset_freiburg2_desk',
         'rgbd_dataset_freiburg2_360_kidnap',
-#         'rgbd_dataset_freiburg2_pioneer_360',
-        'rgbd_dataset_freiburg2_pioneer_slam3',
+        'rgbd_dataset_freiburg2_pioneer_360',
+#         'rgbd_dataset_freiburg2_pioneer_slam3',
         'rgbd_dataset_freiburg3_large_cabinet',
         'rgbd_dataset_freiburg3_sitting_static', 
         'rgbd_dataset_freiburg3_nostructure_notexture_near_withloop',

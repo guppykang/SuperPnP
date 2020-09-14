@@ -53,9 +53,8 @@ def load_poses(q, gt_dir, output_dir, stride=1):
 
 
 class KITTI_Odo(object):
-    def __init__(self, data_dir, gt_dir=None):
+    def __init__(self, data_dir, gt_dir):
         """
-        If gt_dir is None, then gts are not processed
         """
         self.data_dir = data_dir
         self.gt_dir = gt_dir
