@@ -11,7 +11,7 @@ def process_folder(q, data_dir, output_dir, stride=1, do_reverse=False):
         if q.empty():
             break
         folder = q.get()
-        image_path = os.path.join(data_dir, folder, 'image_2/')
+        image_path = os.path.join(data_dir, folder, 'rgb/')
         dump_image_path = os.path.join(output_dir, folder)
         if not os.path.isdir(dump_image_path):
             os.makedirs(dump_image_path)
@@ -19,46 +19,68 @@ def process_folder(q, data_dir, output_dir, stride=1, do_reverse=False):
         
         # Note. the os.listdir method returns arbitary order of list. We need correct order.
         numbers = len(os.listdir(image_path))
+        paths = os.listdir(image_path)
+        paths.sort()
+        
         for n in range(numbers - stride):
             s_idx = n
             e_idx = s_idx + stride
-            curr_image = imageio.imread(os.path.join(image_path, '%.6d'%s_idx)+'.png')
-            next_image = imageio.imread(os.path.join(image_path, '%.6d'%e_idx)+'.png')
+            curr_image = imageio.imread(os.path.join(image_path, paths[s_idx])
+            next_image = imageio.imread(os.path.join(image_path, paths[e_idx])
             seq_images = np.concatenate([curr_image, next_image], axis=0)
             imageio.imsave(os.path.join(dump_image_path, '%.6d'%s_idx)+'.png', seq_images.astype('uint8'))
 
             # Write training files
-            f.write('%s %s\n' % (os.path.join(folder, '%.6d'%s_idx)+'.png', os.path.join(folder, 'calib.txt')))
+            f.write('%s %s\n' % (os.path.join(folder, '%.6d'%s_idx)+'.png')
         print(f'Done processing data dir : {folder}')
         
-def load_poses(q, gt_dir, output_dir, stride=1):
+def load_poses(q, data_dir, output_dir, stride=1):
     f_out = open(os.path.join(output_dir, 'gts.txt'), 'w')
     q.sort()
 
-    for file in q:
+    for seq in q:
         
-        f = open(os.path.join(gt_dir, file), 'r')
+        f = open(os.path.join(data_dir, seq, 'groundtruth.txt'), 'r')
         pose_lines = f.readlines()
         f.close()
 
-        used_poses = pose_lines[stride:]
+        used_poses = pose_lines[stride+3:]
         for line in used_poses:
             f_out.write(line)
         
-        print(file)
+        print(seq)
     f_out.close()
     print('Finished processing groundtruth poses')
     pass
     
 
 
-class KITTI_Odo(object):
-    def __init__(self, data_dir, gt_dir):
+class TUM_Prepare(object):
+    def __init__(self, data_dir):
         """
         """
         self.data_dir = data_dir
-        self.gt_dir = gt_dir
-        self.train_seqs = ['00','01','02','03','04','05','06','07','08']
+        self.train_seqs = [
+            'freiburg1/rgbd_dataset_freiburg1_360',
+            'freiburg1/rgbd_dataset_freiburg1_floor',
+            'freiburg1/rgbd_dataset_freiburg1_room',
+            'freiburg1/rgbd_dataset_freiburg1_desk', 
+            'freiburg1/rgbd_dataset_freiburg1_desk2',
+            'freiburg2/rgbd_dataset_freiburg2_xyz',
+            'freiburg1/rgbd_dataset_freiburg1_plant',
+            'freiburg1/rgbd_dataset_freiburg1_teddy',
+            'freiburg2/rgbd_dataset_freiburg2_coke',
+            'freiburg3/rgbd_dataset_freiburg3_teddy',
+            'freiburg2/rgbd_dataset_freiburg2_flowerbouquet',
+            'freiburg3/rgbd_dataset_freiburg3_sitting_xyz',
+            'freiburg3/rgbd_dataset_freiburg3_sitting_halfsphere', 
+            'freiburg2/rgbd_dataset_freiburg2_pioneer_slam',
+            'freiburg2/rgbd_dataset_freiburg2_pioneer_slam2',
+            'freiburg3/rgbd_dataset_freiburg3_nostructure_notexture_far',
+            'freiburg3/rgbd_dataset_freiburg3_nostructure_texture_far',
+            'freiburg3/rgbd_dataset_freiburg3_structure_notexture_near',
+            'freiburg3/rgbd_dataset_freiburg3_structure_texture_near'
+        ]
 
     def __len__(self):
         raise NotImplementedError
@@ -68,6 +90,7 @@ class KITTI_Odo(object):
         num_processes = 16
         processes = []
         q = mp.Queue()
+        #image pairs
         if not os.path.isfile(os.path.join(output_dir, 'train.txt')):
             os.makedirs(output_dir)
             #f = open(os.path.join(output_dir, 'train.txt'), 'w')
@@ -97,18 +120,19 @@ class KITTI_Odo(object):
 
                 command = 'cp ' + os.path.join(self.data_dir, d, 'calib.txt') + ' ' + os.path.join(output_dir, d, 'calib.txt')
                 os.system(command)
-           
+        #gt poses
         if not os.path.isfile(os.path.join(output_dir, 'gts.txt')) and self.gt_dir is not None:
             q = []
             print('Preparing ground truth data....')
-            if not os.path.isdir(self.gt_dir):
+            if not os.path.isdir(self.data_dir):
                 raise
-            dirlist = os.listdir(self.gt_dir)
+            dirlist = os.listdir(self.data_dir)
             # Get the different folders of images
+            
             for d in dirlist:
-                if d[:-4] in self.train_seqs:
+                if d in self.train_seqs:
                     q.append(d)
-            load_poses(q, self.gt_dir, output_dir, stride)
+            load_poses(q, self.data_dir, output_dir, stride)
 
             
         
@@ -117,23 +141,3 @@ class KITTI_Odo(object):
     def __getitem__(self, idx):
         raise NotImplementedError
 
-
-if __name__ == '__main__':
-    data_dir = '/home4/zhaow/data/kitti'
-    dirlist = os.listdir('/home4/zhaow/data/kitti')
-    output_dir = '/home4/zhaow/data/kitti_seq/data_generated_s2'
-    total_dirlist = []
-    # Get the different folders of images
-    for d in dirlist:
-        seclist = os.listdir(os.path.join(data_dir, d))
-        for s in seclist:
-            if os.path.isdir(os.path.join(data_dir, d, s)):
-                total_dirlist.append(os.path.join(d, s))
-    
-    F = open(os.path.join(output_dir, 'train.txt'), 'w')
-    for p in total_dirlist:
-        traintxt = os.path.join(os.path.join(output_dir, p), 'train.txt')
-        f = open(traintxt, 'r')
-        for line in f.readlines():
-            F.write(line)
-        print(traintxt)
