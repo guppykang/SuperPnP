@@ -25,13 +25,14 @@ def process_folder(q, data_dir, output_dir, stride=1, do_reverse=False):
         for n in range(numbers - stride):
             s_idx = n
             e_idx = s_idx + stride
-            curr_image = imageio.imread(os.path.join(image_path, paths[s_idx])
-            next_image = imageio.imread(os.path.join(image_path, paths[e_idx])
+            curr_image = imageio.imread(os.path.join(image_path, paths[s_idx]))
+            next_image = imageio.imread(os.path.join(image_path, paths[e_idx]))
             seq_images = np.concatenate([curr_image, next_image], axis=0)
             imageio.imsave(os.path.join(dump_image_path, '%.6d'%s_idx)+'.png', seq_images.astype('uint8'))
 
             # Write training files
-            f.write('%s %s\n' % (os.path.join(folder, '%.6d'%s_idx)+'.png')
+            filename = '%.6d'%s_idx            
+            f.write(f'{os.path.join(folder, filename)}.png\n')
         print(f'Done processing data dir : {folder}')
         
 def load_poses(q, data_dir, output_dir, stride=1):
@@ -57,29 +58,28 @@ def load_poses(q, data_dir, output_dir, stride=1):
 
 class TUM_Prepare(object):
     def __init__(self, data_dir):
-        """
-        """
         self.data_dir = data_dir
         self.train_seqs = [
-            'freiburg1/rgbd_dataset_freiburg1_360',
-            'freiburg1/rgbd_dataset_freiburg1_floor',
-            'freiburg1/rgbd_dataset_freiburg1_room',
-            'freiburg1/rgbd_dataset_freiburg1_desk', 
-            'freiburg1/rgbd_dataset_freiburg1_desk2',
-            'freiburg2/rgbd_dataset_freiburg2_xyz',
-            'freiburg1/rgbd_dataset_freiburg1_plant',
-            'freiburg1/rgbd_dataset_freiburg1_teddy',
-            'freiburg2/rgbd_dataset_freiburg2_coke',
-            'freiburg3/rgbd_dataset_freiburg3_teddy',
-            'freiburg2/rgbd_dataset_freiburg2_flowerbouquet',
-            'freiburg3/rgbd_dataset_freiburg3_sitting_xyz',
-            'freiburg3/rgbd_dataset_freiburg3_sitting_halfsphere', 
-            'freiburg2/rgbd_dataset_freiburg2_pioneer_slam',
-            'freiburg2/rgbd_dataset_freiburg2_pioneer_slam2',
-            'freiburg3/rgbd_dataset_freiburg3_nostructure_notexture_far',
-            'freiburg3/rgbd_dataset_freiburg3_nostructure_texture_far',
-            'freiburg3/rgbd_dataset_freiburg3_structure_notexture_near',
-            'freiburg3/rgbd_dataset_freiburg3_structure_texture_near'
+            #REFER TO utils/download_tum.py
+            'rgbd_dataset_freiburg1_360',
+            'rgbd_dataset_freiburg1_floor',
+            'rgbd_dataset_freiburg1_room',
+            'rgbd_dataset_freiburg1_desk', 
+            'rgbd_dataset_freiburg1_desk2',
+            'rgbd_dataset_freiburg2_xyz',
+            'rgbd_dataset_freiburg1_plant',
+            'rgbd_dataset_freiburg1_teddy',
+            'rgbd_dataset_freiburg2_coke',
+            'rgbd_dataset_freiburg3_teddy',
+            'rgbd_dataset_freiburg2_flowerbouquet',
+            'rgbd_dataset_freiburg3_sitting_xyz',
+            'rgbd_dataset_freiburg3_sitting_halfsphere', 
+            'rgbd_dataset_freiburg2_pioneer_slam',
+            'rgbd_dataset_freiburg2_pioneer_slam2',
+            'rgbd_dataset_freiburg3_nostructure_notexture_far',
+            'rgbd_dataset_freiburg3_nostructure_texture_far',
+            'rgbd_dataset_freiburg3_structure_notexture_near',
+            'rgbd_dataset_freiburg3_structure_texture_near'
         ]
 
     def __len__(self):
@@ -118,10 +118,8 @@ class TUM_Prepare(object):
                 for l in train_file.readlines():
                     f.write(l)
 
-                command = 'cp ' + os.path.join(self.data_dir, d, 'calib.txt') + ' ' + os.path.join(output_dir, d, 'calib.txt')
-                os.system(command)
         #gt poses
-        if not os.path.isfile(os.path.join(output_dir, 'gts.txt')) and self.gt_dir is not None:
+        if not os.path.isfile(os.path.join(output_dir, 'gts.txt')):
             q = []
             print('Preparing ground truth data....')
             if not os.path.isdir(self.data_dir):

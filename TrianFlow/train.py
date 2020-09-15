@@ -9,6 +9,10 @@ from TrianFlow.core.visualize import Visualizer
 from TrianFlow.core.evaluation import load_gt_flow_kitti, load_gt_mask
 from TrianFlow.test import test_kitti_2012, test_kitti_2015, test_eigen_depth, test_nyu, load_nyu_test_data
 
+from utils.TUM_prepare import TUM_Prepare
+from utils.TUM_dataset import TUM_Dataset
+
+
 from collections import OrderedDict
 import torch
 import torch.utils.data
@@ -108,6 +112,9 @@ def train(cfg):
         elif cfg.dataset == 'nyuv2':
             nyu_raw_dataset = NYU_Prepare(cfg.raw_base_dir, cfg.nyu_test_dir)
             nyu_raw_dataset.prepare_data_mp(data_dir, stride=10)
+        elif cfg.dataset == 'tum':
+            tum_raw_dataset = TUM_Prepare(cfg.raw_base_dir)
+            tum_raw_dataset.prepare_data_mp(data_dir, stride=cfg.stride)
         else:
             raise NotImplementedError
         
@@ -118,8 +125,11 @@ def train(cfg):
         dataset = KITTI_Prepared(data_dir, num_scales=cfg.num_scales, img_hw=cfg.img_hw, num_iterations=(cfg.num_iterations - cfg.iter_start) * cfg.batch_size, stride=cfg.stride)
     elif cfg.dataset == 'nyuv2':
         dataset = NYU_v2(data_dir, num_scales=cfg.num_scales, img_hw=cfg.img_hw, num_iterations=(cfg.num_iterations - cfg.iter_start) * cfg.batch_size)
+    elif cfg.dataset == 'tum':
+        dataset = TUM_Dataset(data_dir, num_scales=cfg.num_scales, img_hw=cfg.img_hw, num_iterations=(cfg.num_iterations - cfg.iter_start) * cfg.batch_size, stride=cfg.stride)
     else:
         raise NotImplementedError
+        
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=cfg.batch_size, shuffle=True, drop_last=False)
 
     writer = SummaryWriter(f'./tensorboard/trianflow_finetuning_{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}', flush_secs=1)
@@ -166,7 +176,7 @@ if __name__ == '__main__':
     arg_parser = argparse.ArgumentParser(
         description="TrianFlow training pipeline."
     )
-    arg_parser.add_argument('-c', '--config_file', default='./config/kitti_3stage.yaml', help='config file.')
+    arg_parser.add_argument('-c', '--config_file', default='./config/tum_3stage.yaml', help='config file.')
     arg_parser.add_argument('-g', '--gpu', type=str, default='0', help='gpu id.')
     arg_parser.add_argument('--batch_size', type=int, default=8, help='batch size.')
     arg_parser.add_argument('--iter_start', type=int, default=0, help='starting iteration.')

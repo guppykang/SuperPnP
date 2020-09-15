@@ -4,6 +4,7 @@ pip install -r ./requirements_torch.txt
 pip install -r ./requirements.txt
 pip install opencv-contrib-python==3.4.2.17
 pip install evo
+pip install tensorboardX
 git config --global user.email "guppykang@gmail.com"
 git config --global user.name "Joshua Kang"
 pip install pypng
