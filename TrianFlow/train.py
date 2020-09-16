@@ -156,7 +156,8 @@ def train(cfg):
         if iter_ % cfg.log_interval == 0:
             visualizer.print_loss(loss_pack, iter_=iter_)
             
-        f.write(f'{loss_pack['pt_depth_loss'].mean().data.item()}, {loss_pack['pj_depth_loss'].mean().data.item()}, {loss_pack['depth_smooth_loss'].mean().data.item()}')
+        #in case tensorboard shits the bed
+        f.write(f'{loss_pack["pt_depth_loss"].mean().data.item()}, {loss_pack["pj_depth_loss"].mean().data.item()}, {loss_pack["depth_smooth_loss"].mean().data.item()}\n')
         f.flush()
         
         writer.add_scalar('loss_train/triangulation loss', loss_pack['pt_depth_loss'].mean().data.item(), iter_)
