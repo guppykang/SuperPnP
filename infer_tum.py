@@ -162,7 +162,7 @@ if __name__ == '__main__':
     arg_parser.add_argument('--model', type=str, default='superglueflow', help='(choose from : siftflow, superglueflow, superflow, superflow2)')
     arg_parser.add_argument('--traj_save_dir', type=str, default='/jbk001-data1/datasets/tum/vo_pred', help='directory for saving results')
     arg_parser.add_argument('--sequences_root_dir', type=str, default='/jbk001-data1/datasets/tum', help='Root directory for all datasets')
-    arg_parser.add_argument('--sequence', type=str, default='rgbd_dataset_freiburg3_long_office_household', help='Test sequence id.')
+    arg_parser.add_argument('--sequence', type=str, default='rgbd_dataset_freiburg1_teddy', help='Test sequence id.')
     arg_parser.add_argument('--iters', type=int, default='-1', help='Limited iterations for debugging')
     args = arg_parser.parse_args()
     
