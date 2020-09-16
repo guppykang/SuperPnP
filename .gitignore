@@ -2,6 +2,14 @@
 *.pth
 # Byte-compiled / optimized / DLL files
 __pycache__/
+TrianFlow/core/networks/__pycache__/
+TrianFlow/core/networks/pytorch_ssim/__pycache__/
+TrianFlow/core/networks/structures/__pycache__/
+TrianFlow/core/visualize/__pycache__/
+superpoint/__pycache__/
+superpoint/models/__pycache__/
+superpoint/utils/__pycache__/
+
 *.py[cod]
 
 # C extensions

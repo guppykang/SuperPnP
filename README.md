@@ -56,6 +56,14 @@ python infer_tum --traj_save_dir path/to/save/tum/preds --sequence 09 --sequence
 evo_ape tum -s -a /jbk001-data1/datasets/tum/rgbd_dataset_freiburg3_long_office_household/groundtruth.txt /jbk001-data1/datasets/tum/vo_pred/rgbd_dataset_freiburg3_long_office_household/superglueflow/preds_20200828-023715.tum --save_plot /jbk001-data1/datasets/tum/vo_pred/rgbd_dataset_freiburg3_long_office_household/superglueflow/plot_20200828-023715.pdf
 ```
 
+### siftflow_scsfm
+To inference on siftflow + sc-sfm-learner depthNet (sift + flownet correspondences + scsfm depthNet) : 
+- SC-SfMLearner pretrained models are at `/jbk001-data1/git/SuperPnP/TrianFlow/models/pretrained/kitti_odo.pth`
+```
+python infer_tum.py --model siftflow_scsfm --sequence rgbd_dataset_freiburg2_360_kidnap  --traj_save_dir ./results/test/tum/ --iters 10
+```
+
+
 ## Run the code - batch testing and evaluation
 ### Run the inference
 ```
