@@ -133,10 +133,12 @@ def train(cfg):
         
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=cfg.batch_size, shuffle=True, drop_last=False)
 
-    writer = SummaryWriter(f'./tensorboard/trianflow_finetuning_{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}', flush_secs=1)
+    start_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S") 
+    writer = SummaryWriter(f'./tensorboard/trianflow_finetuning_{start_time}', flush_secs=1)
 
     # training
     print('starting iteration: {}.'.format(cfg.iter_start))
+    f = open(f'./tensorboard/logs_{start_time}.txt')
     for iter_, inputs in enumerate(tqdm(dataloader)):
         if (iter_ + 1) % cfg.test_interval == 0 and (not cfg.no_test):
             model.eval()
@@ -153,6 +155,10 @@ def train(cfg):
         loss_pack = model(trianflow_inputs)
         if iter_ % cfg.log_interval == 0:
             visualizer.print_loss(loss_pack, iter_=iter_)
+            
+        f.write(f'{loss_pack['pt_depth_loss'].mean().data.item()}, {loss_pack['pj_depth_loss'].mean().data.item()}, {loss_pack['depth_smooth_loss'].mean().data.item()}')
+        f.flush()
+        
         writer.add_scalar('loss_train/triangulation loss', loss_pack['pt_depth_loss'].mean().data.item(), iter_)
         writer.add_scalar('loss_train/reprojection loss', loss_pack['pj_depth_loss'].mean().data.item(), iter_)
         writer.add_scalar('loss_train/depth smooth loss', loss_pack['depth_smooth_loss'].mean().data.item(), iter_)
