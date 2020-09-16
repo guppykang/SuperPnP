@@ -1,6 +1,7 @@
 #!/usr/bin/env python 
 
 import os, sys
+sys.path.append("/jbk001-data1/git/SuperPnP")
 import yaml
 from TrianFlow.core.dataset import KITTI_RAW, KITTI_Prepared, NYU_Prepare, NYU_v2, KITTI_Odo
 from TrianFlow.core.networks import get_model

@@ -111,7 +111,7 @@ class SuperGlueFlow(torch.nn.Module):
         image1_t = prep_superpoint_image(image1, hw)
         image2_t = prep_superpoint_image(image2, hw)
 #         print(f'superpoint shape : {image1_t.shape}')
-        
+        code.interact(local=locals())
         pred = self.superglue_matcher({'image0' : image1_t, 'image1' : image2_t})
         pred = {k: toNumpy(v[0]) for k, v in pred.items()}
         outs['keypoints'] = [pred['keypoints0'], pred['keypoints1']]

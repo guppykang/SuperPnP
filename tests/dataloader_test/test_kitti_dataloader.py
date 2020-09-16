@@ -13,7 +13,7 @@ from tqdm import tqdm
 
 #datasets
 from TrianFlow.core.dataset.kitti_odo import KITTI_Odo
-from utils.superpnp_dataset import KITTI_Dataset
+from utils.KITTI_dataset import KITTI_Dataset
 
 stride = 3
 
@@ -30,19 +30,22 @@ dataset = KITTI_Dataset(vo_sequences_processed, num_scales=model_cfg['trianflow'
 #create dataloader
 dataloader = torch.utils.data.DataLoader(dataset,  batch_size=1, shuffle=True, num_workers=cfg['num_workers'], drop_last=False)
 
-# #create the model
-# matcher = SuperGlueFlow(model_cfg, cfg)
-# encoder = encoder()
-# decoder = decoder()
-# model = AttentionMatching(matcher, encoder, decoder).cuda().eval()
 
-# #Since I don't know why my datloader or something is not working 100% correclty I want to compare it with the vanilla superglueflow testing I was previously using
-# for iteration, inputs in enumerate(dataloader):
-#     images, images_gray, K_batch, K_inv_batch, gt = inputs
+#create the model
+matcher = SuperGlueFlow(model_cfg, cfg).cuda().eval()
+
+for iteration, inputs in enumerate(dataloader):
+    images, images_gray, K_batch, K_inv_batch, gts = inputs
+    
+    img_h, img_w = int(images.shape[2] / 2), images.shape[3] 
+    img1, img2 = images[:,:,:img_h,:], images[:,:,img_h:,:]
+    img1_gray, img2_gray = images_gray[:,:,:img_h,:], images_gray[:,:,img_h:,:]
+
    
-#     outs = model.get_match_outs(images, images_gray, K_batch, K_inv_batch)[0]
-#     torch.save(outs, 'inference_outs.pth')
-#     break
+    outs = matcher.inference_preprocessed(img1, img2, img1_gray, img2_gray, K_batch, K_inv_batch)
+    torch.save(outs, 'inference_outs.pth')
+    break
+
 
     
 

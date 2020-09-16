@@ -26,10 +26,9 @@ class TUM_Dataset(torch.utils.data.Dataset):
         info_file = os.path.join(self.data_dir, 'train.txt')
         self.data_list = self.get_data_list(info_file)
         
-        gt_file = os.path.join(self.data_dir, 'gts.txt')        
-        self.gts = self.get_gt_poses(gt_file)
+#         gt_file = os.path.join(self.data_dir, 'gts.txt')        
+#         self.gts = self.get_gt_poses(gt_file) #don't need this for now (need to fix the timestamp issue anyways)
         
-        assert(self.gts.shape[0] == self.data_list.shape[0])
         
     def get_camera_intrinsics(self):
         """ # directly from the website
@@ -67,7 +66,6 @@ class TUM_Dataset(torch.utils.data.Dataset):
             k = line.strip('\n').split()
             data = {}
             data['image_file'] = os.path.join(self.data_dir, k[0])
-            data['cam_intrinsic_file'] = os.path.join(self.data_dir, k[1])
             data_list.append(data)
         print('A total of {} image pairs found'.format(len(data_list)))
         return np.array(data_list)
@@ -181,13 +179,13 @@ class TUM_Dataset(torch.utils.data.Dataset):
         superpoint_input = superpoint_input[np.newaxis, ...]
         
         #load gt
-        gt = self.gts[idx]
+#         gt = self.gts[idx]
 
         # load intrinsic
         cam_intrinsic = self.get_camera_intrinsics()
         cam_intrinsic = self.rescale_intrinsics(cam_intrinsic, img_hw_orig, self.img_hw)
         K_ms, K_inv_ms = self.get_multiscale_intrinsics(cam_intrinsic, self.num_scales) # (num_scales, 3, 3), (num_scales, 3, 3)
-        return torch.from_numpy(flownet_input).float().cuda(), torch.from_numpy(superpoint_input).float().cuda(), torch.from_numpy(K_ms).float().cuda(), torch.from_numpy(K_inv_ms).float().cuda(), torch.from_numpy(gt).float().cuda()
+        return torch.from_numpy(flownet_input).float().cuda(), torch.from_numpy(superpoint_input).float().cuda(), torch.from_numpy(K_ms).float().cuda(), torch.from_numpy(K_inv_ms).float().cuda()
 
 if __name__ == '__main__':
     pass
