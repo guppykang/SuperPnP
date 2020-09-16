@@ -25,7 +25,7 @@ class Sc_Sfmleaner_frontend(object):
             return f"./results/{subfolder}/{model}/{dataset}/{sequence}/{sequence}{trailing}"
 
     def get_saved_folder(self, subfolder, model, dataset, sequence):
-        return f"./results/{subfolder}/{model}/{dataset}/{sequence}/"
+        return str(Path('./results') / str(subfolder) / str(model) / str(dataset) / str(sequence))
 
     def get_saved_base(self, subfolder, model, dataset):
         return f"./results/{subfolder}/{model}/{dataset}/"
@@ -309,12 +309,17 @@ class Tum_dataset(Euroc_dataset):
     def __init__(self):
         ## use scsfm split
         self.train_seqs = [ # only process train_set
-            "rgbd_dataset_freiburg2_360_kidnap",
-            "rgbd_dataset_freiburg2_pioneer_slam",
-            "rgbd_dataset_freiburg2_desk",
-            "rgbd_dataset_freiburg3_large_cabinet",
-            "rgbd_dataset_freiburg2_pioneer_360",
-            "rgbd_dataset_freiburg3_sitting_static",
+        'rgbd_dataset_freiburg2_desk',
+        'rgbd_dataset_freiburg2_360_kidnap',
+        'rgbd_dataset_freiburg2_pioneer_360',
+        'rgbd_dataset_freiburg2_pioneer_slam3',
+        'rgbd_dataset_freiburg3_large_cabinet',
+        'rgbd_dataset_freiburg3_sitting_static', 
+        'rgbd_dataset_freiburg3_nostructure_notexture_near_withloop',
+        'rgbd_dataset_freiburg3_nostructure_texture_near_withloop',
+        'rgbd_dataset_freiburg3_structure_notexture_far', 
+        'rgbd_dataset_freiburg3_structure_texture_far'
+        
         ]
         self.test_seqs = [
         ]        

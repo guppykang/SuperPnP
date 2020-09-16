@@ -3,6 +3,8 @@ import numpy as np
 import imageio
 from tqdm import tqdm
 import torch.multiprocessing as mp
+from pathlib import Path
+import code
 
 def process_folder(q, data_dir, output_dir, stride=1, do_reverse=False):
     while True:
@@ -28,17 +30,40 @@ def process_folder(q, data_dir, output_dir, stride=1, do_reverse=False):
             # Write training files
             f.write('%s %s\n' % (os.path.join(folder, '%.6d'%s_idx)+'.png', os.path.join(folder, 'calib.txt')))
         print(folder)
+    print('Finished processing image pairs')
+        
+def load_poses(q, gt_dir, output_dir, stride=1):
+    f_out = open(os.path.join(output_dir, 'gts.txt'), 'w')
+    q.sort()
+
+    for file in q:
+        
+        f = open(os.path.join(gt_dir, file), 'r')
+        pose_lines = f.readlines()
+        f.close()
+
+        used_poses = pose_lines[stride:]
+        for line in used_poses:
+            f_out.write(line)
+        
+        print(file)
+    f_out.close()
+    print('Finished processing groundtruth poses')
+    pass
+    
 
 
 class KITTI_Odo(object):
-    def __init__(self, data_dir):
+    def __init__(self, data_dir, gt_dir):
         self.data_dir = data_dir
+        self.gt_dir = gt_dir
         self.train_seqs = ['00','01','02','03','04','05','06','07','08']
 
     def __len__(self):
         raise NotImplementedError
 
     def prepare_data_mp(self, output_dir, stride=1):
+        output_dir = Path(str(output_dir) + f"_stride{stride}")
         num_processes = 16
         processes = []
         q = mp.Queue()
@@ -63,14 +88,28 @@ class KITTI_Odo(object):
             for p in processes:
                 p.join()
         
-        f = open(os.path.join(output_dir, 'train.txt'), 'w')
-        for d in self.train_seqs:
-            train_file = open(os.path.join(output_dir, d, 'train.txt'), 'r')
-            for l in train_file.readlines():
-                f.write(l)
+            f = open(os.path.join(output_dir, 'train.txt'), 'w')
+            for d in self.train_seqs:
+                train_file = open(os.path.join(output_dir, d, 'train.txt'), 'r')
+                for l in train_file.readlines():
+                    f.write(l)
 
-            command = 'cp ' + os.path.join(self.data_dir, d, 'calib.txt') + ' ' + os.path.join(output_dir, d, 'calib.txt')
-            os.system(command)
+                command = 'cp ' + os.path.join(self.data_dir, d, 'calib.txt') + ' ' + os.path.join(output_dir, d, 'calib.txt')
+                os.system(command)
+           
+        if not os.path.isfile(os.path.join(output_dir, 'gts.txt')) and self.gt_dir is not None:
+            q = []
+            print('Preparing ground truth data....')
+            if not os.path.isdir(self.gt_dir):
+                raise
+            dirlist = os.listdir(self.gt_dir)
+            # Get the different folders of images
+            for d in dirlist:
+                if d[:-4] in self.train_seqs:
+                    q.append(d)
+            load_poses(q, self.gt_dir, output_dir, stride)
+
+            
         
         print('Data Preparation Finished.')
 

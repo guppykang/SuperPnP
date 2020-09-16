@@ -1,8 +1,9 @@
 #where the kitti datasets are on Nautilus
 kitti : 
   raw_path : '/jbk001-data1/kitti_raw'
-  vo_path : '/jbk001-data1/kitti_vo/vo_dataset/sequences'
-  procressed_data_path : '/jbk001-data1/kitti_vo/vo_dataset_processed'
+  vo_path : '/jbk001-data1/datasets/kitti/kitti_vo/vo_dataset/sequences'
+  procressed_data_path : '/jbk001-data1/datasets/kitti/kitti_vo/vo_dataset_processed'
+  vo_gts : '/jbk001-data1/datasets/kitti/kitti_vo/vo_gts'
 
 #config details for the models
 models : 
@@ -29,6 +30,9 @@ models :
     weights: 'outdoor' 
     sinkhorn_iterations: 20  
     match_threshold: 0.25
+  attention:
+    encoder_lr : 1e-5
+    decoder_lr : 1e-4
 
 
     
@@ -36,7 +40,7 @@ models :
 num_iterations: 200000  
 batch_size: 8 # 32
 iter_start : 0 #place the iteration that it last stopped at here
-num_workers : 6  
+num_workers : 0
 ransac_num_matches : 6000
 
 
