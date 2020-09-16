@@ -165,6 +165,7 @@ class infer_vo():
         outs = model.inference(img1, img2, K, K_inv, (img1.shape[0], img1.shape[1]))
         depth1 = outs['image1_depth'] # H, W
         depth2 = outs['image2_depth'] # H, W
+
         filt_depth_match = outs['matches'] # N x 4
         
         return filt_depth_match, depth1, depth2

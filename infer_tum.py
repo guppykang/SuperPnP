@@ -185,6 +185,10 @@ if __name__ == '__main__':
         config_file = './configs/siftflow.yaml'
         model_cfg, cfg = get_configs(config_file, mode='siftflow')    
         from models.siftflow import SiftFlow as Model
+    elif args.model == 'siftflow_scsfm':
+        config_file = './configs/siftflow_scsfm.yaml'
+        model_cfg, cfg = get_configs(config_file)    
+        from models.siftflow_scsfm import SiftFlow_scsfm as Model
     elif args.model == 'superglueflow':
         config_file = './configs/tum/superglueflow.yaml'
         model_cfg, cfg = get_configs(config_file, mode='superglueflow')    
