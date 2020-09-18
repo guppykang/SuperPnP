@@ -1,0 +1,49 @@
+#where the kitti datasets are on Nautilus
+kitti : 
+  raw_path : '/jbk001-data1/kitti_raw'
+  vo_path : '/jbk001-data1/kitti_vo/vo_dataset/sequences'
+  procressed_data_path : '/jbk001-data1/kitti_vo/vo_dataset_processed'
+
+#config details for the models
+models : 
+  trianflow : 
+    match_num : 5000
+    mode : 'depth_pose' 
+    dataset : 'kitti_odo' 
+    depth_match_num : 6000
+    depth_sample_ratio : 0.20
+    depth_scale : 1
+    num_scales: 3
+    h_flow_consist_alpha: 3.0
+    h_flow_consist_beta: 0.05
+    w_flow_error : 0.00
+    is_frozen : True
+    ransac_points : 6000 #we won't actually be using ransac (I hope at least)
+    #pretrained : '/home/joshuakang/git/cvlab/SuperPnP/models/pretrained/kitti_odo.pth' 
+    pretrained : '/jbk001-data1/git/SuperPnP/TrianFlow/models/pretrained/kitti_odo.pth'
+
+  scsfm:
+    pretrained: '/jbk001-data1/yyjau/Documents/scsfm_models/d3vo_scsfm_setting_tum_b8_seq3/200k/dispnet_checkpoint.pth.tar'
+    net: 'DispResNet'
+
+  superpoint : 
+    nms_radius: 4  
+    keypoint_threshold: 0.05  
+    max_keypoints: 1024  
+  superglue: 
+    weights: 'outdoor' 
+    sinkhorn_iterations: 20  
+    match_threshold: 0.25
+
+    
+#training hyperparameters 
+num_iterations: 200000
+batch_size: 8 # 32
+iter_start : 0 #place the iteration that it last stopped at here
+num_workers : 6
+ransac_num_matches : 1000
+
+
+#general
+img_hw: [256, 832]
+raw_hw : [370,1226]

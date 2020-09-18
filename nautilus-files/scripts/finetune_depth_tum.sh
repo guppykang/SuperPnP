@@ -5,4 +5,4 @@ cd /jbk001-data1/git/SuperPnP/
 echo himom
 
 cd ./TrianFlow/
-./train.py
+./train.py --resume

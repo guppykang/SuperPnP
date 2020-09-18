@@ -133,12 +133,15 @@ def train(cfg):
         
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=cfg.batch_size, shuffle=True, drop_last=False)
 
+    #logging
+    if not os.path.isdir('./tensorboard'):
+        os.mkdir('./tensorboard')
     start_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S") 
     writer = SummaryWriter(f'./tensorboard/trianflow_finetuning_{start_time}', flush_secs=1)
+    f = open(f'./tensorboard/logs_{start_time}.txt', 'w+')
 
     # training
     print('starting iteration: {}.'.format(cfg.iter_start))
-    f = open(f'./tensorboard/logs_{start_time}.txt')
     for iter_, inputs in enumerate(tqdm(dataloader)):
         if (iter_ + 1) % cfg.test_interval == 0 and (not cfg.no_test):
             model.eval()
@@ -187,7 +190,7 @@ if __name__ == '__main__':
     arg_parser.add_argument('-c', '--config_file', default='./config/tum_3stage.yaml', help='config file.')
     arg_parser.add_argument('-g', '--gpu', type=str, default='0', help='gpu id.')
     arg_parser.add_argument('--batch_size', type=int, default=8, help='batch size.')
-    arg_parser.add_argument('--iter_start', type=int, default=0, help='starting iteration.')
+    arg_parser.add_argument('--iter_start', type=int, default=9999, help='starting iteration.')
     arg_parser.add_argument('--lr', type=float, default=0.0001, help='learning rate')
     arg_parser.add_argument('--num_workers', type=int, default=1, help='number of workers.')
     arg_parser.add_argument('--log_interval', type=int, default=10, help='interval for printing loss.')

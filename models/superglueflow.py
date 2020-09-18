@@ -39,10 +39,11 @@ class SuperGlueFlow(torch.nn.Module):
 
         #TrianFlow
         self.trianFlow = Model_depth_pose(model_cfg["trianflow"])
-        
-
+    
+        #Superglue
         self.superglue_matcher = Matching(model_cfg)
 
+        #Load pretrained Modules
         self.did_load_modules = False
         self.load_modules(model_cfg)
        
@@ -111,7 +112,6 @@ class SuperGlueFlow(torch.nn.Module):
         image1_t = prep_superpoint_image(image1, hw)
         image2_t = prep_superpoint_image(image2, hw)
 #         print(f'superpoint shape : {image1_t.shape}')
-        code.interact(local=locals())
         pred = self.superglue_matcher({'image0' : image1_t, 'image1' : image2_t})
         pred = {k: toNumpy(v[0]) for k, v in pred.items()}
         outs['keypoints'] = [pred['keypoints0'], pred['keypoints1']]
@@ -139,17 +139,12 @@ class SuperGlueFlow(torch.nn.Module):
         outs['image2_depth'] = squeezeToNumpy(image2_depth_map)
         
         mid_time = datetime.utcnow()
-        print(f'superglue({outs["superglue_correspondences"].shape[0]}) and flownet({outs["flownet_correspondences"].shape[0]}) took {mid_time - start_time} to run')
+        print(f'Took {mid_time - start_time} to run')
         
         
-        #SuperFLOW
+        #SuperglueFLOW
         outs['matches'] = dense_sparse_hybrid_correspondences(outs['keypoints'][0], outs['keypoints'][1], outs['flownet_correspondences'], outs['superglue_correspondences'], self.ransac_num_matches)
-
-        
-        end_time = datetime.utcnow()
         print(f'num matches for ransac : {self.ransac_num_matches}')
-
-        print(f'Hybrid sampling took {end_time - mid_time} to run\n')
 
         return outs
     
