@@ -106,7 +106,8 @@ class flow_frontend(Sc_Sfmleaner_frontend):
         #     return f"./results/{subfolder}/{model}/{dataset}/{sequence}/{sequence}.txt"
         # else:
         #     return f"./results/{subfolder}/{model}/{dataset}/{sequence}/{sequence}{trailing}"
-    
+    def get_saved_folder(self, subfolder, model, dataset, sequence):
+        return f"./results/{subfolder}/{model}/{dataset}/{sequence}/{self.model}"
     
 ##########################
 ##### for evaluation #####
@@ -129,7 +130,8 @@ class Eval_frontend(object):
         scale = params["scale"]
         plot_dis = params["plot"]
         plot_mode = params["plot_mode"]
-        unzip = False
+        other_commands = "  -d 30 --all_pairs "
+        unzip = True
         input_append = None # b"y"
         run_evo = True
         if save_folder is None:
@@ -161,8 +163,11 @@ class Eval_frontend(object):
         if rpe:
             save_plot = save_folder / f"rpe_{plot_mode}{save_name}.pdf"
             save_result = save_folder / f"rpe_{plot_mode}{save_name}.zip"
-            command = f"evo_rpe {mode} {scale} {gt_traj} {est_traj} {scale} {plot_dis} \
-                        --plot_mode={plot_mode} --save_plot {save_plot} --save_results {save_result} \
+            # command = f"evo_rpe {mode} {scale} {gt_traj} {est_traj} {scale} {plot_dis} \
+            #             --plot_mode={plot_mode} --save_plot {save_plot} --save_results {save_result} \
+            #             {save_print_mode} {save_print_f} "
+            command = f"evo_rpe {mode} {scale} {gt_traj} {est_traj} {scale}  \
+                        --save_results {save_result} {other_commands} \
                         {save_print_mode} {save_print_f} "
             if run_evo:
                 command_list.append(command)
@@ -439,6 +444,8 @@ class Result_processor(object):
             if Path(result_file).exists():
                 result_entries.append(seq)
                 result_table[seq] = load_json(result_file)
+            else:
+                print(f"file: {result_file} doesn't exist")
         return {'result_entries': result_entries, 'result_table': result_table}
 
 

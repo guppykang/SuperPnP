@@ -142,6 +142,7 @@ def train(cfg):
 
     # training
     print('starting iteration: {}.'.format(cfg.iter_start))
+    code.interact(local=locals())
     for iter_, inputs in enumerate(tqdm(dataloader)):
         if (iter_ + 1) % cfg.test_interval == 0 and (not cfg.no_test):
             model.eval()
