@@ -330,7 +330,7 @@ if __name__ == "__main__":
             else:
                 # convert to tum
                 seq = s
-                est_tum = model_fe.get_saved_trajectory(subfolder, args.exper_name, 
+                est_tum = model_fe.get_saved_trajectory(args.exper_name, 
                             dataset, seq, trailing='')
                 # get ground truth file
                 gt_traj = controller.get_seq_gt_filename(seq, dataset=model_fe.dataset_dir[dataset], with_time=True)

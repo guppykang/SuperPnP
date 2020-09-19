@@ -1,6 +1,7 @@
 from pathlib import Path
 import subprocess
 import numpy as np
+import code
 
 
 
@@ -100,14 +101,14 @@ class flow_frontend(Sc_Sfmleaner_frontend):
         return command
         pass
     
-    def get_saved_trajectory(self, subfolder, model, dataset, sequence, trailing=""):
-        return f"./results/{subfolder}/{model}/{dataset}/{sequence}/{self.model}/preds.tum"
+    def get_saved_trajectory(self, subfolder, dataset, sequence, trailing=""):
+        return f"./results/{subfolder}/{dataset}/{sequence}/{self.model}/preds.tum"
         # if trailing == "":
         #     return f"./results/{subfolder}/{model}/{dataset}/{sequence}/{sequence}.txt"
         # else:
         #     return f"./results/{subfolder}/{model}/{dataset}/{sequence}/{sequence}{trailing}"
     def get_saved_folder(self, subfolder, model, dataset, sequence):
-        return f"./results/{subfolder}/{model}/{dataset}/{sequence}/{self.model}"
+        return f"./results/{subfolder}/{dataset}/{sequence}/{self.model}"
     
 ##########################
 ##### for evaluation #####

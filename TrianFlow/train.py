@@ -53,6 +53,7 @@ def freeze_all_but_depth(model, mode):
 def train(cfg):
     # load model and optimizer
     model = get_model(cfg.mode)(cfg)
+    print(type(model))
     if cfg.finetune_depth:
         model = freeze_all_but_depth(model, cfg.mode)
 

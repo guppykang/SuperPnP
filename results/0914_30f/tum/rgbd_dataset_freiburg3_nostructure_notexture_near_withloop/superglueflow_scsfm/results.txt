@@ -1,0 +1,55 @@
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	1.677366
+      mean	0.701106
+    median	0.671968
+       min	0.058103
+      rmse	0.812354
+       sse	739.109471
+       std	0.410329
+
+Plots saved to results/0914/tum/rgbd_dataset_freiburg3_nostructure_notexture_near_withloop/superglueflow_scsfm/ape_xy.pdf
+RPE w.r.t. translation part (m)
+for delta = 1 (frames) using consecutive pairs
+(with Sim(3) Umeyama alignment)
+
+       max	0.265585
+      mean	0.017220
+    median	0.013483
+       min	0.000562
+      rmse	0.023000
+       sse	0.591953
+       std	0.015247
+
+Plots saved to results/0914/tum/rgbd_dataset_freiburg3_nostructure_notexture_near_withloop/superglueflow_scsfm/rpe_xy.pdf
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	1.677366
+      mean	0.701106
+    median	0.671968
+       min	0.058103
+      rmse	0.812354
+       sse	739.109471
+       std	0.410329
+
+[WARNING] results/0914_30f/tum/rgbd_dataset_freiburg3_nostructure_notexture_near_withloop/superglueflow_scsfm/ape_xy.pdf exists, overwrite?
+enter 'y' to overwrite or any other key to cancel
+Plots saved to results/0914_30f/tum/rgbd_dataset_freiburg3_nostructure_notexture_near_withloop/superglueflow_scsfm/ape_xy.pdf
+[WARNING] results/0914_30f/tum/rgbd_dataset_freiburg3_nostructure_notexture_near_withloop/superglueflow_scsfm/ape_xy.zip exists, overwrite?
+enter 'y' to overwrite or any other key to cancel
+RPE w.r.t. translation part (m)
+for delta = 30 (frames) using all pairs
+(with Sim(3) Umeyama alignment)
+
+       max	0.564975
+      mean	0.179294
+    median	0.138113
+       min	0.014540
+      rmse	0.222449
+       sse	53.937026
+       std	0.131670
+
+[WARNING] results/0914_30f/tum/rgbd_dataset_freiburg3_nostructure_notexture_near_withloop/superglueflow_scsfm/rpe_xy.zip exists, overwrite?
+enter 'y' to overwrite or any other key to cancel
