@@ -1,0 +1,25 @@
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	1.667970
+      mean	0.960588
+    median	0.924222
+       min	0.296089
+      rmse	1.031628
+       sse	994.014969
+       std	0.376201
+
+Plots saved to results/0914/tum/rgbd_dataset_freiburg3_structure_texture_far/superglueflow/ape_xy.pdf
+RPE w.r.t. translation part (m)
+for delta = 1 (frames) using consecutive pairs
+(with Sim(3) Umeyama alignment)
+
+       max	0.194823
+      mean	0.023935
+    median	0.019781
+       min	0.002443
+      rmse	0.030064
+       sse	0.843284
+       std	0.018192
+
+Plots saved to results/0914/tum/rgbd_dataset_freiburg3_structure_texture_far/superglueflow/rpe_xy.pdf

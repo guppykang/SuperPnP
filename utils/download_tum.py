@@ -35,7 +35,7 @@ if __name__ == "__main__":
         'freiburg2/rgbd_dataset_freiburg2_desk',
         'freiburg2/rgbd_dataset_freiburg2_360_kidnap',
         'freiburg2/rgbd_dataset_freiburg2_pioneer_360',
-        'freiburg2/rgbd_dataset_freiburg2_pioneer_slam3',
+#         'freiburg2/rgbd_dataset_freiburg2_pioneer_slam3', #For some reason this one doesn't work with our models
         'freiburg3/rgbd_dataset_freiburg3_large_cabinet',
         'freiburg3/rgbd_dataset_freiburg3_sitting_static', 
         'freiburg3/rgbd_dataset_freiburg3_nostructure_notexture_near_withloop',

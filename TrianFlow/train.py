@@ -1,12 +1,18 @@
+#!/usr/bin/env python 
+
 import os, sys
+sys.path.append("/jbk001-data1/git/SuperPnP")
 import yaml
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from core.dataset import KITTI_RAW, KITTI_Prepared, NYU_Prepare, NYU_v2, KITTI_Odo
-from core.networks import get_model
-from core.config import generate_loss_weights_dict
-from core.visualize import Visualizer
-from core.evaluation import load_gt_flow_kitti, load_gt_mask
-from test import test_kitti_2012, test_kitti_2015, test_eigen_depth, test_nyu, load_nyu_test_data
+from TrianFlow.core.dataset import KITTI_RAW, KITTI_Prepared, NYU_Prepare, NYU_v2, KITTI_Odo
+from TrianFlow.core.networks import get_model
+from TrianFlow.core.config import generate_loss_weights_dict
+from TrianFlow.core.visualize import Visualizer
+from TrianFlow.core.evaluation import load_gt_flow_kitti, load_gt_mask
+from TrianFlow.test import test_kitti_2012, test_kitti_2015, test_eigen_depth, test_nyu, load_nyu_test_data
+
+from utils.TUM_prepare import TUM_Prepare
+from utils.TUM_dataset import TUM_Dataset
+
 
 from collections import OrderedDict
 import torch
@@ -15,6 +21,9 @@ from tqdm import tqdm
 import shutil
 import pickle
 import pdb
+import code
+from tensorboardX import SummaryWriter
+import datetime
 
 def save_model(iter_, model_dir, filename, model, optimizer):
     torch.save({"iteration": iter_, "model_state_dict": model.state_dict(), 'optimizer_state_dict': optimizer.state_dict()}, os.path.join(model_dir, filename))
@@ -26,11 +35,31 @@ def load_model(model_dir, filename, model, optimizer):
     optimizer.load_state_dict(data['optimizer_state_dict'])
     return iter_, model, optimizer
 
+def freeze_all_but_depth(model, mode):
+    """
+    
+    """
+    if mode != 'depth_pose': 
+        return
+    
+    for param in model.depth_net.encoder.parameters():
+        param.requires_grad = False
+        
+    for param in model.model_pose.parameters():
+        param.requires_grad = False
+        
+    return model
+
 def train(cfg):
     # load model and optimizer
     model = get_model(cfg.mode)(cfg)
+    print(type(model))
+    if cfg.finetune_depth:
+        model = freeze_all_but_depth(model, cfg.mode)
+
     if cfg.multi_gpu:
         model = torch.nn.DataParallel(model)
+    
     model = model.cuda()
     optimizer = torch.optim.Adam([{'params': filter(lambda p: p.requires_grad, model.parameters()), 'lr': cfg.lr}])
 
@@ -52,8 +81,8 @@ def train(cfg):
                 name = 'model_pose.model_flow.' + k
             renamed_dict[name] = v
         missing_keys, unexp_keys = model.load_state_dict(renamed_dict, strict=False)
-        print(missing_keys)
-        print(unexp_keys)
+        print(f'Missing keys : {missing_keys}')
+        print(f'Unseen Keys : {unexp_keys}')
         print('Load Flow Pretrained Model from ' + cfg.flow_pretrained_model)
     if cfg.depth_pretrained_model and not cfg.resume:
         data = torch.load(cfg.depth_pretrained_model)['model_state_dict']
@@ -65,48 +94,56 @@ def train(cfg):
             missing_keys, unexp_keys = model.load_state_dict(renamed_dict, strict=False)
         else:
             missing_keys, unexp_keys = model.load_state_dict(data, strict=False)
-        print(missing_keys)
+        print(f'Missing keys : {missing_keys}')
         print('##############')
-        print(unexp_keys)
+        print(f'Unseen Keys : {unexp_keys}')
         print('Load Depth Pretrained Model from ' + cfg.depth_pretrained_model)
    
     loss_weights_dict = generate_loss_weights_dict(cfg)
     visualizer = Visualizer(loss_weights_dict, cfg.log_dump_dir)
 
     # load dataset
-    data_dir = os.path.join(cfg.prepared_base_dir, cfg.prepared_save_dir)
+    data_dir = cfg.prepared_base_dir
     if not os.path.exists(os.path.join(data_dir, 'train.txt')):
         if cfg.dataset == 'kitti_depth':
             kitti_raw_dataset = KITTI_RAW(cfg.raw_base_dir, cfg.static_frames_txt, cfg.test_scenes_txt)
-            kitti_raw_dataset.prepare_data_mp(data_dir, stride=1)
+            kitti_raw_dataset.prepare_data_mp(data_dir, stride=cfg.stride)
         elif cfg.dataset == 'kitti_odo':
-            kitti_raw_dataset = KITTI_Odo(cfg.raw_base_dir)
-            kitti_raw_dataset.prepare_data_mp(data_dir, stride=1)
+            kitti_raw_dataset = KITTI_Odo(cfg.raw_base_dir, cfg.vo_gts)
+            kitti_raw_dataset.prepare_data_mp(data_dir, stride=cfg.stride)
         elif cfg.dataset == 'nyuv2':
             nyu_raw_dataset = NYU_Prepare(cfg.raw_base_dir, cfg.nyu_test_dir)
             nyu_raw_dataset.prepare_data_mp(data_dir, stride=10)
+        elif cfg.dataset == 'tum':
+            tum_raw_dataset = TUM_Prepare(cfg.raw_base_dir)
+            tum_raw_dataset.prepare_data_mp(data_dir, stride=cfg.stride)
         else:
             raise NotImplementedError
         
     if cfg.dataset == 'kitti_depth':
         dataset = KITTI_Prepared(data_dir, num_scales=cfg.num_scales, img_hw=cfg.img_hw, num_iterations=(cfg.num_iterations - cfg.iter_start) * cfg.batch_size)
     elif cfg.dataset == 'kitti_odo':
-        dataset = KITTI_Prepared(data_dir, num_scales=cfg.num_scales, img_hw=cfg.img_hw, num_iterations=(cfg.num_iterations - cfg.iter_start) * cfg.batch_size)
+        from utils.KITTI_dataset import KITTI_Dataset as KITTI_Prepared
+        dataset = KITTI_Prepared(data_dir, num_scales=cfg.num_scales, img_hw=cfg.img_hw, num_iterations=(cfg.num_iterations - cfg.iter_start) * cfg.batch_size, stride=cfg.stride)
     elif cfg.dataset == 'nyuv2':
         dataset = NYU_v2(data_dir, num_scales=cfg.num_scales, img_hw=cfg.img_hw, num_iterations=(cfg.num_iterations - cfg.iter_start) * cfg.batch_size)
+    elif cfg.dataset == 'tum':
+        dataset = TUM_Dataset(data_dir, num_scales=cfg.num_scales, img_hw=cfg.img_hw, num_iterations=(cfg.num_iterations - cfg.iter_start) * cfg.batch_size, stride=cfg.stride)
     else:
         raise NotImplementedError
-    
-    dataloader = torch.utils.data.DataLoader(dataset, batch_size=cfg.batch_size, shuffle=True, num_workers=cfg.num_workers, drop_last=False)
-    if cfg.dataset == 'kitti_depth' or cfg.dataset == 'kitti_odo':
-        gt_flows_2012, noc_masks_2012 = load_gt_flow_kitti(cfg.gt_2012_dir, 'kitti_2012')
-        gt_flows_2015, noc_masks_2015 = load_gt_flow_kitti(cfg.gt_2015_dir, 'kitti_2015')
-        gt_masks_2015 = load_gt_mask(cfg.gt_2015_dir)
-    elif cfg.dataset == 'nyuv2':
-        test_images, test_gt_depths = load_nyu_test_data(cfg.nyu_test_dir)
+        
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size=cfg.batch_size, shuffle=True, drop_last=False)
+
+    #logging
+    if not os.path.isdir('./tensorboard'):
+        os.mkdir('./tensorboard')
+    start_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S") 
+    writer = SummaryWriter(f'./tensorboard/trianflow_finetuning_{start_time}', flush_secs=1)
+    f = open(f'./tensorboard/logs_{start_time}.txt', 'w+')
 
     # training
     print('starting iteration: {}.'.format(cfg.iter_start))
+    code.interact(local=locals())
     for iter_, inputs in enumerate(tqdm(dataloader)):
         if (iter_ + 1) % cfg.test_interval == 0 and (not cfg.no_test):
             model.eval()
@@ -114,23 +151,24 @@ def train(cfg):
                 model_eval = model.module
             else:
                 model_eval = model
-            if cfg.dataset == 'kitti_depth' or cfg.dataset == 'kitti_odo':
-                if not (cfg.mode == 'depth' or cfg.mode == 'flowposenet'):
-                    eval_2012_res = test_kitti_2012(cfg, model_eval, gt_flows_2012, noc_masks_2012)
-                    eval_2015_res = test_kitti_2015(cfg, model_eval, gt_flows_2015, noc_masks_2015, gt_masks_2015, depth_save_dir=os.path.join(cfg.model_dir, 'results'))
-                    visualizer.add_log_pack({'eval_2012_res': eval_2012_res, 'eval_2015_res': eval_2015_res})
-            elif cfg.dataset == 'nyuv2':
-                if not cfg.mode == 'flow':
-                    eval_nyu_res = test_nyu(cfg, model_eval, test_images, test_gt_depths)
-                    visualizer.add_log_pack({'eval_nyu_res': eval_nyu_res})
-            visualizer.dump_log(os.path.join(cfg.model_dir, 'log.pkl'))
+                
         model.train()
         iter_ = iter_ + cfg.iter_start
+        
         optimizer.zero_grad()
-        inputs = [k.cuda() for k in inputs]
-        loss_pack = model(inputs)
+        trianflow_inputs = (inputs[0], inputs[2], inputs[3])
+        loss_pack = model(trianflow_inputs)
         if iter_ % cfg.log_interval == 0:
             visualizer.print_loss(loss_pack, iter_=iter_)
+            
+        #in case tensorboard shits the bed
+        f.write(f'{loss_pack["pt_depth_loss"].mean().data.item()}, {loss_pack["pj_depth_loss"].mean().data.item()}, {loss_pack["depth_smooth_loss"].mean().data.item()}\n')
+        f.flush()
+        
+        writer.add_scalar('loss_train/triangulation loss', loss_pack['pt_depth_loss'].mean().data.item(), iter_)
+        writer.add_scalar('loss_train/reprojection loss', loss_pack['pj_depth_loss'].mean().data.item(), iter_)
+        writer.add_scalar('loss_train/depth smooth loss', loss_pack['depth_smooth_loss'].mean().data.item(), iter_)
+        writer.flush()
 
         loss_list = []
         for key in list(loss_pack.keys()):
@@ -151,23 +189,26 @@ if __name__ == '__main__':
     arg_parser = argparse.ArgumentParser(
         description="TrianFlow training pipeline."
     )
-    arg_parser.add_argument('-c', '--config_file', default=None, help='config file.')
-    arg_parser.add_argument('-g', '--gpu', type=str, default=0, help='gpu id.')
+    arg_parser.add_argument('-c', '--config_file', default='./config/tum_3stage.yaml', help='config file.')
+    arg_parser.add_argument('-g', '--gpu', type=str, default='0', help='gpu id.')
     arg_parser.add_argument('--batch_size', type=int, default=8, help='batch size.')
-    arg_parser.add_argument('--iter_start', type=int, default=0, help='starting iteration.')
+    arg_parser.add_argument('--iter_start', type=int, default=9999, help='starting iteration.')
     arg_parser.add_argument('--lr', type=float, default=0.0001, help='learning rate')
-    arg_parser.add_argument('--num_workers', type=int, default=6, help='number of workers.')
-    arg_parser.add_argument('--log_interval', type=int, default=100, help='interval for printing loss.')
+    arg_parser.add_argument('--num_workers', type=int, default=1, help='number of workers.')
+    arg_parser.add_argument('--log_interval', type=int, default=10, help='interval for printing loss.')
     arg_parser.add_argument('--test_interval', type=int, default=2000, help='interval for evaluation.')
     arg_parser.add_argument('--save_interval', type=int, default=2000, help='interval for saving models.')
-    arg_parser.add_argument('--mode', type=str, default='flow', help='training mode.')
-    arg_parser.add_argument('--model_dir', type=str, default=None, help='directory for saving models')
-    arg_parser.add_argument('--prepared_save_dir', type=str, default='data_s1', help='directory name for generated training dataset')
+    arg_parser.add_argument('--mode', type=str, default='depth_pose', help='training mode.')
+    arg_parser.add_argument('--model_dir', type=str, default='/jbk001-data1/git/SuperPnP/TrianFlow/models/pretrained', help='directory for saving models')
+    arg_parser.add_argument('--prepared_save_dir', type=str, default='', help='directory name for generated training dataset')
     arg_parser.add_argument('--flow_pretrained_model', type=str, default=None, help='directory for loading flow pretrained models')
-    arg_parser.add_argument('--depth_pretrained_model', type=str, default=None, help='directory for loading depth pretrained models')
+    arg_parser.add_argument('--depth_pretrained_model', type=str, default='/jbk001-data1/git/SuperPnP/TrianFlow/models/pretrained/kitti_depth_pretrained.pth', help='directory for loading depth pretrained models')
     arg_parser.add_argument('--resume', action='store_true', help='to resume training.')
     arg_parser.add_argument('--multi_gpu', action='store_true', help='to use multiple gpu for training.')
     arg_parser.add_argument('--no_test', action='store_true', help='without evaluation.')
+    arg_parser.add_argument('--finetune_depth', default=False, help='To enable depthnet adaptation.')
+    arg_parser.add_argument('--stride', default=1, help='Stride between image pairs to train under')
+    
     args = arg_parser.parse_args()
         #args.config_file = 'config/debug.yaml'
     if args.config_file is None:
@@ -207,6 +248,8 @@ if __name__ == '__main__':
     cfg_new = pObject()
     for attr in list(cfg.keys()):
         setattr(cfg_new, attr, cfg[attr])
+    
+    
     with open(os.path.join(args.model_dir, 'config.pkl'), 'wb') as f:
         pickle.dump(cfg_new, f)
 

@@ -1,0 +1,192 @@
+import numpy as np
+import cv2
+import copy
+import os
+import sys
+import code
+from pathlib import Path
+
+import torch
+import torch.utils.data as data
+
+
+import torch
+import torch.utils.data
+import pdb
+
+class TUM_Dataset(torch.utils.data.Dataset):
+    def __init__(self, data_dir, num_scales=3, img_hw=(256, 832), num_iterations=None, stride=1):
+        super(TUM_Dataset, self).__init__()
+        self.data_dir = str(data_dir) + f"_stride{stride}"
+
+        self.num_scales = num_scales
+        self.img_hw = img_hw
+        self.num_iterations = num_iterations
+
+        info_file = os.path.join(self.data_dir, 'train.txt')
+        self.data_list = self.get_data_list(info_file)
+        
+#         gt_file = os.path.join(self.data_dir, 'gts.txt')        
+#         self.gts = self.get_gt_poses(gt_file) #don't need this for now (need to fix the timestamp issue anyways)
+        
+        
+    def get_camera_intrinsics(self):
+        """ # directly from the website
+        https://vision.in.tum.de/data/datasets/rgbd-dataset/file_formats#intrinsic_camera_calibration_of_the_kinect
+
+        """
+        calib = np.identity(3)
+        fu, fv, cu, cv =  535.4, 539.2, 320.1, 247.6
+        calib = np.array([[fu, 0, cu], [0, fv, cv], [0, 0, 1]])
+
+        return calib
+        
+    def get_gt_poses(self, gt_file):
+        with open(gt_file, 'r') as f:
+            lines = f.readlines()
+        gts = []
+        
+        for line in lines:
+            P = np.eye(4)
+            line_split = [float(i) for i in line.split(" ")]
+            withIdx = int(len(line_split) == 13)
+            for row in range(3):
+                for col in range(4):
+                    P[row, col] = line_split[row*4 + col + withIdx]
+            gts.append(P)
+        
+        return np.array(gts)
+        
+
+    def get_data_list(self, info_file):
+        with open(info_file, 'r') as f:
+            lines = f.readlines()
+        data_list = []
+        for line in lines:
+            k = line.strip('\n').split()
+            data = {}
+            data['image_file'] = os.path.join(self.data_dir, k[0])
+            data_list.append(data)
+        print('A total of {} image pairs found'.format(len(data_list)))
+        return np.array(data_list)
+
+    def count(self):
+        return len(self.data_list)
+
+    def rand_num(self, idx):
+        num_total = self.count()
+        np.random.seed(idx)
+        num = np.random.randint(num_total)
+        return num
+
+    def __len__(self):
+        if self.num_iterations is None:
+            return self.count()
+        else:
+            return self.num_iterations
+
+    def resize_img(self, img, img_hw):
+        '''
+        Input size (N*H, W, 3)
+        Output size (N*H', W', 3), where (H', W') == self.img_hw
+        '''
+        img_h, img_w = img.shape[0], img.shape[1]
+        img_hw_orig = (int(img_h / 2), img_w) 
+        
+        if len(img.shape) == 3: #rgb
+            img1, img2 = img[:img_hw_orig[0], :, :], img[img_hw_orig[0]:, :, :]
+            img1_new = cv2.resize(img1, (img_hw[1], img_hw[0])) #hi my name is opencv I like to swap (h,w) convention every other day
+            img2_new = cv2.resize(img2, (img_hw[1], img_hw[0]))
+            img_new = np.concatenate([img1_new, img2_new], 0)            
+        elif len(img.shape) == 2: #grayscale
+            img1, img2 = img[:img_hw_orig[0], :], img[img_hw_orig[0]:, :]
+            img1_new = cv2.resize(img1, (img_hw[1], img_hw[0]))
+            img2_new = cv2.resize(img2, (img_hw[1], img_hw[0]))
+            img_new = np.concatenate([img1_new, img2_new], 0)
+
+        return img_new
+    
+    
+
+    def random_flip_img(self, img):
+        is_flip = (np.random.rand() > 0.5)
+        if is_flip:
+            img = cv2.flip(img, 1)
+        return img
+
+    def preprocess_img(self, img, img_hw=None, is_test=False):
+        if img_hw is None:
+            img_hw = self.img_hw
+        img = self.resize_img(img, img_hw)
+        if not is_test:
+            img = self.random_flip_img(img)
+        img = img / 255.0
+        return img
+
+    def read_cam_intrinsic(self, fname):
+        with open(fname, 'r') as f:
+            lines = f.readlines()
+        data = lines[-1].strip('\n').split(' ')[1:]
+        data = [float(k) for k in data]
+        data = np.array(data).reshape(3,4)
+        cam_intrinsics = data[:3,:3]
+        return cam_intrinsics
+
+    def rescale_intrinsics(self, K, img_hw_orig, img_hw_new):
+        K[0,:] = K[0,:] * img_hw_new[0] / img_hw_orig[0]
+        K[1,:] = K[1,:] * img_hw_new[1] / img_hw_orig[1]
+        return K
+
+    def get_intrinsics_per_scale(self, K, scale):
+        K_new = copy.deepcopy(K)
+        K_new[0,:] = K_new[0,:] / (2**scale)
+        K_new[1,:] = K_new[1,:] / (2**scale)
+        K_new_inv = np.linalg.inv(K_new)
+        return K_new, K_new_inv
+
+    def get_multiscale_intrinsics(self, K, num_scales):
+        K_ms, K_inv_ms = [], []
+        for s in range(num_scales):
+            K_new, K_new_inv = self.get_intrinsics_per_scale(K, s)
+            K_ms.append(K_new[None,:,:])
+            K_inv_ms.append(K_new_inv[None,:,:])
+        K_ms = np.concatenate(K_ms, 0)
+        K_inv_ms = np.concatenate(K_inv_ms, 0)
+        return K_ms, K_inv_ms
+
+    def __getitem__(self, idx):
+        '''
+        Returns:
+        - img		torch.Tensor (N * H, W, 3)
+        - K	torch.Tensor (num_scales, 3, 3)
+        - K_inv	torch.Tensor (num_scales, 3, 3)
+        - gt_pose (1, 8)
+        '''
+        if self.num_iterations is not None:
+            idx = self.rand_num(idx)
+        data = self.data_list[idx]
+        # load img
+        img = cv2.imread(data['image_file'])
+        img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        img_hw_orig = (int(img.shape[0] / 2), img.shape[1])
+        
+        #rgb
+        flownet_input = self.preprocess_img(img, self.img_hw) # (img_h * 2, img_w, 3)
+        flownet_input = flownet_input.transpose(2,0,1)
+        
+        #grayscale
+        superpoint_input = self.preprocess_img(img_gray, self.img_hw) # (img_h * 2, img_w)
+        superpoint_input = superpoint_input[np.newaxis, ...]
+        
+        #load gt
+#         gt = self.gts[idx]
+
+        # load intrinsic
+        cam_intrinsic = self.get_camera_intrinsics()
+        cam_intrinsic = self.rescale_intrinsics(cam_intrinsic, img_hw_orig, self.img_hw)
+        K_ms, K_inv_ms = self.get_multiscale_intrinsics(cam_intrinsic, self.num_scales) # (num_scales, 3, 3), (num_scales, 3, 3)
+        return torch.from_numpy(flownet_input).float().cuda(), torch.from_numpy(superpoint_input).float().cuda(), torch.from_numpy(K_ms).float().cuda(), torch.from_numpy(K_inv_ms).float().cuda()
+
+if __name__ == '__main__':
+    pass
+

@@ -189,9 +189,13 @@ if __name__ == '__main__':
         config_file = './configs/siftflow_scsfm.yaml'
         model_cfg, cfg = get_configs(config_file)    
         from models.siftflow_scsfm import SiftFlow_scsfm as Model
+    elif args.model == 'superglueflow_scsfm':
+        config_file = './configs/superglueflow_scsfm.yaml'
+        model_cfg, cfg = get_configs(config_file, mode='superglueflow')    
+        from models.superglueflow_scsfm import SuperGlueFlow_scsfm as Model
     elif args.model == 'superglueflow':
         config_file = './configs/tum/superglueflow.yaml'
-        model_cfg, cfg = get_configs(config_file, mode='superglueflow')    
+        model_cfg, cfg = get_configs(config_file, mode=args.model)    
         from models.superglueflow import SuperGlueFlow as Model
     elif args.model == 'trianflow':
         config_file = './configs/superflow.yaml'

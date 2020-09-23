@@ -74,6 +74,13 @@ python run_eval.py test -m siftflow -d tum --run
 ```
 python run_eval.py test -m siftflow -d tum --eval
 ```
+### Print out evaluation results
+- Noted! The folders `rpe_xy` and `ape_xy` should be unzipped.
+```
+python run_eval.py test -m siftflow -d tum --table
+# rpe_xy
+python run_eval.py test -m siftflow -d tum --table --metric rpe_xy
+```
 
 
 

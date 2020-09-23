@@ -76,7 +76,7 @@ class train_vo():
             K_inv = K_invs[i]
             h = int(images[i].shape[1]/2)
             w = int(images[i].shape[2])
-            attention_map = attention_map[i]
+            attention_map = attention_maps[i]
 
                         
             depth_match, depth1, depth2 = self.get_prediction(images[i].unsqueeze(0), images_gray[i].unsqueeze(0), model, K.unsqueeze(0), K_inv.unsqueeze(0), attention_map)

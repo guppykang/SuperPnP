@@ -29,8 +29,7 @@ def process_folder(q, data_dir, output_dir, stride=1, do_reverse=False):
 
             # Write training files
             f.write('%s %s\n' % (os.path.join(folder, '%.6d'%s_idx)+'.png', os.path.join(folder, 'calib.txt')))
-        print(folder)
-    print('Finished processing image pairs')
+        print(f'Done processing data dir : {folder}')
         
 def load_poses(q, gt_dir, output_dir, stride=1):
     f_out = open(os.path.join(output_dir, 'gts.txt'), 'w')
@@ -55,6 +54,8 @@ def load_poses(q, gt_dir, output_dir, stride=1):
 
 class KITTI_Odo(object):
     def __init__(self, data_dir, gt_dir):
+        """
+        """
         self.data_dir = data_dir
         self.gt_dir = gt_dir
         self.train_seqs = ['00','01','02','03','04','05','06','07','08']
@@ -77,10 +78,10 @@ class KITTI_Odo(object):
             total_dirlist = []
             # Get the different folders of images
             for d in dirlist:
-                if d in self.train_seqs and not os.path.isdir(os.path.join(self.data_dir, d)):
+                if d in self.train_seqs:
                     q.put(d)
+                    print(f'Sequence {d} to process')
             # Process every folder
-            print(f'Sequences to process : {q}')
             for rank in range(num_processes):
                 p = mp.Process(target=process_folder, args=(q, self.data_dir, output_dir, stride))
                 p.start()

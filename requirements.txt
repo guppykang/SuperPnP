@@ -29,4 +29,4 @@ tqdm==4.36.1
 opencv-contrib-python==3.4.2.16
 opencv-python==3.4.2.16
 pypng==0.0.20
-
+tensorboardX==2.1

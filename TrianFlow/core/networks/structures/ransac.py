@@ -4,6 +4,7 @@ import os, sys
 import torch.nn as nn
 import pdb
 import cv2
+import code
 
 class reduced_ransac(nn.Module):
     def __init__(self, check_num, thres, dataset):
@@ -26,6 +27,9 @@ class reduced_ransac(nn.Module):
                 num = np.minimum(nonzeros_num.detach().cpu().numpy(), num)
             for i in range(b):
                 nonzero_idx = torch.nonzero(mask[i,0,:]) # [nonzero_num,1]
+                if nonzero_idx.shape[0] == 0:
+                    select_idxs.append(torch.from_numpy(np.array([])).cuda().long()) #this shouldn't ever happen, but it did once
+                    continue
                 rand_int = torch.randint(0, nonzero_idx.shape[0], [int(num)])
                 select_idx = nonzero_idx[rand_int, :] # [num, 1]
                 select_idxs.append(select_idx)
