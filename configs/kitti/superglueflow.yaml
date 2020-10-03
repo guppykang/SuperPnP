@@ -8,7 +8,7 @@ kitti :
 #config details for the models
 models : 
   trianflow : 
-    match_num : 5000
+    match_num : 6000
     mode : 'depth_pose' 
     dataset : 'kitti_odo' 
     depth_match_num : 6000
@@ -41,7 +41,7 @@ num_iterations: 200000
 batch_size: 8 # 32
 iter_start : 0 #place the iteration that it last stopped at here
 num_workers : 0
-ransac_num_matches : 6000
+ransac_num_matches : 3000
 
 
 #general

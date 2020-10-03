@@ -22,7 +22,6 @@ from collections import OrderedDict
 
 from utils.utils import get_configs, vehicle_to_world
 
-warnings.filterwarnings("ignore")
 
 def save_traj(path, poses):
     """
