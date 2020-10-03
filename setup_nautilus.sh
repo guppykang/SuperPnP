@@ -11,5 +11,4 @@ git config --global user.name "Joshua Kang"
 pip install pypng
 sudo apt update
 sudo apt install -y tmux
-sudo apt-get install unar
 source ~/.bashrc
