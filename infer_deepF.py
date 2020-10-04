@@ -126,12 +126,28 @@ class infer_deepF(infer_vo): # edited from infer_tum
         vect = np.concatenate((trans, qua.as_quat() ), axis=0)
         return vect
         
+    @property
+    def deepF_fe(self):
+        print("get deepF")
+        return self._deepF_fe
+
+    @deepF_fe.setter
+    def deepF_fe(self, fe):
+        print("set deepF frontend")
+        self._deepF_fe = fe
+
     def solve_pose_deepF(self, xy1, xy2):
         # assert model is ready
-
+        assert self.deepF_fe is not None
+        # get K, K_inv
+        b_K = torch.tensor(self.K_np).float().unsequeeze(0)
+        b_K_inv = torch.tensor(self.K_inv_np).float().unsequeeze(0)
+        b_xy1 = xy1.unsequeeze(0)
+        b_xy2 = xy2.unsequeeze(0)
         # inference
-
+        poses = self.deepF_fe.run(b_xy1, b_xy2, b_K, b_K_inv)
         # SVD for pose
+        pass
 
     def solve_pose_flow(self, xy1, xy2):
         return self.solve_pose_deepF(xy1, xy2)
@@ -171,7 +187,8 @@ from deepFEPE.utils.loader import (
 )
 
 class deepF_frontend(object):
-    def __init__(self, config):
+    def __init__(self, config, device='cpu'):
+        self.device = device
         self.config = config
         img_zoom_xy = (
             config["data"]["preprocessing"]["resize"][1]
@@ -197,15 +214,17 @@ class deepF_frontend(object):
         pass
 
     def load_model(self):
-        self.net = modelLoader(config["model"]["name"], **model_params)
-        print(f"deepF net: {net}")
+        self.net = modelLoader(self.config["model"]["name"], **self.model_params)
+        print(f"deepF net: {self.net}")
         pass
 
     def prepare_model(self):
         from deepFEPE.train_good import prepare_model
+        n_iter = 0
+        n_iter_val = 0 + n_iter
         ## load pretrained and create optimizer
         net, optimizer, n_iter, n_iter_val = prepare_model(
-            config, net, device, n_iter, n_iter_val, net_postfix=""
+            self.config, self.net, self.device, n_iter, n_iter_val, net_postfix=""
         )
         self.net, self.optimizer, self.n_iter, self.n_iter_val = net, optimizer, n_iter, n_iter_val
         pass
@@ -235,42 +254,39 @@ class deepF_frontend(object):
         E_ests = Ks.transpose(1, 2) @ F_ests @ Ks
 
 
-    def run(self, xy1, xy2, train=False):
+    def run(self, b_xy1, b_xy2, Ks, K_invs, train=False):
+        # Make data batch
+        matches_use_ori = torch.cat((b_xy1, b_xy2), 2).cuda()
+
+        data_batch = {
+            # "matches_xy": matches_use_normalizedK,
+            "matches_xy_ori": matches_use_ori,
+            "quality": None,
+            # "x1_normalizedK": x1_normalizedK,
+            # "x2_normalizedK": x2_normalizedK,
+            "Ks": Ks,
+            "K_invs": K_invs,
+            "des1": None,
+            "des2": None,
+            "matches_good_unique_nums": b_xy1.shape[1], ## 
+            # "t_scene_scale": t_scene_scale,
+            # "frame_ids": sample["frame_ids"],
+        }
         with torch.no_grad():
             outs = self.net(data_batch)
-            # get all losses
-            E_ests = get_E_ests(
-                x1_normalizedK, x2_normalizedK, Ks, logits_softmax, if_normzliedK=True
-            )
+            # get essential matrix
+            E_ests_layers = get_E_ests_deepF(outs) # [D, B, 3, 3]
+            # get R, t
+            results = mat_E_to_pose(E_ests_layers, idx=-1)
+            # R12s_batch_cam -> [[B,3,3], [B,3,3] ], t12s_batch_cam -> [[B,3,1], [B,3,1] ]
+            R12s_batch_cam, t12s_batch_cam = results[0], results[1] 
+            # pick one of the pose ...
+            b_pose = torch.vstack((R12s_batch_cam[0], t12s_batch_cam[0]), dim=2)
+            return b_pose
 
-            (
-                losses_dict,
-                E_ests,
-                F_ests,
-                logits_weights,
-                residual_norm_layers,
-                residual_norm_max_layers,
-                E_ests_layers,
-            ) = get_all_loss_DeepF(
-                outs,
-                pts1_virt_ori,
-                pts2_virt_ori,
-                Ks,
-                loss_params,
-                get_residual_summaries=get_residual_summaries,
-            )
-            loss_F = losses_dict["loss_F"]
-            loss_epi_res = losses_dict["loss_epi_res"]
-            loss_layers = losses_dict["loss_layers"]
-            if get_residual_summaries:
-                loss_residual = losses_dict["loss_residual"]
-                loss_residual_topK = losses_dict["loss_residual_topK"]
-                loss_regW_clip = losses_dict["loss_regW_clip"]
-                loss_regW_entro = losses_dict["loss_regW_entro"]
-                loss_regW_entro_topK = losses_dict["loss_regW_entro_topK"]
 
-            loss = loss_F
-            loss += reg
+
+
 
 
 

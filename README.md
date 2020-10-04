@@ -15,6 +15,27 @@ Must install exact versioning as given in the reqs.txt (most important being tor
 pip install -r ./requirements_torch.txt
 pip install -r ./requirements.txt
 ```
+- install [superpoint module](https://github.com/eric-yyjau/pytorch-superpoint.git)
+```
+git clone https://github.com/eric-yyjau/pytorch-superpoint.git
+cd pytorch-superpoint
+git checkout module_20200707
+# install
+pip install --upgrade setuptools wheel
+python setup.py bdist_wheel
+pip install -e .
+```
+- Install [deepFEPE module](https://github.com/eric-yyjau/pytorch-deepFEPE.git)
+```
+export GIT_LFS_SKIP_SMUDGE=1
+git clone https://github.com/eric-yyjau/pytorch-deepFEPE.git
+git checkout module_20201003
+# install
+pip install --upgrade setuptools wheel
+python setup.py bdist_wheel
+pip install -e .
+```
+
 ### Datasets
 This project uses the KITTI VO dataset and the TUM dataset.  
 Install KITTI vo from the kitti website, and install TUM from 

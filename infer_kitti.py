@@ -186,6 +186,7 @@ class infer_vo():
         seq_len = len(images)
         K = self.cam_intrinsics
         K_inv = np.linalg.inv(self.cam_intrinsics)
+        self.K_np, self.K_inv_np =  K, K_inv
         print(f'Number of frames to predict : {seq_len-1}')
         for i in tqdm(range(seq_len-1)):
             img1, img2 = images[i], images[i+1]
