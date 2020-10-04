@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name:  finetune-depth-tum # deepsfm-pod
+  name:  train-depth-kitti # deepsfm-pod
   namespace: mc-lab
   labels:
     user: jbk001 
