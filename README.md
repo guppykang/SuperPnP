@@ -84,6 +84,13 @@ To inference on siftflow + sc-sfm-learner depthNet (sift + flownet correspondenc
 python infer_tum.py --model siftflow_scsfm --sequence rgbd_dataset_freiburg2_360_kidnap  --traj_save_dir ./results/test/tum/ --iters 10
 ```
 
+## DeepF models
+### KITTI dataset
+```
+python infer_deepF.py --model siftflow --sequence 10    --traj_save_dir ./results/test/kitti/10.txt \
+--iters 10 --sequences_root_dir /media/yoyee/Big_re/kitti/sequences
+```
+
 
 ## Run the code - batch testing and evaluation
 ### Run the inference
