@@ -16,10 +16,13 @@ from tqdm import tqdm
 import copy
 from pathlib import Path
 import time
+import logging
+import code
 
 from collections import OrderedDict
 
 from utils.utils import get_configs, vehicle_to_world
+from utils.logging import *
 
 from infer_kitti import infer_vo
 
@@ -27,94 +30,95 @@ warnings.filterwarnings("ignore")
     
 class infer_deepF(infer_vo): # edited from infer_tum
     def __init__(self, seq_id, sequences_root_dir):
-        self.img_dir = sequences_root_dir
-        #self.img_dir = '/home4/zhaow/data/kitti_odometry/sampled_s4_sequences/'
-        self.seq_id = seq_id
-        self.raw_img_h = 480.0 #320
-        self.raw_img_w = 640.0 #1024
-        self.new_img_h = 384 #320
-        self.new_img_w = 512 #1024
-        self.max_depth = 50.0
-        self.min_depth = 0.0
-        self.cam_intrinsics = self.rescale_camera_intrinsics(self.read_calib_file())
-        self.flow_pose_ransac_thre = 0.1 #0.2
-        self.flow_pose_ransac_times = 10 #5
-        self.flow_pose_min_flow = 5
-        self.align_ransac_min_samples = 3
-        self.align_ransac_max_trials = 100
-        self.align_ransac_stop_prob = 0.99
-        self.align_ransac_thre = 1.0
-        self.PnP_ransac_iter = 1000
-        self.PnP_ransac_thre = 1
-        self.PnP_ransac_times = 5
-        self.train_sets = [ # only process train_set
-            "rgbd_dataset_freiburg3_long_office_household",
-            "rgbd_dataset_freiburg3_long_office_household_validation",
-            "rgbd_dataset_freiburg3_sitting_xyz",
-            "rgbd_dataset_freiburg3_structure_texture_far",
-            "rgbd_dataset_freiburg3_structure_texture_near",
-            "rgbd_dataset_freiburg3_teddy",
-            ]
-        self.test_sets = [
-            "rgbd_dataset_freiburg3_walking_xyz",
-            "rgbd_dataset_freiburg3_large_cabinet_validation",
-            ]
+        super().__init__(seq_id, sequences_root_dir)
+        # self.img_dir = sequences_root_dir
+        # #self.img_dir = '/home4/zhaow/data/kitti_odometry/sampled_s4_sequences/'
+        # self.seq_id = seq_id
+        # self.raw_img_h = 480.0 #320
+        # self.raw_img_w = 640.0 #1024
+        # self.new_img_h = 384 #320
+        # self.new_img_w = 512 #1024
+        # self.max_depth = 50.0
+        # self.min_depth = 0.0
+        # self.cam_intrinsics = self.rescale_camera_intrinsics(self.read_calib_file())
+        # self.flow_pose_ransac_thre = 0.1 #0.2
+        # self.flow_pose_ransac_times = 10 #5
+        # self.flow_pose_min_flow = 5
+        # self.align_ransac_min_samples = 3
+        # self.align_ransac_max_trials = 100
+        # self.align_ransac_stop_prob = 0.99
+        # self.align_ransac_thre = 1.0
+        # self.PnP_ransac_iter = 1000
+        # self.PnP_ransac_thre = 1
+        # self.PnP_ransac_times = 5
+        # self.train_sets = [ # only process train_set
+        #     "rgbd_dataset_freiburg3_long_office_household",
+        #     "rgbd_dataset_freiburg3_long_office_household_validation",
+        #     "rgbd_dataset_freiburg3_sitting_xyz",
+        #     "rgbd_dataset_freiburg3_structure_texture_far",
+        #     "rgbd_dataset_freiburg3_structure_texture_near",
+        #     "rgbd_dataset_freiburg3_teddy",
+        #     ]
+        # self.test_sets = [
+        #     "rgbd_dataset_freiburg3_walking_xyz",
+        #     "rgbd_dataset_freiburg3_large_cabinet_validation",
+        #     ]
     
     
-    def read_calib_file(self):
-        """ # directly from the website
-        https://vision.in.tum.de/data/datasets/rgbd-dataset/file_formats#intrinsic_camera_calibration_of_the_kinect
+    # def read_calib_file(self):
+    #     """ # directly from the website
+    #     https://vision.in.tum.de/data/datasets/rgbd-dataset/file_formats#intrinsic_camera_calibration_of_the_kinect
 
-        """
-        calib = np.identity(3)
-        fu, fv, cu, cv =  535.4, 539.2, 320.1, 247.6
-        calib = np.array([[fu, 0, cu], [0, fv, cv], [0, 0, 1]])
-        # D = np.array([0,0,0,0,0])
-        # height, width, calib, D = self.load_intrinsics(calib_data)
-        # calib = proj_c2p[0:3, 0:3]
-        # intrinsics_original = calib + 0
-        # calib[0,:] *=  zoom_x
-        # calib[1,:] *=  zoom_y
-        # print(f"calib: {calib}, intrinsics_original: {intrinsics_original}")
-        return calib
+    #     """
+    #     calib = np.identity(3)
+    #     fu, fv, cu, cv =  535.4, 539.2, 320.1, 247.6
+    #     calib = np.array([[fu, 0, cu], [0, fv, cv], [0, 0, 1]])
+    #     # D = np.array([0,0,0,0,0])
+    #     # height, width, calib, D = self.load_intrinsics(calib_data)
+    #     # calib = proj_c2p[0:3, 0:3]
+    #     # intrinsics_original = calib + 0
+    #     # calib[0,:] *=  zoom_x
+    #     # calib[1,:] *=  zoom_y
+    #     # print(f"calib: {calib}, intrinsics_original: {intrinsics_original}")
+    #     return calib
     
-    # @staticmethod
-    def read_images_files_from_folder(self, path_to_sequence):
-        rgb_filenames = []
-        timestamps = []
-        # path_to_sequence = f"{dataset_dir}/{sequence}"
-        with open(f"{path_to_sequence}/rgb.txt") as times_file:
-            for line in times_file:
-                if len(line) > 0 and not line.startswith('#'):
-                    t, rgb = line.rstrip().split(' ')[0:2]
-                    rgb_filenames.append(f"{path_to_sequence}/{rgb}")
-                    timestamps.append(float(t))
-        test_files = rgb_filenames
-        timestamps = np.array(timestamps)
-        return test_files, timestamps
+    # # @staticmethod
+    # def read_images_files_from_folder(self, path_to_sequence):
+    #     rgb_filenames = []
+    #     timestamps = []
+    #     # path_to_sequence = f"{dataset_dir}/{sequence}"
+    #     with open(f"{path_to_sequence}/rgb.txt") as times_file:
+    #         for line in times_file:
+    #             if len(line) > 0 and not line.startswith('#'):
+    #                 t, rgb = line.rstrip().split(' ')[0:2]
+    #                 rgb_filenames.append(f"{path_to_sequence}/{rgb}")
+    #                 timestamps.append(float(t))
+    #     test_files = rgb_filenames
+    #     timestamps = np.array(timestamps)
+    #     return test_files, timestamps
     
-    def load_images(self, max_length=-1):
-        print(f'Loading images from sequence {self.seq_id}')
-        path = self.img_dir
-        seq = self.seq_id
-        new_img_h = self.new_img_h
-        new_img_w = self.new_img_w
-        test_files, timestamps = self.read_images_files_from_folder(f"{path}/{seq}")
-        self.timestamps = timestamps
-        # seq_dir = os.path.join(path, seq)
-        # image_dir = os.path.join(seq_dir, 'image_2')
-        num = len(test_files)
-        if max_length > 0:
-            num = min(int(max_length)+1, num)
+    # def load_images(self, max_length=-1):
+    #     print(f'Loading images from sequence {self.seq_id}')
+    #     path = self.img_dir
+    #     seq = self.seq_id
+    #     new_img_h = self.new_img_h
+    #     new_img_w = self.new_img_w
+    #     test_files, timestamps = self.read_images_files_from_folder(f"{path}/{seq}")
+    #     self.timestamps = timestamps
+    #     # seq_dir = os.path.join(path, seq)
+    #     # image_dir = os.path.join(seq_dir, 'image_2')
+    #     num = len(test_files)
+    #     if max_length > 0:
+    #         num = min(int(max_length)+1, num)
         
-        images = []
-        for i in tqdm(range(num)):
-            image = cv2.imread(test_files[i])
-            image = cv2.resize(image, (new_img_w, new_img_h))
-            images.append(image)
+    #     images = []
+    #     for i in tqdm(range(num)):
+    #         image = cv2.imread(test_files[i])
+    #         image = cv2.resize(image, (new_img_w, new_img_h))
+    #         images.append(image)
 
-        print('Loaded Images')
-        return images
+    #     print('Loaded Images')
+    #     return images
     
     @staticmethod
     def mat2quat(mat):
@@ -137,17 +141,22 @@ class infer_deepF(infer_vo): # edited from infer_tum
         self._deepF_fe = fe
 
     def solve_pose_deepF(self, xy1, xy2):
+        """ call deepF front end for pose estimation
+        """
         # assert model is ready
         assert self.deepF_fe is not None
         # get K, K_inv
-        b_K = torch.tensor(self.K_np).float().unsequeeze(0)
-        b_K_inv = torch.tensor(self.K_inv_np).float().unsequeeze(0)
-        b_xy1 = xy1.unsequeeze(0)
-        b_xy2 = xy2.unsequeeze(0)
+        b_K = torch.tensor(self.K_np).float().unsqueeze(0)
+        b_K_inv = torch.tensor(self.K_inv_np).float().unsqueeze(0)
+        b_xy1 = torch.tensor(xy1).float().unsqueeze(0)
+        b_xy2 = torch.tensor(xy2).float().unsqueeze(0)
         # inference
-        poses = self.deepF_fe.run(b_xy1, b_xy2, b_K, b_K_inv)
         # SVD for pose
-        pass
+        poses = self.deepF_fe.run(b_xy1, b_xy2, b_K, b_K_inv)
+        pose = poses.squeeze().to('cpu').numpy()
+        row = np.array([[0,0,0,1]]).astype(np.float32)
+        pose = np.concatenate((pose, row), axis=0)
+        return pose
 
     def solve_pose_flow(self, xy1, xy2):
         return self.solve_pose_deepF(xy1, xy2)
@@ -255,6 +264,8 @@ class deepF_frontend(object):
 
 
     def run(self, b_xy1, b_xy2, Ks, K_invs, train=False):
+        from deepFEPE.train_good_utils import get_E_ests_deepF, mat_E_to_pose
+
         # Make data batch
         matches_use_ori = torch.cat((b_xy1, b_xy2), 2).cuda()
 
@@ -275,13 +286,17 @@ class deepF_frontend(object):
         with torch.no_grad():
             outs = self.net(data_batch)
             # get essential matrix
-            E_ests_layers = get_E_ests_deepF(outs) # [D, B, 3, 3]
+            E_ests_layers = get_E_ests_deepF(outs, Ks.to(self.device), K_invs.to(self.device)) # [D, B, 3, 3]
             # get R, t
-            results = mat_E_to_pose(E_ests_layers, idx=-1)
+            results = mat_E_to_pose(E_ests_layers, idx=-1, device=self.device)
             # R12s_batch_cam -> [[B,3,3], [B,3,3] ], t12s_batch_cam -> [[B,3,1], [B,3,1] ]
             R12s_batch_cam, t12s_batch_cam = results[0], results[1] 
+            
             # pick one of the pose ...
-            b_pose = torch.vstack((R12s_batch_cam[0], t12s_batch_cam[0]), dim=2)
+            # import code; code.interact(local=locals())
+
+            b_pose = torch.cat((R12s_batch_cam[1], t12s_batch_cam[0]), dim=2)
+
             return b_pose
 
 
@@ -304,8 +319,9 @@ if __name__ == '__main__':
     
    
 
-    os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-
+    # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    logging.info("train on device: %s", device)
 
     #import the model
     print(f'Using the {args.model} model')
@@ -318,7 +334,7 @@ if __name__ == '__main__':
         model_cfg, cfg = get_configs(config_file, mode='superflow')    
         from models.superflow2 import SuperFlow as Model
     elif args.model == 'siftflow':
-        config_file = './configs/siftflow.yaml'
+        config_file = './configs/siftflow_deepF.yaml'
         model_cfg, cfg = get_configs(config_file, mode='siftflow')    
         from models.siftflow import SiftFlow as Model
     elif args.model == 'siftflow_scsfm':
@@ -337,6 +353,8 @@ if __name__ == '__main__':
         config_file = './configs/superflow.yaml'
         model_cfg, cfg = get_configs(config_file, mode='superflow')    
         from models.trianflow import TrianFlow as Model
+    
+    print(f"config model: {list(cfg['models'])}")
 
     #initialize the model
     model = Model(model_cfg, cfg)
@@ -345,12 +363,15 @@ if __name__ == '__main__':
     model.eval()
     print('Model Loaded.')
 
-    # load deepF model
-
-
     #dataset
     vo_test = infer_deepF(args.sequence, args.sequences_root_dir)
-    
+
+    # load deepF model
+    deepF_fe = deepF_frontend(cfg["models"]["deepF"], device=device)
+    deepF_fe.load_model()
+    deepF_fe.prepare_model()
+    vo_test.deepF_fe = deepF_fe
+
     #load and inference
     images = vo_test.load_images(max_length=args.iters)
     print('Images Loaded. Total ' + str(len(images)) + ' images found.')

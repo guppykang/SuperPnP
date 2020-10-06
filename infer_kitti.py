@@ -194,6 +194,7 @@ class infer_vo():
             
             rel_pose = np.eye(4)
             flow_pose = self.solve_pose_flow(depth_match[:,:2], depth_match[:,2:])
+            print(f"flow_pose: {flow_pose}")
             rel_pose[:3,:3] = copy.deepcopy(flow_pose[:3,:3])
             if np.linalg.norm(flow_pose[:3,3:]) != 0:
                 scale = self.align_to_depth(depth_match[:,:2], depth_match[:,2:], flow_pose, depth2)
