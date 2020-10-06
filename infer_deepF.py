@@ -24,7 +24,7 @@ from collections import OrderedDict
 from utils.utils import get_configs, vehicle_to_world
 from utils.logging import *
 
-from infer_kitti import infer_vo
+from infer_kitti import infer_vo, save_traj
 
 warnings.filterwarnings("ignore")
     
@@ -265,7 +265,7 @@ class deepF_frontend(object):
 
     def run(self, b_xy1, b_xy2, Ks, K_invs, train=False):
         from deepFEPE.train_good_utils import get_E_ests_deepF, mat_E_to_pose
-
+        from deepFEPE.dsac_tools.utils_F import _get_M2s, _E_to_M_train
         # Make data batch
         matches_use_ori = torch.cat((b_xy1, b_xy2), 2).cuda()
 
@@ -283,21 +283,32 @@ class deepF_frontend(object):
             # "t_scene_scale": t_scene_scale,
             # "frame_ids": sample["frame_ids"],
         }
+        idx = 0 # first element in the batch
         with torch.no_grad():
             outs = self.net(data_batch)
             # get essential matrix
             E_ests_layers = get_E_ests_deepF(outs, Ks.to(self.device), K_invs.to(self.device)) # [D, B, 3, 3]
             # get R, t
-            results = mat_E_to_pose(E_ests_layers, idx=-1, device=self.device)
-            # R12s_batch_cam -> [[B,3,3], [B,3,3] ], t12s_batch_cam -> [[B,3,1], [B,3,1] ]
-            R12s_batch_cam, t12s_batch_cam = results[0], results[1] 
-            
+            # results = mat_E_to_pose(E_ests_layers, idx=-1, device=self.device)
+            # # R12s_batch_cam -> [[B,3,3], [B,3,3] ], t12s_batch_cam -> [[B,3,1], [B,3,1] ]
+            # R12s_batch_cam, t12s_batch_cam = results[0], results[1] 
+            # b_pose = torch.cat((R12s_batch_cam[1], t12s_batch_cam[0]), dim=2)
+            # return b_pose
+
+            # done Cheirality check            
+            # R2s, t2s, M2s = _get_M2s(E_ests_layers[-1][0]) # double check layer
+            Ks_np = Ks.numpy()
+            b_xy1_np = b_xy1.numpy()
+            b_xy2_np = b_xy2.numpy()
+            M2_list, error_Rt, Rt_cam = _E_to_M_train(E_ests_layers[-1][idx], Ks_np[idx], b_xy1_np[idx], 
+                        b_xy2_np[idx], show_result=True)
+            print(f"Rt_cam: {Rt_cam}")
+            return Rt_cam
+
             # pick one of the pose ...
             # import code; code.interact(local=locals())
 
-            b_pose = torch.cat((R12s_batch_cam[1], t12s_batch_cam[0]), dim=2)
 
-            return b_pose
 
 
 
@@ -380,11 +391,15 @@ if __name__ == '__main__':
     del images
     print('Test completed.')
 
-    save_time = time.strftime("%Y%m%d-%H%M%S")
-    poses = poses[:,:3,:4].reshape(-1, 12)
-    print(f'Shape of poses : {poses.shape}')
-    vo_test.save_traj(args.traj_save_dir, poses, save_time, args.model)
-    print(f'Predicted Trajectory saved at : {args.traj_save_dir}/{args.sequence}/{args.model}/preds_{save_time}.txt')
+    traj_txt = args.traj_save_dir
+    save_traj(traj_txt, poses)
+    print(f'Predicted Trajectory saved at : {args.traj_save_dir}')
+
+    # save_time = time.strftime("%Y%m%d-%H%M%S")
+    # poses = poses[:,:3,:4].reshape(-1, 12)
+    # print(f'Shape of poses : {poses.shape}')
+    # vo_test.save_traj(args.traj_save_dir, poses, save_time, args.model)
+    # print(f'Predicted Trajectory saved at : {args.traj_save_dir}/{args.sequence}/{args.model}/preds_{save_time}.txt')
 
 
   
