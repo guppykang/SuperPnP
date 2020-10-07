@@ -375,7 +375,7 @@ if __name__ == '__main__':
     print('Model Loaded.')
 
     #dataset
-    vo_test = infer_deepF(args.sequence, args.sequences_root_dir)
+    vo_test = infer_deepF(args.sequence, cfg["data"]["vo_path"])
 
     # load deepF model
     deepF_fe = deepF_frontend(cfg["models"]["deepF"], device=device)
@@ -391,9 +391,10 @@ if __name__ == '__main__':
     del images
     print('Test completed.')
 
-    traj_txt = args.traj_save_dir
-    save_traj(traj_txt, poses)
-    print(f'Predicted Trajectory saved at : {args.traj_save_dir}')
+    save_time = time.strftime("%Y%m%d-%H%M%S")
+    poses = poses[:,:3,:4].reshape(-1, 12)
+    print(f'Shape of poses : {poses.shape}')
+    vo_test.save_traj_kitti(args.traj_save_dir, poses, save_time, args.model)
 
     # save_time = time.strftime("%Y%m%d-%H%M%S")
     # poses = poses[:,:3,:4].reshape(-1, 12)

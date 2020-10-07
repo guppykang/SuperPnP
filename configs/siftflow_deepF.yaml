@@ -1,5 +1,5 @@
 #where the kitti datasets are on Nautilus
-kitti : 
+data: 
   raw_path : '/jbk001-data1/kitti_raw'
   vo_path : '/media/yoyee/Big_re/kitti/sequences'
   procressed_data_path : '/jbk001-data1/datasets/kitti/kitti_vo/vo_dataset_processed'

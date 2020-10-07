@@ -92,11 +92,12 @@ class flow_frontend(Sc_Sfmleaner_frontend):
     def __init__(self, model='superglueflow'):
         super().__init__('.')
         self.model = model
+        self.pyFile = "infer_tum.py"
         pass
     def get_command_scsfmlearner(self, args, save_folder, dataset, sequence="V1_01_easy",
                              pretrained="/pretrained/pose/cs+k_pose.tar", 
                              skip_frame=1, keyframe=""):
-        command = f"python infer_tum.py --model {self.model} --sequence {sequence} \
+        command = f"python {self.pyFile} --model {self.model} --sequence {sequence} \
                 --traj_save_dir {save_folder} --iters {args.iters}"
         return command
         pass
@@ -107,8 +108,11 @@ class flow_frontend(Sc_Sfmleaner_frontend):
         #     return f"./results/{subfolder}/{model}/{dataset}/{sequence}/{sequence}.txt"
         # else:
         #     return f"./results/{subfolder}/{model}/{dataset}/{sequence}/{sequence}{trailing}"
-    def get_saved_folder(self, subfolder, model, dataset, sequence):
-        return f"./results/{subfolder}/{dataset}/{sequence}/{self.model}"
+    def get_saved_folder(self, subfolder, model, dataset, sequence, add_model=False):
+        if add_model:
+            return f"./results/{subfolder}/{model}/{dataset}/{sequence}/{self.model}"
+        else:
+            return f"./results/{subfolder}/{model}/{dataset}/{sequence}"
     
 ##########################
 ##### for evaluation #####

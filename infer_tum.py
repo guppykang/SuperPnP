@@ -127,22 +127,18 @@ class infer_vo_tum(infer_vo):
         return vect
         
     
-    def save_traj(self, traj_txt, poses, save_time, model):
-        time_stamps = self.timestamps
-        time_stamps = np.array(time_stamps).flatten()
-        time_stamps = time_stamps[:len(poses)].reshape(-1,1)
-        
-        poses_wTime = np.concatenate((time_stamps, poses), axis=1)
-        # dir
-        traj_dir = Path(f"{traj_txt}")
-        traj_dir = traj_dir/f"{self.seq_id}"/f"{model}"
-        traj_dir.mkdir(exist_ok=True, parents=True)
-        
-        # save txt
-        filename = Path(f"{traj_dir}/preds_{save_time}.txt")
-        np.savetxt(filename, poses, delimiter=" ", fmt="%.4f")
-        filename = Path(f"{traj_dir}/preds_{save_time}_t.txt")
-        np.savetxt(filename, poses_wTime, delimiter=" ", fmt="%.4f")
+    def save_traj(self, traj_save_dir, poses, save_time, model):
+        if self.timestamps is not None:
+            time_stamps = self.timestamps
+            time_stamps = np.array(time_stamps).flatten()
+            time_stamps = time_stamps[:len(poses)].reshape(-1,1)
+            
+            poses_wTime = np.concatenate((time_stamps, poses), axis=1)
+        else:
+            poses_wTime = poses
+
+        self.save_traj_kitti(traj_save_dir, poses, save_time, model)
+
         ## save tum txt
         filename = Path(f"{traj_dir}/preds_{save_time}.tum")
         pose_qua = np.array([infer_vo_tum.mat2quat(m.reshape(3,4)) for m in poses])
@@ -151,6 +147,7 @@ class infer_vo_tum(infer_vo):
         # copy tum txt
         filename = Path(f"{traj_dir}/preds.tum")
         np.savetxt(filename, poses_qua_wTime, delimiter=" ", fmt="%.4f")
+        print(f'Predicted (TUM) Trajectory saved at : {filename}')
         pass
 
 
@@ -225,7 +222,7 @@ if __name__ == '__main__':
     poses = poses[:,:3,:4].reshape(-1, 12)
     print(f'Shape of poses : {poses.shape}')
     vo_test.save_traj(args.traj_save_dir, poses, save_time, args.model)
-    print(f'Predicted Trajectory saved at : {args.traj_save_dir}/{args.sequence}/{args.model}/preds_{save_time}.txt')
+    # print(f'Predicted Trajectory saved at : {args.traj_save_dir}/{args.sequence}/{args.model}/preds_{save_time}.txt')
 
 
   

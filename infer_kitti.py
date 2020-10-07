@@ -107,6 +107,7 @@ class infer_vo():
         self.PnP_ransac_iter = 1000
         self.PnP_ransac_thre = 1
         self.PnP_ransac_times = 5
+        self.timestamps = None
     
     def read_rescale_camera_intrinsics(self, path):
         raw_img_h = self.raw_img_h
@@ -331,6 +332,30 @@ class infer_vo():
         return pose
 
 
+    def save_traj_kitti(self, traj_txt, poses, save_time, model):
+
+        # dir
+        traj_dir = Path(f"{traj_txt}")
+        traj_dir = traj_dir/f"{self.seq_id}"/f"{model}"
+        traj_dir.mkdir(exist_ok=True, parents=True)
+        
+        # save txt
+        filename = Path(f"{traj_dir}/preds_{save_time}.txt")
+        np.savetxt(filename, poses, delimiter=" ", fmt="%.4f")
+        # filename = Path(f"{traj_dir}/preds_{save_time}_t.txt")
+        # np.savetxt(filename, poses_wTime, delimiter=" ", fmt="%.4f")
+
+        # copy txt
+        filename = Path(f"{traj_dir}/{self.seq_id}.txt")
+        np.savetxt(filename, poses, delimiter=" ", fmt="%.4f")
+        print(f'Predicted Trajectory saved at : {filename}')
+
+        filename = Path(f"{traj_dir}/result.txt")
+        np.savetxt(filename, poses, delimiter=" ", fmt="%.4f")
+        print(f'Predicted Trajectory saved at : {filename}')
+
+        pass
+
 if __name__ == '__main__':
     import argparse
     arg_parser = argparse.ArgumentParser(
@@ -345,8 +370,8 @@ if __name__ == '__main__':
     arg_parser.add_argument('--stride', type=int, default='1', help='Stride between images')
     args = arg_parser.parse_args()
     
-    args.traj_save_dir = str(Path(args.traj_save_dir) / args.model / (args.sequence + '_' + args.model + '_stride' + str(args.stride) + '_' + time.strftime("%Y%m%d-%H%M%S")
- + '.txt')) #I just like this better than os.path
+    # args.traj_save_dir = str(Path(args.traj_save_dir) / args.model / (args.sequence + '_' + args.model + '_stride' + str(args.stride) + '_' + time.strftime("%Y%m%d-%H%M%S")
+    #  + '.txt')) #I just like this better than os.path
 
     os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
@@ -382,7 +407,8 @@ if __name__ == '__main__':
     print('Model Loaded.')
 
     #dataset
-    vo_test = infer_vo(args.sequence, args.sequences_root_dir)
+    # vo_test = infer_vo(args.sequence, args.sequences_root_dir)
+    vo_test = infer_vo(args.sequence, cfg["data"]["vo_path"])
     
     #load
     print(f'Loading images at stride : {args.stride}')
@@ -393,6 +419,7 @@ if __name__ == '__main__':
     print(f'Testing VO in {args.mode} mode.')
     if args.mode == 'relative':
         poses = vo_test.process_video_relative(images, model, args.model)
+        poses = np.array(poses)
     else : 
         raise RuntimeError('Absolute pose estimation feature was discontinued')
     print('Test completed.')
@@ -400,6 +427,11 @@ if __name__ == '__main__':
     del images
     gc.collect()
     
-    traj_txt = args.traj_save_dir
-    save_traj(traj_txt, poses)
-    print(f'Predicted Trajectory saved at : {args.traj_save_dir}')
+    save_time = time.strftime("%Y%m%d-%H%M%S")
+    poses = poses[:,:3,:4].reshape(-1, 12)
+    print(f'Shape of poses : {poses.shape}')
+    vo_test.save_traj_kitti(args.traj_save_dir, poses, save_time, args.model)
+
+    # traj_txt = args.traj_save_dir
+    # save_traj(traj_txt, poses)
+    # print(f'Predicted Trajectory saved at : {args.traj_save_dir}')
