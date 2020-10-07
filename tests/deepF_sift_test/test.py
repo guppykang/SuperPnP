@@ -58,7 +58,7 @@ if __name__ == '__main__':
     sequence = "10"
 
     #load a pair of images
-    vo_sequences_root = Path(cfg["kitti"]["vo_path"])
+    vo_sequences_root = Path(cfg["data"]["vo_path"])
     images = load_image_pair(vo_sequences_root, sequence)
     
     #load camera intrinsics
