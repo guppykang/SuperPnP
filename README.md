@@ -34,6 +34,7 @@ git checkout module_20201003
 pip install --upgrade setuptools wheel
 python setup.py bdist_wheel
 pip install -e .
+pip install -r requirements.txt
 ```
 
 ### Datasets
@@ -87,17 +88,29 @@ python infer_tum.py --model siftflow_scsfm --sequence rgbd_dataset_freiburg2_360
 ## DeepF models
 ### KITTI dataset
 ```
-python infer_deepF.py --model siftflow --sequence 10    --traj_save_dir ./results/test/kitti/10.txt \
+python infer_deepF.py --model siftflow --sequence 10    --traj_save_dir ./results/test/kitti/ \
 --iters 10 --sequences_root_dir /media/yoyee/Big_re/kitti/sequences
 ```
 
 
 ## Run the code - batch testing and evaluation
 ### Run the inference
+- KITTI
+```
+python run_eval.py <exp_name> --model siftflow --dataset kitti --run
+python run_eval.py test -m siftflow -d kitti --run
+```
+- TUM
 ```
 python run_eval.py <exp_name> --model siftflow --dataset tum --run
 python run_eval.py test -m siftflow -d tum --run
 ```
+- deepF pipeline (support KITTI)
+```
+python run_eval.py test_deepF -m siftflow -d kitti --run --deepF
+python run_eval.py test_deepF -m siftflow -d kitti --run --deepF --iter 10 --seq 10
+```
+
 ### Run the evaluation scripts (evo)
 ```
 python run_eval.py test -m siftflow -d tum --eval
