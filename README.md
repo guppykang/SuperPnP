@@ -14,6 +14,7 @@ Must install exact versioning as given in the reqs.txt (most important being tor
 ```bash 
 pip install -r ./requirements_torch.txt
 pip install -r ./requirements.txt
+pip install -r ./requirements_cv.txt
 ```
 - install [superpoint module](https://github.com/eric-yyjau/pytorch-superpoint.git)
 ```
