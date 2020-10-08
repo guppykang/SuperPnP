@@ -21,6 +21,7 @@ import gc
 from collections import OrderedDict
 
 from utils.utils import get_configs, vehicle_to_world
+from utils.logging import *
 
 warnings.filterwarnings("ignore")
 
@@ -85,7 +86,7 @@ def cv_triangulation(matches, pose):
     return points1, points2
 
 class infer_vo():
-    def __init__(self, seq_id, sequences_root_dir):
+    def __init__(self, seq_id, sequences_root_dir, if_pnp=True):
         self.img_dir = sequences_root_dir
         #self.img_dir = '/home4/zhaow/data/kitti_odometry/sampled_s4_sequences/'
         self.seq_id = seq_id
@@ -108,6 +109,9 @@ class infer_vo():
         self.PnP_ransac_thre = 1
         self.PnP_ransac_times = 5
         self.timestamps = None
+        self.last_pose = np.eye(4)
+        self.if_pnp = if_pnp
+        print(f"set PnP: {if_pnp}")
     
     def read_rescale_camera_intrinsics(self, path):
         raw_img_h = self.raw_img_h
@@ -188,28 +192,33 @@ class infer_vo():
         K = self.cam_intrinsics
         K_inv = np.linalg.inv(self.cam_intrinsics)
         self.K_np, self.K_inv_np =  K, K_inv
-        print(f'Number of frames to predict : {seq_len-1}')
+        logging.info(f'Number of frames to predict : {seq_len-1}')
         for i in tqdm(range(seq_len-1)):
             img1, img2 = images[i], images[i+1]
             depth_match, depth1, depth2 = self.get_prediction(img1, img2, model, K, K_inv)
             
             rel_pose = np.eye(4)
             flow_pose = self.solve_pose_flow(depth_match[:,:2], depth_match[:,2:])
-            print(f"flow_pose: {flow_pose}")
+            logging.debug(f"flow_pose: {flow_pose}")
             rel_pose[:3,:3] = copy.deepcopy(flow_pose[:3,:3])
             if np.linalg.norm(flow_pose[:3,3:]) != 0:
                 scale = self.align_to_depth(depth_match[:,:2], depth_match[:,2:], flow_pose, depth2)
                 rel_pose[:3,3:] = flow_pose[:3,3:] * scale
             
             if np.linalg.norm(flow_pose[:3,3:]) == 0 or scale == -1:
-                print('PnP '+str(i))
-                pnp_pose = self.solve_relative_pose_pnp(depth_match[:,:2], depth_match[:,2:], depth1)
-                rel_pose = pnp_pose
+                if self.if_pnp:
+                    print('PnP '+str(i))
+                    pnp_pose = self.solve_relative_pose_pnp(depth_match[:,:2], depth_match[:,2:], depth1)
+                    rel_pose = pnp_pose
+                else:
+                    rel_pose = copy.deepcopy(self.last_pose)
                 
+            self.last_pose = copy.deepcopy(rel_pose)
+
             global_pose[:3,3:] = np.matmul(global_pose[:3,:3], rel_pose[:3,3:]) + global_pose[:3,3:]
             global_pose[:3,:3] = np.matmul(global_pose[:3,:3], rel_pose[:3,:3])
             poses.append(copy.deepcopy(global_pose))
-            print(i)
+            logging.debug(f"frame: {i}")
         print(f'Number of predicted poses (including start) : {len(poses)}')
         return poses
     
@@ -408,7 +417,8 @@ if __name__ == '__main__':
 
     #dataset
     # vo_test = infer_vo(args.sequence, args.sequences_root_dir)
-    vo_test = infer_vo(args.sequence, cfg["data"]["vo_path"])
+    if_pnp = cfg.get("if_pnp", True)
+    vo_test = infer_vo(args.sequence, cfg["data"]["vo_path"], if_pnp)
     
     #load
     print(f'Loading images at stride : {args.stride}')

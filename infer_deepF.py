@@ -29,8 +29,8 @@ from infer_kitti import infer_vo, save_traj
 warnings.filterwarnings("ignore")
     
 class infer_deepF(infer_vo): # edited from infer_tum
-    def __init__(self, seq_id, sequences_root_dir):
-        super().__init__(seq_id, sequences_root_dir)
+    def __init__(self, seq_id, sequences_root_dir, if_pnp=True):
+        super().__init__(seq_id, sequences_root_dir, if_pnp=True)
         # self.img_dir = sequences_root_dir
         # #self.img_dir = '/home4/zhaow/data/kitti_odometry/sampled_s4_sequences/'
         # self.seq_id = seq_id
@@ -132,7 +132,7 @@ class infer_deepF(infer_vo): # edited from infer_tum
         
     @property
     def deepF_fe(self):
-        print("get deepF")
+        # print("get deepF")
         return self._deepF_fe
 
     @deepF_fe.setter
@@ -224,7 +224,7 @@ class deepF_frontend(object):
 
     def load_model(self):
         self.net = modelLoader(self.config["model"]["name"], **self.model_params)
-        print(f"deepF net: {self.net}")
+        logging.debug(f"deepF net: {self.net}")
         pass
 
     def prepare_model(self):
@@ -302,7 +302,7 @@ class deepF_frontend(object):
             b_xy2_np = b_xy2.numpy()
             M2_list, error_Rt, Rt_cam = _E_to_M_train(E_ests_layers[-1][idx], Ks_np[idx], b_xy1_np[idx], 
                         b_xy2_np[idx], show_result=True)
-            print(f"Rt_cam: {Rt_cam}")
+            logging.debug(f"Rt_cam: {Rt_cam}")
             return Rt_cam
 
             # pick one of the pose ...
@@ -375,7 +375,8 @@ if __name__ == '__main__':
     print('Model Loaded.')
 
     #dataset
-    vo_test = infer_deepF(args.sequence, cfg["data"]["vo_path"])
+    if_pnp = cfg.get("if_pnp", True)
+    vo_test = infer_deepF(args.sequence, cfg["data"]["vo_path"], if_pnp)
 
     # load deepF model
     deepF_fe = deepF_frontend(cfg["models"]["deepF"], device=device)
