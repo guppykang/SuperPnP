@@ -444,7 +444,7 @@ class Result_processor(object):
                 data = json.load(json_file)
             return data
         for i, seq in enumerate(seqs):
-            save_folder = model_fe.get_saved_folder(subfolder, model, dataset, seq)
+            save_folder = model_fe.get_saved_folder(subfolder, model, dataset, seq, add_model=True)
             result_file = f"{save_folder}/{metric}/{filename}"
             if Path(result_file).exists():
                 result_entries.append(seq)
@@ -460,7 +460,7 @@ class Result_processor(object):
         result_table = {}
         if dataset == 'kitti' and snippet == False:
             for seq in sequences:
-                save_folder = model_fe.get_saved_folder(subfolder, model, dataset, seq) # get_saved_folder(result_folder, dataset, seq)
+                save_folder = model_fe.get_saved_folder(subfolder, model, dataset, seq, add_model=True) # get_saved_folder(result_folder, dataset, seq)
                 result_file = f"{save_folder}/result.txt"
                 print(f"result_file: {result_file}")
                 if Path(result_file).exists():

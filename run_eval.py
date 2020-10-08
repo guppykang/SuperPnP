@@ -60,11 +60,9 @@ def euler2mat(vec):
     return mat
 
 
-def eval_trajectory(save_folder, alignment="7dof"):
-    command = f"python kitti-odom-eval/eval_odom.py --result {save_folder} --align {alignment}"
-    print(f"run ==> {command}")
-    subprocess.run(f"{command}", shell=True, check=True)
-    pass
+def eval_trajectory(save_folder, alignment="7dof", seq=''):
+    return f"python kitti-odom-eval/eval_odom.py --result {save_folder} --align {alignment} --seq {seq}"
+
 
 def eval_trajectory_snippet(save_folder, seq, length=5):
     # from deepsfm_dummy.utils.eval_tools import Exp_table_processor
@@ -208,7 +206,8 @@ if __name__ == "__main__":
 
     ## deepF
     parser.add_argument("--deepF", action="store_true", help="Use DeepF pipeline")
-
+    ## for nautilus
+    parser.add_argument("--python_prefix", '-py', type=str, default="", help="Use conda python")
 
     
 
@@ -291,6 +290,7 @@ if __name__ == "__main__":
                 pretrained=args.pretrained,
                 keyframe=args.keyframe
             )
+            command = args.python_prefix + command
             print(f"command: {command}")
             subprocess.run(f"{command}", shell=True, check=True)
     
@@ -301,7 +301,9 @@ if __name__ == "__main__":
             save_folder = model_fe.get_saved_folder(subfolder, args.exper_name, dataset, s, add_model=True)
             if dataset == 'kitti':
                 alignment = '7dof'
-                eval_trajectory(save_folder, alignment=alignment)                        
+                command = eval_trajectory(save_folder, alignment=alignment, seq=s)
+                print(f"run ==> {command}")
+                subprocess.run(f"{command}", shell=True, check=True)
                 # eval_trajectory_snippet(save_folder, s, length=5)
             elif dataset == 'euroc':
                 est_traj = model_fe.get_saved_trajectory(subfolder, args.exper_name, dataset, s, trailing="_noTime.txt")
