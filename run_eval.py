@@ -178,7 +178,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "-sub", "--subfolder", type=str, default="", help="result subfolder, can be separated using model name"
     )
-    models = ['superglueflow_scsfm', 'siftflow', 'siftflow_scsfm', 'superglueflow', 'superflow', 'superflow2']
+    models = ['superglueflow_scsfm', 'siftflow', 'siftflow_scsfm', 'superglueflow', 
+              'superflow', 'superflow2', 'trianflow']
     print(f"models: {models} are supported")
     
     parser.add_argument(

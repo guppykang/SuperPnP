@@ -1,5 +1,5 @@
 #where the kitti datasets are on Nautilus
-kitti : 
+data: 
   raw_path : '/jbk001-data1/kitti_raw'
   vo_path : '/jbk001-data1/datasets/kitti/kitti_vo/vo_dataset/sequences'
   procressed_data_path : '/jbk001-data1/datasets/kitti/kitti_vo/vo_dataset_processed'
@@ -7,6 +7,7 @@ kitti :
 
 #config details for the models
 models : 
+  if_pnp: False # default true
   attention:
     encoder_lr : 1e-5
     decoder_lr : 1e-4
@@ -133,7 +134,7 @@ num_iterations: 200000
 batch_size: 8 # 32
 iter_start : 0 #place the iteration that it last stopped at here
 num_workers : 6
-ransac_num_matches : 1000
+ransac_num_matches : 2000
 
 
 #general

@@ -30,7 +30,7 @@ warnings.filterwarnings("ignore")
     
 class infer_deepF(infer_vo): # edited from infer_tum
     def __init__(self, seq_id, sequences_root_dir, if_pnp=True):
-        super().__init__(seq_id, sequences_root_dir, if_pnp=True)
+        super().__init__(seq_id, sequences_root_dir, if_pnp)
         # self.img_dir = sequences_root_dir
         # #self.img_dir = '/home4/zhaow/data/kitti_odometry/sampled_s4_sequences/'
         # self.seq_id = seq_id
@@ -365,6 +365,7 @@ if __name__ == '__main__':
         model_cfg, cfg = get_configs(config_file, mode='superflow')    
         from models.trianflow import TrianFlow as Model
     
+    print(f"configs: {cfg}")
     print(f"config model: {list(cfg['models'])}")
 
     #initialize the model
@@ -375,7 +376,7 @@ if __name__ == '__main__':
     print('Model Loaded.')
 
     #dataset
-    if_pnp = cfg.get("if_pnp", True)
+    if_pnp = cfg['models'].get("if_pnp", True)
     vo_test = infer_deepF(args.sequence, cfg["data"]["vo_path"], if_pnp)
 
     # load deepF model
