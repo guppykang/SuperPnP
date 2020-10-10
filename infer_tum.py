@@ -139,7 +139,7 @@ class infer_vo_tum(infer_vo):
         else:
             poses_wTime = poses
 
-        self.save_traj_kitti(traj_save_dir, poses, save_time, model)
+        traj_dir = self.save_traj_kitti(traj_save_dir, poses, save_time, model)
 
         ## save tum txt
         filename = Path(f"{traj_dir}/preds_{save_time}.tum")

@@ -285,10 +285,11 @@ if __name__ == '__main__':
         model_cfg, cfg = get_configs(config_file, mode='superflow')    
         from models.superflow import SuperFlow as Model
     elif args.model == 'superflow2':
+        raise "config to be checked!!!"
         config_file = './configs/tum/superflow2.yaml'
         model_cfg, cfg = get_configs(config_file, mode='superflow')    
         from models.superflow2 import SuperFlow as Model
-    elif args.model == 'siftflow':
+    elif args.model == 'siftflow' or args.model == 'siftflow_deepF' :
         config_file = './configs/siftflow_deepF.yaml'
         model_cfg, cfg = get_configs(config_file, mode='siftflow')    
         from models.siftflow import SiftFlow as Model

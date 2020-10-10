@@ -92,10 +92,7 @@ class infer_vo():
         self.img_dir = sequences_root_dir
         #self.img_dir = '/home4/zhaow/data/kitti_odometry/sampled_s4_sequences/'
         self.seq_id = seq_id
-        self.raw_img_h = 370.0#320
-        self.raw_img_w = 1226.0#1024
-        self.new_img_h = 256#320
-        self.new_img_w = 832#1024
+
         self.max_depth = 50.0
         self.min_depth = 0.0
         
@@ -115,7 +112,7 @@ class infer_vo():
         self.if_pnp = if_pnp
         self.if_deepF = if_deepF
         self.deepF_fe = None
-        print(f"set PnP: {if_pnp}, set deepF: {if_deepF}")
+        logging.info(f"set PnP: {if_pnp}, set deepF: {if_deepF}")
     
         
     @property
@@ -381,10 +378,13 @@ class infer_vo():
         self.save_traj_kitti(traj_save_dir, poses, save_time, model)
     
 
-    def save_traj_kitti(self, traj_txt, poses, save_time, model):
-
+    def save_traj_kitti(self, traj_save_dir, poses, save_time, model):
+        """ save trajectory (kitti style)
+        return:
+            the trajectory's directory
+        """
         # dir
-        traj_dir = Path(f"{traj_txt}")
+        traj_dir = Path(f"{traj_save_dir}")
         traj_dir = traj_dir/f"{self.seq_id}"/f"{model}"
         traj_dir.mkdir(exist_ok=True, parents=True)
         
@@ -402,8 +402,8 @@ class infer_vo():
         filename = Path(f"{traj_dir}/result.txt")
         np.savetxt(filename, poses, delimiter=" ", fmt="%.4f")
         print(f'Predicted Trajectory saved at : {filename}')
-
-        pass
+        return traj_dir
+        
 
 
 # if __name__ == '__main__':

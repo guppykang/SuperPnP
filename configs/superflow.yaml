@@ -1,13 +1,17 @@
 #where the kitti datasets are on Nautilus
 data: 
   raw_path : '/jbk001-data1/kitti_raw'
-  vo_path : '/jbk001-data1/datasets/kitti/kitti_vo/vo_dataset/sequences'
+  vo_path : '/jbk001-data1/datasets/kitti/kitti_vo/vo_dataset/sequences' ## kitti
+  vo_path : '/jbk001-data1/datasets/tum/' ## tum
+
   procressed_data_path : '/jbk001-data1/datasets/kitti/kitti_vo/vo_dataset_processed'
   vo_gts : '/jbk001-data1/datasets/kitti/kitti_vo/vo_gts'
 
 #config details for the models
 models : 
   if_pnp: False # default true
+  if_deepF: False # default false
+
   attention:
     encoder_lr : 1e-5
     decoder_lr : 1e-4
