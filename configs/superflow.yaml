@@ -1,8 +1,9 @@
 #where the kitti datasets are on Nautilus
 data: 
   raw_path : '/jbk001-data1/kitti_raw'
-  vo_path : '/jbk001-data1/datasets/kitti/kitti_vo/vo_dataset/sequences' ## kitti
-  vo_path : '/jbk001-data1/datasets/tum/' ## tum
+  vo_path_kitti : '/jbk001-data1/datasets/kitti/kitti_vo/vo_dataset/sequences'
+  vo_path_tum : '/jbk001-data1/datasets/tum/' # tum
+#   vo_path_tum : '/media/yoyee/Big_re/kitti/sequences'
 
   procressed_data_path : '/jbk001-data1/datasets/kitti/kitti_vo/vo_dataset_processed'
   vo_gts : '/jbk001-data1/datasets/kitti/kitti_vo/vo_gts'

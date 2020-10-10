@@ -9,8 +9,10 @@ import pytest
 #         x = "hello"
 #         assert hasattr(x, "check")
 
-# values_list=['apple','tomatoes','potatoes']
-ModelList=["siftflow", "siftflow_deepF"]
+# ModelList=["superflow", "siftflow", "siftflow_deepF", "siftflow_scsfm", "superglueflow_scsfm", "superglueflow", "trianflow"]
+ModelList=["siftflow", "siftflow_deepF", "superflow", "trianflow"]
+# ModelList=["superglueflow"] # to be tested
+
 class TestClass:
 
     @pytest.mark.parametrize("model", ModelList)
