@@ -200,6 +200,8 @@ if __name__ == "__main__":
     # parser.add_argument('--action',  type=str, default=None, help='[ euler2mat | ]')
     # parser.add_argument('--toCameraCoord',   type=lambda x: (str(x).lower() == 'true'), default=False, help='Whether to convert the pose to camera coordinate')
     parser.add_argument("--eval", action="store_true", help="eval the sequences")
+    parser.add_argument("--debug", action="store_true", help="debug mode: run only one sequence")
+    
     parser.add_argument("--snippet", action="store_true", help="eval the sequences with snippets")
     parser.add_argument(
         "--run", action="store_true", help="run to evaluate the sequences"
@@ -258,6 +260,8 @@ if __name__ == "__main__":
     # if dataset == 'euroc':
     #     euroc_controller = Euroc_dataset()
     seqs, controller = get_sequences(args)
+    if args.debug:
+        seqs = seqs[:1]
 
     w_time = args.wTime
     print(f"w_time: {w_time}")
@@ -352,6 +356,7 @@ if __name__ == "__main__":
                     )
                     print(f"eval: {command_list}")
                     for command, inp in zip(command_list, input_list):
+                        #print(f"{command}")
                         subprocess.run(f"{command}", shell=True, check=True, input=inp)
     
     

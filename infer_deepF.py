@@ -286,7 +286,8 @@ if __name__ == '__main__':
         from models.superflow import SuperFlow as Model
     elif args.model == 'superflow2':
         raise "config to be checked!!!"
-        config_file = './configs/tum/superflow2.yaml'
+        #config_file = './configs/tum/superflow2.yaml'
+        config_file = './configs/superflow2.yaml'
         model_cfg, cfg = get_configs(config_file, mode='superflow')    
         from models.superflow2 import SuperFlow as Model
     elif args.model == 'siftflow' or args.model == 'siftflow_deepF' :
@@ -302,7 +303,8 @@ if __name__ == '__main__':
         model_cfg, cfg = get_configs(config_file, mode='superglueflow')    
         from models.superglueflow_scsfm import SuperGlueFlow_scsfm as Model
     elif args.model == 'superglueflow':
-        config_file = './configs/tum/superglueflow.yaml'
+        #config_file = './configs/tum/superglueflow.yaml'
+        config_file = './configs/superglueflow.yaml'
         model_cfg, cfg = get_configs(config_file, mode=args.model)    
         from models.superglueflow import SuperGlueFlow as Model
     elif args.model == 'trianflow':
@@ -330,7 +332,7 @@ if __name__ == '__main__':
         infer_vo = infer_vo_tum
     else:
         raise "dataset not defined"
-    vo_test = infer_vo(args.sequence, cfg["data"]["vo_path"], if_pnp, if_deepF)
+    vo_test = infer_vo(args.sequence, cfg["data"][f"vo_path_{args.dataset}"], if_pnp, if_deepF)
     # load deepF model
     if if_deepF:
         deepF_fe = deepF_frontend(cfg["models"]["deepF"], device=device)
