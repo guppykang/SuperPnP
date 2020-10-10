@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name:  superpnp-siftflow-deepf-yyjau-job # deepsfm-pod
+  name:  superpnp-superflow-yyjau-job # deepsfm-pod
   namespace: mc-lab
   labels:
     user: yyjau 
@@ -15,7 +15,7 @@ spec:
         command:
         - "sh"
         - "-c"
-        - "/jbk001-data1/yyjau/Documents/SuperPnP/scripts/run_1007_deepF_tum.sh"
+        - "/jbk001-data1/yyjau/Documents/SuperPnP/scripts/run_trianflow_1007.sh"
         resources:
           requests:
             cpu: "8"
