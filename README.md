@@ -49,7 +49,7 @@ Install KITTI vo from the kitti website, and install TUM from
 ./setup_nautilus.sh
 ```
 
-## KITTI
+## KITTI (deprecated)
 ### Inference on superglueflow
 To infernce on superglueflow (superpoint + superglue + flownet correspondences) : 
 ```bash
@@ -63,7 +63,7 @@ python infer_kitti --traj_save_dir path/to/save/kitti_vo/preds --sequence 09 --s
 python ./TrianFlow/core/evaluation/eval_odom.py --gt_txt /path/to/saved/gts.txt --result_txt /path/to/saved/preds.txt
 ```
 
-## TUM
+## TUM (deprecated)
 ### Inference on superglueflow
 To infernce on superglueflow (superpoint + superglue + flownet correspondences) : 
 ```bash
@@ -122,6 +122,27 @@ python run_eval.py test -m siftflow -d tum --eval
 python run_eval.py test -m siftflow -d tum --table
 # rpe_xy
 python run_eval.py test -m siftflow -d tum --table --metric rpe_xy
+```
+
+## Testing (for development)
+```
+# test models on 2 datasets
+pytest tests/infer_deepF_test -v
+```
+Should see this:
+```
+==================================================== test session starts ====================================================
+platform linux -- Python 3.6.11, pytest-6.1.1, py-1.9.0, pluggy-0.13.1 -- /jbk001-data1/yyjau/conda/py36-superpnp_deepF/bin/python3.6
+cachedir: .pytest_cache
+rootdir: /jbk001-data1/yyjau/Documents/SuperPnP
+collected 4 items
+
+tests/infer_deepF_test/test_model_dataset.py::TestClass::test_xxx[siftflow] PASSED                                    [ 25%]
+tests/infer_deepF_test/test_model_dataset.py::TestClass::test_xxx[siftflow_deepF] PASSED                              [ 50%]
+tests/infer_deepF_test/test_model_dataset.py::TestClass::test_xxx[superflow] PASSED                                   [ 75%]
+tests/infer_deepF_test/test_model_dataset.py::TestClass::test_xxx[trianflow] PASSED                                   [100%]
+
+=============================================== 4 passed in 487.09s (0:08:07) ===============================================
 ```
 
 
