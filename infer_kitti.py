@@ -85,8 +85,10 @@ def cv_triangulation(matches, pose):
     points2 = pose2[:3] @ points
     return points1, points2
 
+
+
 class infer_vo():
-    def __init__(self, seq_id, sequences_root_dir, if_pnp=True):
+    def __init__(self, seq_id, sequences_root_dir, if_pnp=True, if_deepF=False):
         self.img_dir = sequences_root_dir
         #self.img_dir = '/home4/zhaow/data/kitti_odometry/sampled_s4_sequences/'
         self.seq_id = seq_id
@@ -97,7 +99,7 @@ class infer_vo():
         self.max_depth = 50.0
         self.min_depth = 0.0
         
-        self.cam_intrinsics = self.read_rescale_camera_intrinsics(os.path.join(self.img_dir, seq_id) + '/calib.txt')
+        #self.cam_intrinsics = self.read_rescale_camera_intrinsics(os.path.join(self.img_dir, seq_id) + '/calib.txt')
         self.flow_pose_ransac_thre = 0.1 #0.2
         self.flow_pose_ransac_times = 10 #5
         self.flow_pose_min_flow = 5
@@ -111,7 +113,21 @@ class infer_vo():
         self.timestamps = None
         self.last_pose = np.eye(4)
         self.if_pnp = if_pnp
-        print(f"set PnP: {if_pnp}")
+        self.if_deepF = if_deepF
+        self.deepF_fe = None
+        print(f"set PnP: {if_pnp}, set deepF: {if_deepF}")
+    
+        
+    @property
+    def deepF_fe(self):
+        # print("get deepF")
+        return self._deepF_fe
+
+    @deepF_fe.setter
+    def deepF_fe(self, fe):
+        print("set deepF frontend")
+        self._deepF_fe = fe
+
     
     def read_rescale_camera_intrinsics(self, path):
         raw_img_h = self.raw_img_h
@@ -175,6 +191,7 @@ class infer_vo():
         
         return filt_depth_match, depth1, depth2
 
+
     
     def process_video_relative(self, images, model, mode):
         '''
@@ -198,7 +215,10 @@ class infer_vo():
             depth_match, depth1, depth2 = self.get_prediction(img1, img2, model, K, K_inv)
             
             rel_pose = np.eye(4)
-            flow_pose = self.solve_pose_flow(depth_match[:,:2], depth_match[:,2:])
+            if self.if_deepF:
+                flow_pose = self.solve_pose_deepF(depth_match[:,:2], depth_match[:,2:])
+            else:
+                flow_pose = self.solve_pose_flow(depth_match[:,:2], depth_match[:,2:])
             logging.debug(f"flow_pose: {flow_pose}")
             rel_pose[:3,:3] = copy.deepcopy(flow_pose[:3,:3])
             if np.linalg.norm(flow_pose[:3,3:]) != 0:
@@ -304,6 +324,23 @@ class infer_vo():
         pose = np.linalg.inv(pose)
         return pose
     
+    def solve_pose_deepF(self, xy1, xy2):
+        """ call deepF front end for pose estimation
+        """
+        # assert model is ready
+        assert self.deepF_fe is not None
+        # get K, K_inv
+        b_K = torch.tensor(self.K_np).float().unsqueeze(0)
+        b_K_inv = torch.tensor(self.K_inv_np).float().unsqueeze(0)
+        b_xy1 = torch.tensor(xy1).float().unsqueeze(0)
+        b_xy2 = torch.tensor(xy2).float().unsqueeze(0)
+        # inference
+        # SVD for pose
+        poses = self.deepF_fe.run(b_xy1, b_xy2, b_K, b_K_inv)
+        pose = poses.squeeze().to('cpu').numpy()
+        row = np.array([[0,0,0,1]]).astype(np.float32)
+        pose = np.concatenate((pose, row), axis=0)
+        return pose
     
     def solve_pose_flow(self, xy1, xy2):
         # Solve essential matrix to find relative pose from flow.
@@ -340,6 +377,9 @@ class infer_vo():
         pose[:3,3:] = t
         return pose
 
+    def save_traj(self, traj_save_dir, poses, save_time, model):
+        self.save_traj_kitti(traj_save_dir, poses, save_time, model)
+    
 
     def save_traj_kitti(self, traj_txt, poses, save_time, model):
 
@@ -365,83 +405,85 @@ class infer_vo():
 
         pass
 
-if __name__ == '__main__':
-    import argparse
-    arg_parser = argparse.ArgumentParser(
-        description="Inferencing on kitti pipeline."
-    )
-    arg_parser.add_argument('--mode', type=str, default='relative', help='(choose from : relative (hybrid), absolute')
-    arg_parser.add_argument('--model', type=str, default='superglueflow', help='(choose from : siftflow, superglueflow, superflow, superflow2, trianflow)')
-    arg_parser.add_argument('--traj_save_dir', type=str, default='/jbk001-data1/datasets/kitti/kitti_vo/vo_preds/', help='directory for saving results')
-    arg_parser.add_argument('--sequences_root_dir', type=str, default='/jbk001-data1/datasets/kitti/kitti_vo/vo_dataset/sequences', help='Root directory for all datasets')
-    arg_parser.add_argument('--sequence', type=str, default='10', help='Test sequence id.')
-    arg_parser.add_argument('--iters', type=int, default='-1', help='Limited iterations for debugging')
-    arg_parser.add_argument('--stride', type=int, default='1', help='Stride between images')
-    args = arg_parser.parse_args()
-    
-    # args.traj_save_dir = str(Path(args.traj_save_dir) / args.model / (args.sequence + '_' + args.model + '_stride' + str(args.stride) + '_' + time.strftime("%Y%m%d-%H%M%S")
-    #  + '.txt')) #I just like this better than os.path
 
-    os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+# if __name__ == '__main__':
+#     import argparse
+#     arg_parser = argparse.ArgumentParser(
+#         description="Inferencing on kitti pipeline."
+#     )
+#     arg_parser.add_argument('--mode', type=str, default='relative', help='(choose from : relative (hybrid), absolute')
+#     arg_parser.add_argument('--model', type=str, default='superglueflow', help='(choose from : siftflow, superglueflow, superflow, superflow2, trianflow)')
+#     arg_parser.add_argument('--traj_save_dir', type=str, default='/jbk001-data1/datasets/kitti/kitti_vo/vo_preds/', help='directory for saving results')
+#     arg_parser.add_argument('--sequences_root_dir', type=str, default='/jbk001-data1/datasets/kitti/kitti_vo/vo_dataset/sequences', help='Root directory for all datasets')
+#     arg_parser.add_argument('--sequence', type=str, default='10', help='Test sequence id.')
+#     arg_parser.add_argument('--iters', type=int, default='-1', help='Limited iterations for debugging')
+#     arg_parser.add_argument('--stride', type=int, default='1', help='Stride between images')
+#     args = arg_parser.parse_args()
+    
+#     # args.traj_save_dir = str(Path(args.traj_save_dir) / args.model / (args.sequence + '_' + args.model + '_stride' + str(args.stride) + '_' + time.strftime("%Y%m%d-%H%M%S")
+#     #  + '.txt')) #I just like this better than os.path
+
+#     os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
 
-    #import the model
-    print(f'Using the {args.model} model')
-    if args.model == 'superflow':
-        config_file = './configs/superflow.yaml'
-        model_cfg, cfg = get_configs(config_file, mode='superflow')    
-        from models.superflow import SuperFlow as Model
-    elif args.model == 'superflow2':
-        config_file = './configs/kitti/superflow2.yaml'
-        model_cfg, cfg = get_configs(config_file, mode='superflow')    
-        from models.superflow2 import SuperFlow as Model
-    elif args.model == 'siftflow':
-        config_file = './configs/siftflow.yaml'
-        model_cfg, cfg = get_configs(config_file, mode='siftflow')    
-        from models.siftflow import SiftFlow as Model
-    elif args.model == 'superglueflow':
-        config_file = './configs/kitti/superglueflow.yaml'
-        model_cfg, cfg = get_configs(config_file, mode='superglueflow')    
-        from models.superglueflow import SuperGlueFlow as Model
-    elif args.model == 'trianflow':
-        config_file = './configs/superflow.yaml'
-        model_cfg, cfg = get_configs(config_file, mode='superflow')    
-        from models.trianflow import TrianFlow as Model
+#     #import the model
+#     print(f'Using the {args.model} model')
+#     if args.model == 'superflow':
+#         config_file = './configs/superflow.yaml'
+#         model_cfg, cfg = get_configs(config_file, mode='superflow')    
+#         from models.superflow import SuperFlow as Model
+#     elif args.model == 'superflow2':
+#         config_file = './configs/kitti/superflow2.yaml'
+#         model_cfg, cfg = get_configs(config_file, mode='superflow')    
+#         from models.superflow2 import SuperFlow as Model
+#     elif args.model == 'siftflow':
+#         config_file = './configs/siftflow.yaml'
+#         model_cfg, cfg = get_configs(config_file, mode='siftflow')    
+#         from models.siftflow import SiftFlow as Model
+#     elif args.model == 'superglueflow':
+#         config_file = './configs/kitti/superglueflow.yaml'
+#         model_cfg, cfg = get_configs(config_file, mode='superglueflow')    
+#         from models.superglueflow import SuperGlueFlow as Model
+#     elif args.model == 'trianflow':
+#         config_file = './configs/superflow.yaml'
+#         model_cfg, cfg = get_configs(config_file, mode='superflow')    
+#         from models.trianflow import TrianFlow as Model
     
-    #initialize the model
-    model = Model(model_cfg, cfg)
-    model.load_modules(model_cfg)
-    model.cuda()
-    model.eval()
-    print('Model Loaded.')
+#     #initialize the model
+#     model = Model(model_cfg, cfg)
+#     model.load_modules(model_cfg)
+#     model.cuda()
+#     model.eval()
+#     print('Model Loaded.')
 
-    #dataset
-    # vo_test = infer_vo(args.sequence, args.sequences_root_dir)
-    if_pnp = cfg.get("if_pnp", True)
-    vo_test = infer_vo(args.sequence, cfg["data"]["vo_path"], if_pnp)
+#     #dataset
+#     # vo_test = infer_vo(args.sequence, args.sequences_root_dir)
+#     if_pnp = cfg.get("if_pnp", True)
+#     if_deepF = cfg.get("if_deepF", False)
+#     vo_test = infer_vo(args.sequence, cfg["data"]["vo_path"], if_pnp, if_deepF)
     
-    #load
-    print(f'Loading images at stride : {args.stride}')
-    images = vo_test.load_images(stride=args.stride, max_length=args.iters)
-    print('Images Loaded. Total ' + str(len(images)) + ' images found.')
+#     #load
+#     print(f'Loading images at stride : {args.stride}')
+#     images = vo_test.load_images(stride=args.stride, max_length=args.iters)
+#     print('Images Loaded. Total ' + str(len(images)) + ' images found.')
     
-    #inference
-    print(f'Testing VO in {args.mode} mode.')
-    if args.mode == 'relative':
-        poses = vo_test.process_video_relative(images, model, args.model)
-        poses = np.array(poses)
-    else : 
-        raise RuntimeError('Absolute pose estimation feature was discontinued')
-    print('Test completed.')
+#     #inference
+#     print(f'Testing VO in {args.mode} mode.')
+#     if args.mode == 'relative':
+#         poses = vo_test.process_video_relative(images, model, args.model)
+#         poses = np.array(poses)
+#     else : 
+#         raise RuntimeError('Absolute pose estimation feature was discontinued')
+#     print('Test completed.')
     
-    del images
-    gc.collect()
+#     del images
+#     gc.collect()
     
-    save_time = time.strftime("%Y%m%d-%H%M%S")
-    poses = poses[:,:3,:4].reshape(-1, 12)
-    print(f'Shape of poses : {poses.shape}')
-    vo_test.save_traj_kitti(args.traj_save_dir, poses, save_time, args.model)
+#     save_time = time.strftime("%Y%m%d-%H%M%S")
+#     poses = poses[:,:3,:4].reshape(-1, 12)
+#     print(f'Shape of poses : {poses.shape}')
+#     vo_test.save_traj_kitti(args.traj_save_dir, poses, save_time, args.model)
 
-    # traj_txt = args.traj_save_dir
-    # save_traj(traj_txt, poses)
-    # print(f'Predicted Trajectory saved at : {args.traj_save_dir}')
+#     # traj_txt = args.traj_save_dir
+#     # save_traj(traj_txt, poses)
+#     # print(f'Predicted Trajectory saved at : {args.traj_save_dir}')

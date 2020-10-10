@@ -206,7 +206,7 @@ if __name__ == "__main__":
     )
 
     ## deepF
-    parser.add_argument("--deepF", action="store_true", help="Use DeepF pipeline")
+    #parser.add_argument("--deepF", action="store_true", help="Use DeepF pipeline")
     ## for nautilus
     parser.add_argument("--python_prefix", '-py', type=str, default="", help="Use conda python")
 
@@ -269,17 +269,14 @@ if __name__ == "__main__":
     if args.run:
         ## kitti and euroc are the same
         # get python filename
-        if args.deepF:
-            model_fe.pyFile = "infer_deepF.py"
+        #if args.deepF:
+        #    model_fe.pyFile = "infer_deepF.py"
+        #else:
+        if dataset == 'euroc':
+            # args.width, args.height = 752, 480
+            pass
         else:
-            if dataset == 'euroc':
-                # args.width, args.height = 752, 480
-                pass
-            elif dataset == 'tum':
-                model_fe.pyFile = "infer_tum.py"
-                # args.width, args.height = 640, 480
-            elif dataset == 'kitti':
-                model_fe.pyFile = "infer_kitti.py"
+            model_fe.pyFile = "infer_deepF.py"
 
         dump_config(args, model_fe.get_saved_base(subfolder, args.exper_name, dataset))
         for s in seqs:

@@ -25,12 +25,13 @@ from utils.utils import get_configs, vehicle_to_world
 from utils.logging import *
 
 from infer_kitti import infer_vo, save_traj
+from infer_tum import infer_vo_kitti, infer_vo_tum
 
 warnings.filterwarnings("ignore")
     
-class infer_deepF(infer_vo): # edited from infer_tum
-    def __init__(self, seq_id, sequences_root_dir, if_pnp=True):
-        super().__init__(seq_id, sequences_root_dir, if_pnp)
+# class infer_deepF(infer_vo): # edited from infer_tum
+#     def __init__(self, seq_id, sequences_root_dir, if_pnp=True):
+#         super().__init__(seq_id, sequences_root_dir, if_pnp)
         # self.img_dir = sequences_root_dir
         # #self.img_dir = '/home4/zhaow/data/kitti_odometry/sampled_s4_sequences/'
         # self.seq_id = seq_id
@@ -119,73 +120,11 @@ class infer_deepF(infer_vo): # edited from infer_tum
 
     #     print('Loaded Images')
     #     return images
+   
+
+
+
     
-    @staticmethod
-    def mat2quat(mat):
-        assert mat.shape == (3,4) or mat.shape == (4,4)
-        rotation = mat[:3,:3]
-        trans = mat[:3,3]
-        from scipy.spatial.transform import Rotation as R
-        qua = R.from_matrix(rotation)
-        vect = np.concatenate((trans, qua.as_quat() ), axis=0)
-        return vect
-        
-    @property
-    def deepF_fe(self):
-        # print("get deepF")
-        return self._deepF_fe
-
-    @deepF_fe.setter
-    def deepF_fe(self, fe):
-        print("set deepF frontend")
-        self._deepF_fe = fe
-
-    def solve_pose_deepF(self, xy1, xy2):
-        """ call deepF front end for pose estimation
-        """
-        # assert model is ready
-        assert self.deepF_fe is not None
-        # get K, K_inv
-        b_K = torch.tensor(self.K_np).float().unsqueeze(0)
-        b_K_inv = torch.tensor(self.K_inv_np).float().unsqueeze(0)
-        b_xy1 = torch.tensor(xy1).float().unsqueeze(0)
-        b_xy2 = torch.tensor(xy2).float().unsqueeze(0)
-        # inference
-        # SVD for pose
-        poses = self.deepF_fe.run(b_xy1, b_xy2, b_K, b_K_inv)
-        pose = poses.squeeze().to('cpu').numpy()
-        row = np.array([[0,0,0,1]]).astype(np.float32)
-        pose = np.concatenate((pose, row), axis=0)
-        return pose
-
-    def solve_pose_flow(self, xy1, xy2):
-        return self.solve_pose_deepF(xy1, xy2)
-    
-    def save_traj(self, traj_txt, poses, save_time, model):
-        time_stamps = self.timestamps
-        time_stamps = np.array(time_stamps).flatten()
-        time_stamps = time_stamps[:len(poses)].reshape(-1,1)
-        
-        poses_wTime = np.concatenate((time_stamps, poses), axis=1)
-        # dir
-        traj_dir = Path(f"{traj_txt}")
-        traj_dir = traj_dir/f"{self.seq_id}"/f"{model}"
-        traj_dir.mkdir(exist_ok=True, parents=True)
-        
-        # save txt
-        filename = Path(f"{traj_dir}/preds_{save_time}.txt")
-        np.savetxt(filename, poses, delimiter=" ", fmt="%.4f")
-        filename = Path(f"{traj_dir}/preds_{save_time}_t.txt")
-        np.savetxt(filename, poses_wTime, delimiter=" ", fmt="%.4f")
-        ## save tum txt
-        filename = Path(f"{traj_dir}/preds_{save_time}.tum")
-        pose_qua = np.array([infer_vo_tum.mat2quat(m.reshape(3,4)) for m in poses])
-        poses_qua_wTime = np.concatenate((time_stamps, pose_qua), axis=1)
-        np.savetxt(filename, poses_qua_wTime, delimiter=" ", fmt="%.4f")
-        # copy tum txt
-        filename = Path(f"{traj_dir}/preds.tum")
-        np.savetxt(filename, poses_qua_wTime, delimiter=" ", fmt="%.4f")
-        pass
 
 ##### deepF frontend
 from deepFEPE.utils.loader import (
@@ -322,10 +261,15 @@ if __name__ == '__main__':
         description="Inferencing on TUM pipeline."
     )
     arg_parser.add_argument('--model', type=str, default='superglueflow', help='(choose from : siftflow, superglueflow, superflow, superflow2)')
+    arg_parser.add_argument(
+        "-d", "--dataset", type=str, default="kitti", help="[kitti |  euroc | tum ... ]"
+    )
     arg_parser.add_argument('--traj_save_dir', type=str, default='/jbk001-data1/datasets/tum/vo_pred', help='directory for saving results')
     arg_parser.add_argument('--sequences_root_dir', type=str, default='/jbk001-data1/datasets/tum', help='Root directory for all datasets')
     arg_parser.add_argument('--sequence', type=str, default='rgbd_dataset_freiburg2_desk', help='Test sequence id.')
     arg_parser.add_argument('--iters', type=int, default='-1', help='Limited iterations for debugging')
+    # arg_parser.add_argument("--deepF", action="store_true", help="Use DeepF pipeline")
+
     args = arg_parser.parse_args()
     
    
@@ -377,13 +321,22 @@ if __name__ == '__main__':
 
     #dataset
     if_pnp = cfg['models'].get("if_pnp", True)
-    vo_test = infer_deepF(args.sequence, cfg["data"]["vo_path"], if_pnp)
+    if_deepF = cfg['models'].get("if_deepF", False)
 
+    if args.dataset == 'kitti':
+        infer_vo = infer_vo_kitti
+    elif args.dataset == 'tum':
+        infer_vo = infer_vo_tum
+    else:
+        raise "dataset not defined"
+    vo_test = infer_vo(args.sequence, cfg["data"]["vo_path"], if_pnp, if_deepF)
     # load deepF model
-    deepF_fe = deepF_frontend(cfg["models"]["deepF"], device=device)
-    deepF_fe.load_model()
-    deepF_fe.prepare_model()
-    vo_test.deepF_fe = deepF_fe
+    if if_deepF:
+        deepF_fe = deepF_frontend(cfg["models"]["deepF"], device=device)
+        deepF_fe.load_model()
+        deepF_fe.prepare_model()
+        vo_test.deepF_fe = deepF_fe
+        
 
     #load and inference
     images = vo_test.load_images(max_length=args.iters)
@@ -396,7 +349,7 @@ if __name__ == '__main__':
     save_time = time.strftime("%Y%m%d-%H%M%S")
     poses = poses[:,:3,:4].reshape(-1, 12)
     print(f'Shape of poses : {poses.shape}')
-    vo_test.save_traj_kitti(args.traj_save_dir, poses, save_time, args.model)
+    vo_test.save_traj(args.traj_save_dir, poses, save_time, args.model)
 
     # save_time = time.strftime("%Y%m%d-%H%M%S")
     # poses = poses[:,:3,:4].reshape(-1, 12)

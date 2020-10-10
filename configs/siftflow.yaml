@@ -10,6 +10,8 @@ data:
 #config details for the models
 models : 
   if_pnp: False # default true
+  if_deepF: False # default false
+
   attention:
     encoder_lr : 1e-5
     decoder_lr : 1e-4
@@ -38,7 +40,7 @@ num_iterations: 200000
 batch_size: 8 # 32
 iter_start : 0 #place the iteration that it last stopped at here
 num_workers : 6
-ransac_num_matches : 2000
+ransac_num_matches : 1000
 
 
 #general

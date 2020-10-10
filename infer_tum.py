@@ -25,28 +25,30 @@ from infer_kitti import infer_vo
 
 warnings.filterwarnings("ignore")
     
+class infer_vo_kitti(infer_vo):
+    def __init__(self, seq_id, sequences_root_dir, if_pnp=True, if_deepF=False):
+        super().__init__(seq_id, sequences_root_dir, if_pnp, if_deepF)
+        self.raw_img_h = 370.0#320
+        self.raw_img_w = 1226.0#1024
+        self.new_img_h = 256#320
+        self.new_img_w = 832#1024
+        self.cam_intrinsics = self.read_rescale_camera_intrinsics(os.path.join(self.img_dir, seq_id) + '/calib.txt')
+
+    
 class infer_vo_tum(infer_vo):
-    def __init__(self, seq_id, sequences_root_dir):
+    def __init__(self, seq_id, sequences_root_dir, if_pnp=True, if_deepF=False):
+        super().__init__(seq_id, sequences_root_dir, if_pnp, if_deepF)
         self.img_dir = sequences_root_dir
         #self.img_dir = '/home4/zhaow/data/kitti_odometry/sampled_s4_sequences/'
-        self.seq_id = seq_id
+        #self.seq_id = seq_id
         self.raw_img_h = 480.0 #320
         self.raw_img_w = 640.0 #1024
         self.new_img_h = 384 #320
         self.new_img_w = 512 #1024
-        self.max_depth = 50.0
-        self.min_depth = 0.0
+        #self.max_depth = 50.0
+        #self.min_depth = 0.0
         self.cam_intrinsics = self.rescale_camera_intrinsics(self.read_calib_file())
-        self.flow_pose_ransac_thre = 0.1 #0.2
-        self.flow_pose_ransac_times = 10 #5
-        self.flow_pose_min_flow = 5
-        self.align_ransac_min_samples = 3
-        self.align_ransac_max_trials = 100
-        self.align_ransac_stop_prob = 0.99
-        self.align_ransac_thre = 1.0
-        self.PnP_ransac_iter = 1000
-        self.PnP_ransac_thre = 1
-        self.PnP_ransac_times = 5
+
         self.train_sets = [ # only process train_set
             "rgbd_dataset_freiburg3_long_office_household",
             "rgbd_dataset_freiburg3_long_office_household_validation",
@@ -151,78 +153,78 @@ class infer_vo_tum(infer_vo):
         pass
 
 
-if __name__ == '__main__':
-    import argparse
-    arg_parser = argparse.ArgumentParser(
-        description="Inferencing on TUM pipeline."
-    )
-    arg_parser.add_argument('--model', type=str, default='superglueflow', help='(choose from : siftflow, superglueflow, superflow, superflow2)')
-    arg_parser.add_argument('--traj_save_dir', type=str, default='/jbk001-data1/datasets/tum/vo_pred', help='directory for saving results')
-    arg_parser.add_argument('--sequences_root_dir', type=str, default='/jbk001-data1/datasets/tum', help='Root directory for all datasets')
-    arg_parser.add_argument('--sequence', type=str, default='rgbd_dataset_freiburg2_desk', help='Test sequence id.')
-    arg_parser.add_argument('--iters', type=int, default='-1', help='Limited iterations for debugging')
-    args = arg_parser.parse_args()
+# if __name__ == '__main__':
+#     import argparse
+#     arg_parser = argparse.ArgumentParser(
+#         description="Inferencing on TUM pipeline."
+#     )
+#     arg_parser.add_argument('--model', type=str, default='superglueflow', help='(choose from : siftflow, superglueflow, superflow, superflow2)')
+#     arg_parser.add_argument('--traj_save_dir', type=str, default='/jbk001-data1/datasets/tum/vo_pred', help='directory for saving results')
+#     arg_parser.add_argument('--sequences_root_dir', type=str, default='/jbk001-data1/datasets/tum', help='Root directory for all datasets')
+#     arg_parser.add_argument('--sequence', type=str, default='rgbd_dataset_freiburg2_desk', help='Test sequence id.')
+#     arg_parser.add_argument('--iters', type=int, default='-1', help='Limited iterations for debugging')
+#     args = arg_parser.parse_args()
     
    
 
-    os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+#     os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
 
-    #import the model
-    print(f'Using the {args.model} model')
-    if args.model == 'superflow':
-        config_file = './configs/superflow.yaml'
-        model_cfg, cfg = get_configs(config_file, mode='superflow')    
-        from models.superflow import SuperFlow as Model
-    elif args.model == 'superflow2':
-        config_file = './configs/tum/superflow2.yaml'
-        model_cfg, cfg = get_configs(config_file, mode='superflow')    
-        from models.superflow2 import SuperFlow as Model
-    elif args.model == 'siftflow':
-        config_file = './configs/siftflow.yaml'
-        model_cfg, cfg = get_configs(config_file, mode='siftflow')    
-        from models.siftflow import SiftFlow as Model
-    elif args.model == 'siftflow_scsfm':
-        config_file = './configs/siftflow_scsfm.yaml'
-        model_cfg, cfg = get_configs(config_file)    
-        from models.siftflow_scsfm import SiftFlow_scsfm as Model
-    elif args.model == 'superglueflow_scsfm':
-        config_file = './configs/superglueflow_scsfm.yaml'
-        model_cfg, cfg = get_configs(config_file, mode='superglueflow')    
-        from models.superglueflow_scsfm import SuperGlueFlow_scsfm as Model
-    elif args.model == 'superglueflow':
-        config_file = './configs/tum/superglueflow.yaml'
-        model_cfg, cfg = get_configs(config_file, mode=args.model)    
-        from models.superglueflow import SuperGlueFlow as Model
-    elif args.model == 'trianflow':
-        config_file = './configs/superflow.yaml'
-        model_cfg, cfg = get_configs(config_file, mode='superflow')    
-        from models.trianflow import TrianFlow as Model
+#     #import the model
+#     print(f'Using the {args.model} model')
+#     if args.model == 'superflow':
+#         config_file = './configs/superflow.yaml'
+#         model_cfg, cfg = get_configs(config_file, mode='superflow')    
+#         from models.superflow import SuperFlow as Model
+#     elif args.model == 'superflow2':
+#         config_file = './configs/tum/superflow2.yaml'
+#         model_cfg, cfg = get_configs(config_file, mode='superflow')    
+#         from models.superflow2 import SuperFlow as Model
+#     elif args.model == 'siftflow':
+#         config_file = './configs/siftflow.yaml'
+#         model_cfg, cfg = get_configs(config_file, mode='siftflow')    
+#         from models.siftflow import SiftFlow as Model
+#     elif args.model == 'siftflow_scsfm':
+#         config_file = './configs/siftflow_scsfm.yaml'
+#         model_cfg, cfg = get_configs(config_file)    
+#         from models.siftflow_scsfm import SiftFlow_scsfm as Model
+#     elif args.model == 'superglueflow_scsfm':
+#         config_file = './configs/superglueflow_scsfm.yaml'
+#         model_cfg, cfg = get_configs(config_file, mode='superglueflow')    
+#         from models.superglueflow_scsfm import SuperGlueFlow_scsfm as Model
+#     elif args.model == 'superglueflow':
+#         config_file = './configs/tum/superglueflow.yaml'
+#         model_cfg, cfg = get_configs(config_file, mode=args.model)    
+#         from models.superglueflow import SuperGlueFlow as Model
+#     elif args.model == 'trianflow':
+#         config_file = './configs/superflow.yaml'
+#         model_cfg, cfg = get_configs(config_file, mode='superflow')    
+#         from models.trianflow import TrianFlow as Model
 
 
-    #initialize the model
-    model = Model(model_cfg, cfg)
-    model.load_modules(model_cfg)
-    model.cuda()
-    model.eval()
-    print('Model Loaded.')
+#     #initialize the model
+#     model = Model(model_cfg, cfg)
+#     model.load_modules(model_cfg)
+#     model.cuda()
+#     model.eval()
+#     print('Model Loaded.')
 
-    #dataset
-    vo_test = infer_vo_tum(args.sequence, args.sequences_root_dir)
+#     #dataset
+#     vo_test = infer_vo_tum(args.sequence, args.sequences_root_dir)
     
-    #load and inference
-    images = vo_test.load_images(max_length=args.iters)
-    print('Images Loaded. Total ' + str(len(images)) + ' images found.')
-    print('Testing VO.')
-    poses = np.array(vo_test.process_video_relative(images, model, args.model))
-    del images
-    print('Test completed.')
+#     #load and inference
+#     images = vo_test.load_images(max_length=args.iters)
+#     print('Images Loaded. Total ' + str(len(images)) + ' images found.')
+#     print('Testing VO.')
+#     poses = np.array(vo_test.process_video_relative(images, model, args.model))
+#     del images
+#     print('Test completed.')
 
-    save_time = time.strftime("%Y%m%d-%H%M%S")
-    poses = poses[:,:3,:4].reshape(-1, 12)
-    print(f'Shape of poses : {poses.shape}')
-    vo_test.save_traj(args.traj_save_dir, poses, save_time, args.model)
-    # print(f'Predicted Trajectory saved at : {args.traj_save_dir}/{args.sequence}/{args.model}/preds_{save_time}.txt')
+#     save_time = time.strftime("%Y%m%d-%H%M%S")
+#     poses = poses[:,:3,:4].reshape(-1, 12)
+#     print(f'Shape of poses : {poses.shape}')
+#     vo_test.save_traj(args.traj_save_dir, poses, save_time, args.model)
+#     # print(f'Predicted Trajectory saved at : {args.traj_save_dir}/{args.sequence}/{args.model}/preds_{save_time}.txt')
 
 
   

@@ -98,7 +98,7 @@ class flow_frontend(Sc_Sfmleaner_frontend):
                              pretrained="/pretrained/pose/cs+k_pose.tar", 
                              skip_frame=1, keyframe=""):
         command = f"python {self.pyFile} --model {self.model} --sequence {sequence} \
-                --traj_save_dir {save_folder} --iters {args.iters}"
+                --traj_save_dir {save_folder} --iters {args.iters} --dataset {dataset}"
         return command
         pass
     
