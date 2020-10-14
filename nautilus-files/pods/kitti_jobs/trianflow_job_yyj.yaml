@@ -1,0 +1,48 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name:  superpnp-trianflow-yyjau-job # deepsfm-pod
+  namespace: mc-lab
+  labels:
+    user: yyjau 
+spec:
+  ttlSecondsAfterFinished: 86400 # Wait one day to delete completed jobs
+  template:
+    spec:
+      containers:
+      - name: gpu-container
+        image: gitlab-registry.nautilus.optiputer.net/prp/jupyterlab # pytorch/pytorch:1.0.1-cuda10.0-cudnn7-runtime
+        command:
+        - "sh"
+        - "-c"
+        - "/jbk001-data1/yyjau/Documents/SuperPnP/scripts/run_trianflow_tum_1007.sh"
+        resources:
+          requests:
+            cpu: "8"
+            memory: "8Gi"
+            nvidia.com/gpu: 1
+            ephemeral-storage: 100Gi
+          limits:
+            cpu: "8"
+            memory: "8Gi"
+            nvidia.com/gpu: 1
+            ephemeral-storage: 100Gi
+        volumeMounts:
+        - mountPath: /jbk001-data1
+          name: jbk001-data1
+      volumes:
+      - name: jbk001-data1
+        persistentVolumeClaim:
+          claimName: jbk001-data1
+      restartPolicy: Never
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: gpu-type
+                operator: In
+                values:
+                - 1080Ti
+                - 2080Ti
+  backoffLimit: 5

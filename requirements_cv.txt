@@ -1,0 +1,3 @@
+# install after other requirements
+pip install opencv-contrib-python==3.4.2.17
+

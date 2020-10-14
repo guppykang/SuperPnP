@@ -1,5 +1,8 @@
 #!/usr/bin/env python 
 
+import os, sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+
 from models.siftflow import SiftFlow
 
 import argparse
@@ -21,7 +24,7 @@ warnings.filterwarnings("ignore")
 
 if __name__ == '__main__':
     arg_parser = argparse.ArgumentParser(description="Unit Tests for Correspondence_model")
-    arg_parser.add_argument('-c', '--config_file', default='./../../configs/siftflow.yaml', help='config file.')
+    arg_parser.add_argument('-c', '--config_file', default='./configs/siftflow.yaml', help='config file.')
     args = arg_parser.parse_args()
 
     #Require GPU

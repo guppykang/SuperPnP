@@ -1,12 +1,18 @@
 #where the kitti datasets are on Nautilus
-kitti : 
+data: 
   raw_path : '/jbk001-data1/kitti_raw'
-  vo_path : '/jbk001-data1/datasets/kitti/kitti_vo/vo_dataset/sequences'
+  vo_path_kitti : '/jbk001-data1/datasets/kitti/kitti_vo/vo_dataset/sequences'
+  vo_path_tum : '/jbk001-data1/datasets/tum/' # tum
+#   vo_path_tum : '/media/yoyee/Big_re/kitti/sequences'
+
   procressed_data_path : '/jbk001-data1/datasets/kitti/kitti_vo/vo_dataset_processed'
   vo_gts : '/jbk001-data1/datasets/kitti/kitti_vo/vo_gts'
 
 #config details for the models
 models : 
+  if_pnp: False # default true
+  if_deepF: False # default false
+
   attention:
     encoder_lr : 1e-5
     decoder_lr : 1e-4
@@ -25,7 +31,7 @@ models :
     ransac_points : 6000 #we won't actually be using ransac (I hope at least)
     #pretrained : '/home/joshuakang/git/cvlab/SuperPnP/models/pretrained/kitti_odo.pth' 
     pretrained : '/jbk001-data1/git/SuperPnP/TrianFlow/models/pretrained/kitti_odo.pth'
-  superpoint : 
+  superpoint: 
     data:
         name: 'kitti'
         dataset: 'Kitti_inh' # 'Kitti'
@@ -133,7 +139,7 @@ num_iterations: 200000
 batch_size: 8 # 32
 iter_start : 0 #place the iteration that it last stopped at here
 num_workers : 6
-ransac_num_matches : 3000
+ransac_num_matches : 2000
 
 
 #general

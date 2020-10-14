@@ -92,12 +92,13 @@ class flow_frontend(Sc_Sfmleaner_frontend):
     def __init__(self, model='superglueflow'):
         super().__init__('.')
         self.model = model
+        self.pyFile = "infer_tum.py"
         pass
     def get_command_scsfmlearner(self, args, save_folder, dataset, sequence="V1_01_easy",
                              pretrained="/pretrained/pose/cs+k_pose.tar", 
                              skip_frame=1, keyframe=""):
-        command = f"python infer_tum.py --model {self.model} --sequence {sequence} \
-                --traj_save_dir {save_folder} --iters {args.iters}"
+        command = f"python {self.pyFile} --model {self.model} --sequence {sequence} \
+                --traj_save_dir {save_folder} --iters {args.iters} --dataset {dataset}"
         return command
         pass
     
@@ -107,8 +108,11 @@ class flow_frontend(Sc_Sfmleaner_frontend):
         #     return f"./results/{subfolder}/{model}/{dataset}/{sequence}/{sequence}.txt"
         # else:
         #     return f"./results/{subfolder}/{model}/{dataset}/{sequence}/{sequence}{trailing}"
-    def get_saved_folder(self, subfolder, model, dataset, sequence):
-        return f"./results/{subfolder}/{dataset}/{sequence}/{self.model}"
+    def get_saved_folder(self, subfolder, model, dataset, sequence, add_model=False):
+        if add_model:
+            return f"./results/{subfolder}/{model}/{dataset}/{sequence}/{self.model}"
+        else:
+            return f"./results/{subfolder}/{model}/{dataset}/{sequence}"
     
 ##########################
 ##### for evaluation #####
@@ -318,7 +322,6 @@ class Tum_dataset(Euroc_dataset):
         'rgbd_dataset_freiburg2_desk',
         'rgbd_dataset_freiburg2_360_kidnap',
         'rgbd_dataset_freiburg2_pioneer_360',
-#         'rgbd_dataset_freiburg2_pioneer_slam3',
         'rgbd_dataset_freiburg3_large_cabinet',
         'rgbd_dataset_freiburg3_sitting_static', 
         'rgbd_dataset_freiburg3_nostructure_notexture_near_withloop',
@@ -440,7 +443,7 @@ class Result_processor(object):
                 data = json.load(json_file)
             return data
         for i, seq in enumerate(seqs):
-            save_folder = model_fe.get_saved_folder(subfolder, model, dataset, seq)
+            save_folder = model_fe.get_saved_folder(subfolder, model, dataset, seq, add_model=True)
             result_file = f"{save_folder}/{metric}/{filename}"
             if Path(result_file).exists():
                 result_entries.append(seq)
@@ -456,7 +459,7 @@ class Result_processor(object):
         result_table = {}
         if dataset == 'kitti' and snippet == False:
             for seq in sequences:
-                save_folder = model_fe.get_saved_folder(subfolder, model, dataset, seq) # get_saved_folder(result_folder, dataset, seq)
+                save_folder = model_fe.get_saved_folder(subfolder, model, dataset, seq, add_model=True) # get_saved_folder(result_folder, dataset, seq)
                 result_file = f"{save_folder}/result.txt"
                 print(f"result_file: {result_file}")
                 if Path(result_file).exists():

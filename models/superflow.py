@@ -127,13 +127,15 @@ class SuperFlow(torch.nn.Module):
         with torch.no_grad():
             superpoint_out = self.superpoint.net(pair_input_tensor)
             
-        processed_superpoint_out, superpoint_keypoints = self.superpoint.net.process_output(self.superpoint_processor)
+        #processed_superpoint_out, superpoint_keypoints 
+        processed_superpoint_out = self.superpoint.net.process_output(self.superpoint_processor)
         
-        outs['keypoints'] = superpoint_keypoints
+        outs['keypoints'] = processed_superpoint_out['heatmap_nms_batch']
         outs['image1_superpoint_out'], outs['image2_superpoint_out'] = {}, {}
         for out_key in processed_superpoint_out.keys():
             for img_idx, img_key in enumerate(['image1_superpoint_out', 'image2_superpoint_out']):
                 outs[img_key][out_key] = processed_superpoint_out[out_key][img_idx]
+        
              
         descriptor_matches = get_descriptor_matches([outs['image1_superpoint_out']['pts_desc'], outs['image2_superpoint_out']['pts_desc']]).T
         
@@ -158,6 +160,7 @@ class SuperFlow(torch.nn.Module):
         
         #SuperFLOW
         outs['superflow_correspondences'] = dense_sparse_hybrid_correspondences(outs['keypoints'][0], outs['keypoints'][1], outs['flownet_correspondences'], outs['superpoint_correspondences'], self.ransac_num_matches)
+        outs['matches'] = outs['superflow_correspondences']
 
         
         end_time = datetime.utcnow()
