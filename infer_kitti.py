@@ -337,7 +337,7 @@ if __name__ == '__main__':
     arg_parser.add_argument('--model', type=str, default='superglueflow', help='(choose from : siftflow, superglueflow, superflow, superflow2, trianflow)')
     arg_parser.add_argument('--traj_save_dir', type=str, default='/jbk001-data1/datasets/kitti/kitti_vo/vo_preds/', help='directory for saving results')
     arg_parser.add_argument('--sequences_root_dir', type=str, default='/jbk001-data1/datasets/kitti/kitti_vo/vo_dataset/sequences', help='Root directory for all datasets')
-    arg_parser.add_argument('--sequence', type=str, default='09', help='Test sequence id.')
+    arg_parser.add_argument('--sequence', type=str, default='10', help='Test sequence id.')
     arg_parser.add_argument('--iters', type=int, default='-1', help='Limited iterations for debugging')
     arg_parser.add_argument('--stride', type=int, default='1', help='Stride between images')
     args = arg_parser.parse_args()
