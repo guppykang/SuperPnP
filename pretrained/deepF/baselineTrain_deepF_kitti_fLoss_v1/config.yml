@@ -1,0 +1,71 @@
+data:
+  batch_size: 6
+  cache_in_memory: true
+  dataset: kitti_odo_corr
+  delta_ij: 1
+  dump_root: /home/ruizhu/Documents/Datasets/kitti/kitti_dump/odo_corr_dump_siftIdx_npy_delta1235810_full_qualityRE2
+  good_num: 1000
+  image:
+    size:
+    - 376
+    - 1241
+    - 3
+  preprocessing:
+    resize:
+    - 376
+    - 1240
+  read_params:
+    use_h5: false
+  read_what:
+    with_SP: false
+    with_X: false
+    with_imgs: false
+    with_pose: true
+    with_qt: true
+    with_quality: true
+    with_sift: true
+    with_sift_des: false
+  sequence_length: 2
+exps:
+  base_name: opencv_8p
+  filename: err_ratio.npz
+  five_point: false
+  our_name: DeepF
+model:
+  clamp_at: 0.02
+  depth: 5
+  if_SP: false
+  if_cpu_svd: true
+  if_goodCorresArch: false
+  if_img_des_to_pointnet: false
+  if_img_feat: false
+  if_learn_offsets: false
+  if_lidar_corres: false
+  if_qt_loss: false
+  if_quality: false
+  if_sample_loss: false
+  if_tri_depth: false
+  name: GoodCorresNet_layers_deepF
+  quality_size: 0
+name: kitti_odo_good_corr
+seed: 0
+training:
+  learning_rate: 0.0001
+  lr_decay_rate: 0.9
+  lr_decay_step: 10
+  pretrained: logs/test_baselineTrain_noSP/checkpoints/deepFNet_10_checkpoint.pth.tar
+  pretrained_SP: logs/superpoint_coco_heat2_0/checkpoints/superPointNet_170000_checkpoint.pth.tar
+  reproduce: false
+  reset_iter: true
+  reset_iter_SP: false
+  retrain: true
+  retrain_SP: false
+  save_interval: 1000
+  seed: 0
+  train_iter: 100000
+  val_batches: 10
+  val_interval: 500
+  val_interval_in_train: 1000
+  val_show_interval: 100
+  workers_train: 16
+  workers_val: 2

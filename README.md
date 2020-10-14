@@ -14,7 +14,30 @@ Must install exact versioning as given in the reqs.txt (most important being tor
 ```bash 
 pip install -r ./requirements_torch.txt
 pip install -r ./requirements.txt
+pip install -r ./requirements_cv.txt
 ```
+- install [superpoint module](https://github.com/eric-yyjau/pytorch-superpoint.git)
+```
+git clone https://github.com/eric-yyjau/pytorch-superpoint.git
+cd pytorch-superpoint
+git checkout module_20200707
+# install
+pip install --upgrade setuptools wheel
+python setup.py bdist_wheel
+pip install -e .
+```
+- Install [deepFEPE module](https://github.com/eric-yyjau/pytorch-deepFEPE.git)
+```
+export GIT_LFS_SKIP_SMUDGE=1
+git clone https://github.com/eric-yyjau/pytorch-deepFEPE.git
+git checkout module_20201003
+# install
+pip install --upgrade setuptools wheel
+python setup.py bdist_wheel
+pip install -e .
+<!-- pip install -r requirements.txt -->
+```
+
 ### Datasets
 This project uses the KITTI VO dataset and the TUM dataset.  
 Install KITTI vo from the kitti website, and install TUM from 
@@ -25,8 +48,29 @@ Install KITTI vo from the kitti website, and install TUM from
 ```bash
 ./setup_nautilus.sh
 ```
+- install python and local packages
+```
+./setup.sh
+```
 
-## KITTI
+## Run inference
+- Basic command
+    - `model_type`: siftflow, siftflow_deepF, superflow, trianflow
+    - `dataset`: kitti, tum
+    - `sequence`: kitti [00-10], tum[rgbd_dataset_freiburg2_360_kidnap] 
+```
+python infer_deepF.py --model <model_type> --sequence <sequence name>  --traj_save_dir ./results/test_model_dataset/kitti/ --iters 10 --dataset <dataset>
+```
+- ex: siftflow_deepF on kitti
+```bash
+python infer_deepF.py --model siftflow_deepF --sequence 00  --traj_save_dir ./results//test_model_dataset/kitti/ --iters 10 --dataset kitti
+```
+- ex: siftflow on tum
+```bash
+python infer_deepF.py --model siftflow --sequence rgbd_dataset_freiburg2_360_kidnap  --traj_save_dir ./results//test_model_dataset/kitti/ --iters 10 --dataset tum
+```
+
+## KITTI (deprecated)
 ### Inference on superglueflow
 To infernce on superglueflow (superpoint + superglue + flownet correspondences) : 
 ```bash
@@ -40,7 +84,7 @@ python infer_kitti --traj_save_dir path/to/save/kitti_vo/preds --sequence 09 --s
 python ./TrianFlow/core/evaluation/eval_odom.py --gt_txt /path/to/saved/gts.txt --result_txt /path/to/saved/preds.txt
 ```
 
-## TUM
+## TUM (deprecated)
 ### Inference on superglueflow
 To infernce on superglueflow (superpoint + superglue + flownet correspondences) : 
 ```bash
@@ -63,13 +107,30 @@ To inference on siftflow + sc-sfm-learner depthNet (sift + flownet correspondenc
 python infer_tum.py --model siftflow_scsfm --sequence rgbd_dataset_freiburg2_360_kidnap  --traj_save_dir ./results/test/tum/ --iters 10
 ```
 
+## DeepF models
+### KITTI dataset
+```
+python infer_deepF.py --model siftflow --sequence 10    --traj_save_dir ./results/test/kitti/ \
+--iters 10 --sequences_root_dir /media/yoyee/Big_re/kitti/sequences
+```
+
 
 ## Run the code - batch testing and evaluation
 ### Run the inference
+- KITTI
+```
+python run_eval.py <exp_name> --model siftflow --dataset kitti --run
+python run_eval.py test -m siftflow -d kitti --run
+# deepF pipeline 
+python run_eval.py test_deepF -m siftflow_deepF -d kitti --run 
+
+```
+- TUM
 ```
 python run_eval.py <exp_name> --model siftflow --dataset tum --run
 python run_eval.py test -m siftflow -d tum --run
 ```
+
 ### Run the evaluation scripts (evo)
 ```
 python run_eval.py test -m siftflow -d tum --eval
@@ -80,6 +141,27 @@ python run_eval.py test -m siftflow -d tum --eval
 python run_eval.py test -m siftflow -d tum --table
 # rpe_xy
 python run_eval.py test -m siftflow -d tum --table --metric rpe_xy
+```
+
+## Testing (for development)
+```
+# test models on 2 datasets
+pytest tests/infer_deepF_test -v
+```
+Should see this:
+```
+==================================================== test session starts ====================================================
+platform linux -- Python 3.6.11, pytest-6.1.1, py-1.9.0, pluggy-0.13.1 -- /jbk001-data1/yyjau/conda/py36-superpnp_deepF/bin/python3.6
+cachedir: .pytest_cache
+rootdir: /jbk001-data1/yyjau/Documents/SuperPnP
+collected 4 items
+
+tests/infer_deepF_test/test_model_dataset.py::TestClass::test_xxx[siftflow] PASSED                                    [ 25%]
+tests/infer_deepF_test/test_model_dataset.py::TestClass::test_xxx[siftflow_deepF] PASSED                              [ 50%]
+tests/infer_deepF_test/test_model_dataset.py::TestClass::test_xxx[superflow] PASSED                                   [ 75%]
+tests/infer_deepF_test/test_model_dataset.py::TestClass::test_xxx[trianflow] PASSED                                   [100%]
+
+=============================================== 4 passed in 487.09s (0:08:07) ===============================================
 ```
 
 

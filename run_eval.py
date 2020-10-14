@@ -60,14 +60,13 @@ def euler2mat(vec):
     return mat
 
 
-def eval_trajectory(save_folder, alignment="7dof"):
-    command = f"python kitti-odom-eval/eval_odom.py --result {save_folder} --align {alignment}"
-    print(f"run ==> {command}")
-    subprocess.run(f"{command}", shell=True, check=True)
-    pass
+def eval_trajectory(save_folder, alignment="7dof", seq=''):
+    return f"python kitti-odom-eval/eval_odom.py --result {save_folder} --align {alignment} --seq {seq}"
+
 
 def eval_trajectory_snippet(save_folder, seq, length=5):
-    from deepsfm_dummy.utils.eval_tools import Exp_table_processor
+    # from deepsfm_dummy.utils.eval_tools import Exp_table_processor
+    from deepFEPE.utils.eval_tools import Exp_table_processor
     # seq = "10"
     table_processor = Exp_table_processor
     poses_gt = table_processor.read_gt_poses(path='./datasets/kitti/poses/', seq=seq)
@@ -179,7 +178,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "-sub", "--subfolder", type=str, default="", help="result subfolder, can be separated using model name"
     )
-    models = ['superglueflow_scsfm', 'siftflow', 'siftflow_scsfm', 'superglueflow', 'superflow', 'superflow2']
+    models = ['superglueflow_scsfm', 'siftflow', 'siftflow_scsfm', 'superglueflow', 
+              'superflow', 'superflow2', 'trianflow', 'siftflow_deepF']
     print(f"models: {models} are supported")
     
     parser.add_argument(
@@ -190,9 +190,9 @@ if __name__ == "__main__":
     )
     parser.add_argument('--iters', type=int, default='-1', help='Limited iterations for debugging')
     
-    parser.add_argument(
-        "--undistorted", action="store_true", default=False, help="Must be Euroc dataset"
-    )
+    # parser.add_argument(
+    #     "--undistorted", action="store_true", default=False, help="Must be Euroc dataset"
+    # )
     
     # parser.add_argument("--dataset_dir", type=str, default="", help='link to dataset')
     # parser.add_argument('out_file',     type=str,  help='the output file name')
@@ -200,25 +200,18 @@ if __name__ == "__main__":
     # parser.add_argument('--action',  type=str, default=None, help='[ euler2mat | ]')
     # parser.add_argument('--toCameraCoord',   type=lambda x: (str(x).lower() == 'true'), default=False, help='Whether to convert the pose to camera coordinate')
     parser.add_argument("--eval", action="store_true", help="eval the sequences")
+    parser.add_argument("--debug", action="store_true", help="debug mode: run only one sequence")
+    
     parser.add_argument("--snippet", action="store_true", help="eval the sequences with snippets")
     parser.add_argument(
         "--run", action="store_true", help="run to evaluate the sequences"
     )
-    # g2o optimization
-    # parser_optim.add_argument(
-    #     "--optim", action="store_true", help="optimize the pose using ref pose in g2o"
-    # )
-    # parser_optim.add_argument(
-    #     "--config", dest="config", default="", 
-    #     help="Can specify all the setting in the file"
-    # )
-    # parser_optim.add_argument(
-    #     "--base_pose", type=str, default="", help="base pose (input base path .../seq/seq.txt) in g2o"
-    # )
-    # parser_optim.add_argument(
-    #     "--ref_poses", nargs='+', default="", help="list of ref pose (input base path .../seq/seq.txt) in g2o"
-    # )
-    # --output_path ...
+
+    ## deepF
+    #parser.add_argument("--deepF", action="store_true", help="Use DeepF pipeline")
+    ## for nautilus
+    parser.add_argument("--python_prefix", '-py', type=str, default="", help="Use conda python")
+
     
 
      
@@ -248,7 +241,7 @@ if __name__ == "__main__":
     )
 
     # lstm network
-    parser.add_argument("--lstm", action='store_true', default=False, help="use lstm network")
+    # parser.add_argument("--lstm", action='store_true', default=False, help="use lstm network")
     
     BASE_DIR = "/home/yoyee/Documents/deep_keyframe"
     # BASE_DIR = "/home/yyjau/Documents/deep_keyframe"
@@ -262,13 +255,13 @@ if __name__ == "__main__":
 
     dataset = args.dataset
     subfolder = args.subfolder
-    if args.undistorted:
-        assert args.dataset == "euroc"
 
     # dataset controller
     # if dataset == 'euroc':
     #     euroc_controller = Euroc_dataset()
     seqs, controller = get_sequences(args)
+    if args.debug:
+        seqs = seqs[:1]
 
     w_time = args.wTime
     print(f"w_time: {w_time}")
@@ -279,11 +272,15 @@ if __name__ == "__main__":
     
     if args.run:
         ## kitti and euroc are the same
-        # seqs = sequences
+        # get python filename
+        #if args.deepF:
+        #    model_fe.pyFile = "infer_deepF.py"
+        #else:
         if dataset == 'euroc':
-            args.width, args.height = 752, 480
-        elif dataset == 'tum':
-            args.width, args.height = 640, 480
+            # args.width, args.height = 752, 480
+            pass
+        else:
+            model_fe.pyFile = "infer_deepF.py"
 
         dump_config(args, model_fe.get_saved_base(subfolder, args.exper_name, dataset))
         for s in seqs:
@@ -295,6 +292,7 @@ if __name__ == "__main__":
                 pretrained=args.pretrained,
                 keyframe=args.keyframe
             )
+            command = args.python_prefix + command
             print(f"command: {command}")
             subprocess.run(f"{command}", shell=True, check=True)
     
@@ -302,11 +300,13 @@ if __name__ == "__main__":
         # eval_fe = Eval_frontend(plot_mode="xy", plot=False)
         eval_fe = Eval_frontend(plot_mode="xy", plot=False)
         for i, s in enumerate(seqs):
-            save_folder = model_fe.get_saved_folder(subfolder, args.exper_name, dataset, s)
+            save_folder = model_fe.get_saved_folder(subfolder, args.exper_name, dataset, s, add_model=True)
             if dataset == 'kitti':
                 alignment = '7dof'
-                eval_trajectory(save_folder, alignment=alignment)                        
-                eval_trajectory_snippet(save_folder, s, length=5)
+                command = eval_trajectory(save_folder, alignment=alignment, seq=s)
+                print(f"run ==> {command}")
+                subprocess.run(f"{command}", shell=True, check=True)
+                # eval_trajectory_snippet(save_folder, s, length=5)
             elif dataset == 'euroc':
                 est_traj = model_fe.get_saved_trajectory(subfolder, args.exper_name, dataset, s, trailing="_noTime.txt")
                 gt_traj = controller.get_seq_gt_filename(s)
@@ -356,6 +356,7 @@ if __name__ == "__main__":
                     )
                     print(f"eval: {command_list}")
                     for command, inp in zip(command_list, input_list):
+                        #print(f"{command}")
                         subprocess.run(f"{command}", shell=True, check=True, input=inp)
     
     
