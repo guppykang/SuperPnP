@@ -10,7 +10,7 @@ model: superglueflow
 pretrained: ./pretrained/pose/cs+k_pose.tar
 python_prefix: ''
 run: true
-seq: 09
+seq: all
 skip_frame: 1
 snippet: false
 subfolder: ''
