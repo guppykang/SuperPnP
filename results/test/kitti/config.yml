@@ -6,7 +6,7 @@ exper_name: test
 iters: -1
 keyframe: ''
 metric: ape_xy
-model: superglueflow
+model: siftflow
 pretrained: ./pretrained/pose/cs+k_pose.tar
 python_prefix: ''
 run: true

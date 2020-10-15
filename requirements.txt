@@ -35,4 +35,6 @@ coloredlogs
 argparse
 setuptools
 wheel
+pebble
+path
 

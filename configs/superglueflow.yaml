@@ -1,5 +1,5 @@
 #where the kitti datasets are on Nautilus
-kitti : 
+data : 
   raw_path : '/jbk001-data1/kitti_raw'
   vo_path_kitti : '/jbk001-data1/datasets/kitti/kitti_vo/vo_dataset/sequences'
   vo_path_tum : '/jbk001-data1/datasets/tum/' # tum
@@ -22,8 +22,8 @@ models :
     w_flow_error : 0.00
     is_frozen : True
     ransac_points : 6000 #we won't actually be using ransac (I hope at least)
-#     pretrained : '/jbk001-data1/git/SuperPnP/TrianFlow/models/pretrained/kitti_odo.pth'
-    pretrained : '/jbk001-data1/git/SuperPnP/TrianFlow/models/pretrained/depth_pose/iter_51999.pth'
+    pretrained : '/jbk001-data1/git/SuperPnP/TrianFlow/models/pretrained/kitti_odo.pth'
+#     pretrained : '/jbk001-data1/git/SuperPnP/TrianFlow/models/pretrained/depth_pose/iter_51999.pth'
   superpoint : 
     nms_radius: 4  
     keypoint_threshold: 0.05  
@@ -37,6 +37,49 @@ models :
     decoder_lr : 1e-4
   depth:
     pretrained : '/jbk001-data1/git/SuperPnP/TrianFlow/models/pretrained/depth/last.pth'
+    
+    
+  deepF:
+    data:
+      image:
+        size: [376, 1241, 3] # The size when you DUMP the image and SIFTs (sets the limit for the saved image and SIFT)
+      preprocessing:
+        resize: [376, 1240] # slight different. Check if calibration matrix is fixed as well.
+    model:
+      name: 'GoodCorresNet_layers_deepF'
+      depth: 5
+      clamp_at: 0.02
+      if_quality: false # True, add point confidence and ratio as inputs
+      if_goodCorresArch: False
+      if_lidar_corres: false
+      if_img_feat: false
+      if_img_des_to_pointnet: false
+      quality_size: 2
+      if_cpu_svd: true
+      if_learn_offsets: false
+      if_tri_depth: false
+      if_qt_loss: false
+      if_sample_loss: false
+      if_SP: True # check if you are using superpoint
+    training:
+      learning_rate: 0.0001
+      lr_decay_step: 10
+      lr_decay_rate: 0.9
+      seed: 0
+      workers_train: 16 # 16
+      workers_val: 8 # 2
+      train_iter: 0
+      val_interval: 1 # one validation of entire val set every N **training** steps
+      val_interval_in_train: 1000
+      val_batches: -1 # set to -1 to disable validation limit
+      val_show_interval: 1 # one show of the current training from to Tensorboard every N training steps
+      save_interval: 10
+
+      retrain: false # don't set true for new model
+      train: false
+      reset_iter: true
+      ### trained results
+      # pretrained: 'logs/test_kitti/checkpoints/deepFNet_100000_checkpoint.pth.tar'
 
     
 #training hyperparameters 
