@@ -35,7 +35,7 @@ git checkout module_20201003
 pip install --upgrade setuptools wheel
 python setup.py bdist_wheel
 pip install -e .
-pip install -r requirements.txt
+<!-- pip install -r requirements.txt -->
 ```
 
 ### Datasets
@@ -47,6 +47,27 @@ Install KITTI vo from the kitti website, and install TUM from
 ### One line setup
 ```bash
 ./setup_nautilus.sh
+```
+- install python and local packages
+```
+./setup.sh
+```
+
+## Run inference
+- Basic command
+    - `model_type`: siftflow, siftflow_deepF, superflow, trianflow
+    - `dataset`: kitti, tum
+    - `sequence`: kitti [00-10], tum[rgbd_dataset_freiburg2_360_kidnap] 
+```
+python infer_deepF.py --model <model_type> --sequence <sequence name>  --traj_save_dir ./results/test_model_dataset/kitti/ --iters 10 --dataset <dataset>
+```
+- ex: siftflow_deepF on kitti
+```bash
+python infer_deepF.py --model siftflow_deepF --sequence 00  --traj_save_dir ./results//test_model_dataset/kitti/ --iters 10 --dataset kitti
+```
+- ex: siftflow on tum
+```bash
+python infer_deepF.py --model siftflow --sequence rgbd_dataset_freiburg2_360_kidnap  --traj_save_dir ./results//test_model_dataset/kitti/ --iters 10 --dataset tum
 ```
 
 ## KITTI (deprecated)
@@ -100,16 +121,14 @@ python infer_deepF.py --model siftflow --sequence 10    --traj_save_dir ./result
 ```
 python run_eval.py <exp_name> --model siftflow --dataset kitti --run
 python run_eval.py test -m siftflow -d kitti --run
+# deepF pipeline 
+python run_eval.py test_deepF -m siftflow_deepF -d kitti --run 
+
 ```
 - TUM
 ```
 python run_eval.py <exp_name> --model siftflow --dataset tum --run
 python run_eval.py test -m siftflow -d tum --run
-```
-- deepF pipeline (support KITTI)
-```
-python run_eval.py test_deepF -m siftflow -d kitti --run --deepF
-python run_eval.py test_deepF -m siftflow -d kitti --run --deepF --iter 10 --seq 10
 ```
 
 ### Run the evaluation scripts (evo)
