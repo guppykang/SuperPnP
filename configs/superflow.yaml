@@ -129,7 +129,8 @@ models :
     validation_size: 5
 
     #pretrained: '/home/joshuakang/git/cvlab/SuperPnP/superpoint/logs/superpoint_kitti_heat2_0/checkpoints/superPointNet_50000_checkpoint.pth.tar'
-    pretrained : '/jbk001-data1/git/SuperPnP/superpoint/logs/superpoint_kitti_heat2_0/checkpoints/superPointNet_50000_checkpoint.pth.tar'
+    #pretrained : '/jbk001-data1/git/SuperPnP/superpoint/logs/superpoint_kitti_heat2_0/checkpoints/superPointNet_50000_checkpoint.pth.tar'
+    pretrained : './superpoint/superpoint_models/logs/superpoint_kitti_heat2_0/checkpoints/superPointNet_50000_checkpoint.pth.tar'
 
 
 
