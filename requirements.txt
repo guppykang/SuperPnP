@@ -33,6 +33,9 @@ tensorboardX==2.1
 pytest
 coloredlogs
 argparse
+termcolor
+imgaug
+pebble
 setuptools
 wheel
 
