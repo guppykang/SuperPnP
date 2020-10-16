@@ -98,6 +98,7 @@ class TrianFlow(torch.nn.Module):
         outs['image1_depth'] = squeezeToNumpy(image1_depth_map)
         outs['image2_depth'] = squeezeToNumpy(image2_depth_map)
         print(f'Got {outs["matches"].shape[0]} matches')
+        
        
         return outs
 
@@ -110,11 +111,10 @@ class TrianFlow(torch.nn.Module):
             output: Losses 
         """
 
-        #superpoint
-        #out
-        #nms (val fastnms or process_output())
-        #pts
-        #desc to sparse
+        #inference
+        #return loss
         pass
+        
+#         return matches, detph1,2, loss
 
    
