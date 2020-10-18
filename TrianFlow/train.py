@@ -144,7 +144,6 @@ def train(cfg):
     f = open(f'./tensorboard/logs_{start_time}.txt', 'w+')
 
     # training
-    code.interact(local=locals())
     print('starting iteration: {}.'.format(cfg.iter_start))
     for iter_, inputs in enumerate(tqdm(dataloader)):
         if (iter_ + 1) % cfg.test_interval == 0 and (not cfg.no_test):

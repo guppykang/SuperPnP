@@ -182,6 +182,9 @@ class infer_vo():
         return images
     
     def get_prediction(self, img1, img2, model, K, K_inv):
+        #forward pass on model
+        #backward pass
+        
         outs = model.inference(img1, img2, K, K_inv, (img1.shape[0], img1.shape[1]))
         depth1 = outs['image1_depth'] # H, W
         depth2 = outs['image2_depth'] # H, W
