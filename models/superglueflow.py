@@ -39,12 +39,6 @@ class SuperGlueFlow(torch.nn.Module):
 
         #TrianFlow
         self.trianFlow = Model_depth_pose(model_cfg["trianflow"])
-        
-        if general_cfg["use_custom_depth"]:
-            print('Loading a custom trained DepthNet')
-            weights = torch.load(model_cfg["depth"]["pretrained"])
-            code.interact(local=locals())
-            self.trianFlow.depth_net.load_state_dict(weights['model_state_dict'])
     
         #Superglue
         self.superglue_matcher = Matching(model_cfg)

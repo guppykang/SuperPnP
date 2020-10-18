@@ -31,7 +31,7 @@ opencv-contrib-python==3.4.2.16
 pypng==0.0.20
 tensorboardX==2.1
 pytest
-coloredlogs
+coloredlogs==14.0
 argparse
 setuptools
 wheel
