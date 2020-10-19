@@ -1,0 +1,19 @@
+!!python/object:argparse.Namespace
+dataset: kitti
+debug: false
+eval: false
+exper_name: latest_test
+iters: -1
+keyframe: ''
+metric: ape_xy
+model: superglueflow
+pretrained: ./pretrained/pose/cs+k_pose.tar
+python_prefix: /jbk001-data1/yyjau/conda/py36-superpnp_deepF/bin/
+run: true
+seq: all
+skip_frame: 1
+snippet: false
+subfolder: ''
+table: false
+view: false
+wTime: false
