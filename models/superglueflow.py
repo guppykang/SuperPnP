@@ -181,20 +181,23 @@ class SuperGlueFlow(torch.nn.Module):
         return outs
 
 
-    def forward(self, x, hw):
+    def forward(self, x):
         """ Forward pass computes mathches are return losses
         Input
             x: Assuming you are using the KITTI dataloader located at /utils/KITTI_dataset.py
         Output
             output: Losses 
         """
-        inputs = (x[0], x[1], x[2], x[3]) #flownet input pair, superpoint input pair, K, K_inv
+        (images, images_gray, K, K_inv) = (x[0], x[1], x[2], x[3]) #flownet input pair, superpoint input pair, K, K_inv
+        img_h, img_w = int(images.shape[2] / 2), images.shape[3] 
+        image1, image2 = images[:,:,:img_h,:], images[:,:,img_h:,:]
+        image1_gray, image2_gray = images_gray[:,:,:img_h,:], images_gray[:,:,img_h:,:]        
         
         #TODO need to separate these. Add a utils function
-        outs = inference(x[1], x[0], x[2], x[3], hw)
+        outs = self.inference_preprocessed(image1, image2, image1_gray, image2_gray, K, K_inv)
         
         #TODO : currently does not use superpoint matches as a component for the self supervised Loss
-        loss = self.trianFlow((inputs[0], inputs[2], inputs[3]))
+        loss = self.trianFlow((images, K, K_inv))
         
         return outs, loss
 
