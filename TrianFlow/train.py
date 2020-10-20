@@ -42,6 +42,8 @@ def freeze_all_but_depth(model, mode):
     if mode != 'depth_pose': 
         return
     
+    print('Finetuning the decoder of the depthnet')
+    
     for param in model.depth_net.encoder.parameters():
         param.requires_grad = False
         
@@ -138,12 +140,11 @@ def train(cfg):
     if not os.path.isdir('./tensorboard'):
         os.mkdir('./tensorboard')
     start_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S") 
-    writer = SummaryWriter(f'./tensorboard/trianflow_finetuning_{start_time}', flush_secs=1)
+    writer = SummaryWriter(f'./tensorboard/trianflow_{cfg.mode}_{start_time}', flush_secs=1)
     f = open(f'./tensorboard/logs_{start_time}.txt', 'w+')
 
     # training
     print('starting iteration: {}.'.format(cfg.iter_start))
-    code.interact(local=locals())
     for iter_, inputs in enumerate(tqdm(dataloader)):
         if (iter_ + 1) % cfg.test_interval == 0 and (not cfg.no_test):
             model.eval()
@@ -192,7 +193,7 @@ if __name__ == '__main__':
     arg_parser.add_argument('-c', '--config_file', default='./config/tum_3stage.yaml', help='config file.')
     arg_parser.add_argument('-g', '--gpu', type=str, default='0', help='gpu id.')
     arg_parser.add_argument('--batch_size', type=int, default=8, help='batch size.')
-    arg_parser.add_argument('--iter_start', type=int, default=9999, help='starting iteration.')
+    arg_parser.add_argument('--iter_start', type=int, default=0, help='starting iteration.')
     arg_parser.add_argument('--lr', type=float, default=0.0001, help='learning rate')
     arg_parser.add_argument('--num_workers', type=int, default=1, help='number of workers.')
     arg_parser.add_argument('--log_interval', type=int, default=10, help='interval for printing loss.')
@@ -201,8 +202,8 @@ if __name__ == '__main__':
     arg_parser.add_argument('--mode', type=str, default='depth_pose', help='training mode.')
     arg_parser.add_argument('--model_dir', type=str, default='/jbk001-data1/git/SuperPnP/TrianFlow/models/pretrained', help='directory for saving models')
     arg_parser.add_argument('--prepared_save_dir', type=str, default='', help='directory name for generated training dataset')
-    arg_parser.add_argument('--flow_pretrained_model', type=str, default=None, help='directory for loading flow pretrained models')
-    arg_parser.add_argument('--depth_pretrained_model', type=str, default='/jbk001-data1/git/SuperPnP/TrianFlow/models/pretrained/kitti_depth_pretrained.pth', help='directory for loading depth pretrained models')
+    arg_parser.add_argument('--flow_pretrained_model', type=str, default='./models/pretrained/kitti_flow.pth', help='directory for loading flow pretrained models')
+    arg_parser.add_argument('--depth_pretrained_model', type=str, default=None, help='directory for loading depth pretrained models') #/jbk001-data1/git/SuperPnP/TrianFlow/models/pretrained/kitti_depth_pretrained.pth
     arg_parser.add_argument('--resume', action='store_true', help='to resume training.')
     arg_parser.add_argument('--multi_gpu', action='store_true', help='to use multiple gpu for training.')
     arg_parser.add_argument('--no_test', action='store_true', help='without evaluation.')
@@ -252,6 +253,7 @@ if __name__ == '__main__':
     
     with open(os.path.join(args.model_dir, 'config.pkl'), 'wb') as f:
         pickle.dump(cfg_new, f)
+        
 
     # main function 
     train(cfg_new)

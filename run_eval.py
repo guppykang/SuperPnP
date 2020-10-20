@@ -239,6 +239,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--metric", type=str, default="ape_xy", help="EuRoc: [ape_xy | rpe_xy], Kitti/euroc snippet: [mean | std]"
     )
+    
 
     # lstm network
     # parser.add_argument("--lstm", action='store_true', default=False, help="use lstm network")
@@ -280,7 +281,7 @@ if __name__ == "__main__":
             # args.width, args.height = 752, 480
             pass
         else:
-            model_fe.pyFile = "infer_deepF.py"
+            model_fe.pyFile = "infer_deepF.py" #TODO : Change this back so this doesn't confuse You-Yi
 
         dump_config(args, model_fe.get_saved_base(subfolder, args.exper_name, dataset))
         for s in seqs:

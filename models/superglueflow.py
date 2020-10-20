@@ -34,7 +34,7 @@ class SuperGlueFlow(torch.nn.Module):
         super(SuperGlueFlow, self).__init__()
         
         self.device = 'cuda:0'
-        self.num_matches = 6000
+        self.num_matches = general_cfg["ransac_num_matches"]
         self.ransac_num_matches = general_cfg["ransac_num_matches"]
 
         #TrianFlow
@@ -182,20 +182,25 @@ class SuperGlueFlow(torch.nn.Module):
 
 
     def forward(self, x):
-        """ Forward pass computes keypoints, descriptors, and 3d-2d correspondences.
+        """ Forward pass computes mathches are return losses
         Input
-            x: Batch size B's of images : B x (2H) x W
+            x: Assuming you are using the KITTI dataloader located at /utils/KITTI_dataset.py
         Output
             output: Losses 
         """
-
-        #superpoint
-        #out
-        #nms (val fastnms or process_output())
-        #pts
-        #desc to sparse
+        (images, images_gray, K, K_inv) = (x[0], x[1], x[2], x[3]) #flownet input pair, superpoint input pair, K, K_inv
+        img_h, img_w = int(images.shape[2] / 2), images.shape[3] 
+        image1, image2 = images[:,:,:img_h,:], images[:,:,img_h:,:]
+        image1_gray, image2_gray = images_gray[:,:,:img_h,:], images_gray[:,:,img_h:,:]        
         
-        raise RuntimeError('Not implemented yet')
-        pass
+        #TODO need to separate these. Add a utils function
+        outs = self.inference_preprocessed(image1, image2, image1_gray, image2_gray, K, K_inv)
+        
+        #TODO : currently does not use superpoint matches as a component for the self supervised Loss
+        loss = self.trianFlow((images, K, K_inv))
+        
+        return outs, loss
+
+
 
    

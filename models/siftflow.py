@@ -42,7 +42,7 @@ class SiftFlow(torch.nn.Module):
         super(SiftFlow, self).__init__()
         
         self.device = 'cuda:0'
-        self.num_matches = 6000
+        self.num_matches = general_cfg["ransac_num_matches"]
         self.ransac_num_matches = general_cfg["ransac_num_matches"]
 
         #TrianFlow

@@ -1,0 +1,55 @@
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	2.030218
+      mean	1.201621
+    median	1.296904
+       min	0.461665
+      rmse	1.275387
+       sse	2326.053651
+       std	0.427456
+
+Plots saved to results/0914/tum/rgbd_dataset_freiburg2_360_kidnap/superglueflow/ape_xy.pdf
+RPE w.r.t. translation part (m)
+for delta = 1 (frames) using consecutive pairs
+(with Sim(3) Umeyama alignment)
+
+       max	0.896823
+      mean	0.012947
+    median	0.007718
+       min	0.000510
+      rmse	0.040672
+       sse	2.363873
+       std	0.038556
+
+Plots saved to results/0914/tum/rgbd_dataset_freiburg2_360_kidnap/superglueflow/rpe_xy.pdf
+APE w.r.t. translation part (m)
+(with Sim(3) Umeyama alignment)
+
+       max	2.030218
+      mean	1.201621
+    median	1.296904
+       min	0.461665
+      rmse	1.275387
+       sse	2326.053651
+       std	0.427456
+
+[WARNING] results/0914_30f/tum/rgbd_dataset_freiburg2_360_kidnap/superglueflow/ape_xy.pdf exists, overwrite?
+enter 'y' to overwrite or any other key to cancel
+Plots saved to results/0914_30f/tum/rgbd_dataset_freiburg2_360_kidnap/superglueflow/ape_xy.pdf
+[WARNING] results/0914_30f/tum/rgbd_dataset_freiburg2_360_kidnap/superglueflow/ape_xy.zip exists, overwrite?
+enter 'y' to overwrite or any other key to cancel
+RPE w.r.t. translation part (m)
+for delta = 30 (frames) using all pairs
+(with Sim(3) Umeyama alignment)
+
+       max	1.150908
+      mean	0.252857
+    median	0.211253
+       min	0.025981
+      rmse	0.310738
+       sse	135.181534
+       std	0.180615
+
+[WARNING] results/0914_30f/tum/rgbd_dataset_freiburg2_360_kidnap/superglueflow/rpe_xy.zip exists, overwrite?
+enter 'y' to overwrite or any other key to cancel

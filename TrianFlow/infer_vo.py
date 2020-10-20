@@ -171,7 +171,7 @@ class infer_vo():
             if max_length != -1 and i > max_length:
                 break
             img1, img2 = images[i], images[i+1]
-            depth_match, depth1, depth2 = self.get_prediction(img1, img2, model, K, K_inv, match_num=5000)
+            depth_match, depth1, depth2 = self.get_prediction(img1, img2, model, K, K_inv, match_num=3000)
             
             rel_pose = np.eye(4)
             flow_pose = self.solve_pose_flow(depth_match[:,:2], depth_match[:,2:])
