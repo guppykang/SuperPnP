@@ -168,6 +168,8 @@ if __name__ == '__main__':
     # set gpu
     os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu)
 
+    print(f"cfg: {cfg}")
+    
     class pObject(object):
         def __init__(self):
             pass
@@ -176,7 +178,6 @@ if __name__ == '__main__':
         setattr(cfg_new, attr, cfg[attr])
     
     
-
     # main function 
     train(model, cfg_new)
 
