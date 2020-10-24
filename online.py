@@ -94,7 +94,7 @@ def train(model, cfg):
     for iter_, inputs in enumerate(tqdm(dataloader)):
         if (iter_ + 1) % cfg.test_interval == 0 and (not cfg.no_test):
             model.eval()
-            if args.multi_gpu:
+            if cfg.multi_gpu:
                 model_eval = model.module
             else:
                 model_eval = model
@@ -149,13 +149,15 @@ if __name__ == '__main__':
     arg_parser.add_argument('--save_interval', type=int, default=2000, help='interval for saving models.')
     
     arg_parser.add_argument('--mode', type=str, default='superglueflow', help='[superglueflow, siftflow]')
+#     arg_parser.add_argument('--model_dir', type=str, default='./logs/', help='directory for saving models')
     
     arg_parser.add_argument('--dataset', type=str, default='kitti', help='[kitti, tum]')
     arg_parser.add_argument('--sequence', type=str, default='10', help='Which sequence to run on the specified dataset')
     
     arg_parser.add_argument('--resume', action='store_true', help='to resume training.')
     arg_parser.add_argument('--stride', default=1, help='Stride between image pairs to train under')
-    
+#     arg_parser.add_argument('--multi_gpu', action='store_true', help='to use multiple gpu for training.')
+
     args = arg_parser.parse_args()
     
     #configs
