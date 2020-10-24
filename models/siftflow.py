@@ -77,7 +77,8 @@ class SiftFlow(torch.nn.Module):
             self.net, lr=self.config["model"]["learning_rate"]
         )
 
-    def inference(self, image1, image2, K, K_inv, hw):
+    def inference(self, image1, image2, K, K_inv, hw=None, 
+                  preprocess=True):
         """ Forward pass computes keypoints, descriptors, and 3d-2d correspondences.
         Input
             image1, image2: input pair images
@@ -111,19 +112,25 @@ class SiftFlow(torch.nn.Module):
                    
         start_time = datetime.utcnow()
         #TrianFlow
-        image1_t, image1_resized = prep_trianflow_image(image1, hw)
-        image2_t, image2_resized = prep_trianflow_image(image2, hw)
-        outs['inputs'] = { 'image1' : image1_resized , 'image2' : image2_resized }
-        K = torch.from_numpy(K).cuda().float().unsqueeze(0)
-        K_inverse = torch.from_numpy(K_inv).cuda().float().unsqueeze(0)
+        if preprocess:
+            image1_t, image1_resized = prep_trianflow_image(image1, hw)
+            image2_t, image2_resized = prep_trianflow_image(image2, hw)
+            outs['inputs'] = { 'image1' : image1_resized , 'image2' : image2_resized }
+            K = torch.from_numpy(K).cuda().float().unsqueeze(0)
+            K_inverse = torch.from_numpy(K_inv).cuda().float().unsqueeze(0)
+        else:
+            image1_t, image2_t = image1, image2
+            image1_resized = squeezeToNumpy(image1).transpose(1,2,0)
+            image2_resized = squeezeToNumpy(image2).transpose(1,2,0)
+            outs['inputs'] = { 'image1' : image1 , 'image2' : image2 }
+            K, K_inverse = K, K_inv
+        
         correspondences, image1_depth_map, image2_depth_map = self.trianFlow.infer_vo(image1_t, image2_t, K, K_inverse, self.num_matches)
 
         #post process
         outs['flownet_correspondences'] = squeezeToNumpy(correspondences.T)
         outs['image1_depth'] = squeezeToNumpy(image1_depth_map)
         outs['image2_depth'] = squeezeToNumpy(image2_depth_map)
-        
-        
         
         #SIFT 
         outs['image1_sift_keypoints'], outs['image1_sift_descriptors'] = classical_detector_descriptor(image1_resized, image1_resized)
@@ -141,15 +148,11 @@ class SiftFlow(torch.nn.Module):
         if outs['image2_sift_keypoints'].shape[0] > 1000:
             outs['image2_sift_keypoints'] = sample_random_k(outs['image2_sift_keypoints'], 1000, outs['image2_sift_keypoints'].shape[0])
 
-            
         mid_time = datetime.utcnow()
         print(f'SIFT and flownet took {mid_time - start_time} to run')
         
-        
         #SIFTFLOW
         outs['matches'] = dense_sparse_hybrid_correspondences(outs['image1_sift_keypoints'], outs['image2_sift_keypoints'], outs['flownet_correspondences'], outs['sift_correspondences'], self.ransac_num_matches)
-
-        
         
         return outs
 
@@ -159,7 +162,7 @@ class SiftFlow(torch.nn.Module):
         Input
             x: Batch size B's of images : B x (2H) x W
         Output
-            output: Losses 
+            output: outs['matches'], Losses 
         """
 
         #superpoint
@@ -167,6 +170,24 @@ class SiftFlow(torch.nn.Module):
         #nms (val fastnms or process_output())
         #pts
         #desc to sparse
+        
+        ## torch
+        (image1, image2, K, K_inv) = (x[0], x[1], x[2], x[3])
+        
+        ## batch inference with for loop
+        outs_list = []
+        outs_select = {'matches': None}
+        loss = 0.
+        batch_size = K.shape[0]
+        for i in range(batch_size):
+            outs_list.append(self.inference(image1[i].unsqueeze(0), image2[i].unsqueeze(0), 
+                                            K[i].unsqueeze(0), K_inv[i].unsqueeze(0), 
+                                            preprocess=False))
+        for i, en in enumerate(outs_select):
+            outs_select[en] = torch.stack([torch.from_numpy(outs[en]).float() \
+                                           for outs in outs_list])
+        ## put results back to torch
+        return outs_select, loss
         pass
 
    

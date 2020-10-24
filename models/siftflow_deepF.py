@@ -50,8 +50,15 @@ class SiftFlow_deepF(torch.nn.Module):
         """
         """
         (images, images_gray, K, K_inv) = (x[0], x[1], x[2], x[3]) #flownet input pair, superpoint input pair, K, K_inv
+        img_h, img_w = int(images.shape[2] / 2), images.shape[3] 
+        image1, image2 = images[:,:,:img_h,:], images[:,:,img_h:,:]
+        image1_gray, image2_gray = images_gray[:,:,:img_h,:], images_gray[:,:,img_h:,:]
+        
         # feed into siftflow, get correspondences [B, N, 4]
-        # feed into deepF, get essential matrix
+        outs_stg1, loss_stg1 = self.siftflow((image1, image2, K, K_inv))
+        
+        # feed into deepF, get essential matrix [B, 3, 3]
+        # poses = self.deepF_fe.run(b_xy1, b_xy2, b_K, b_K_inv)
         # compute loss from essential matrix
         
         outs = None

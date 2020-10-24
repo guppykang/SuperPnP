@@ -101,7 +101,7 @@ def train(model, cfg):
         iter_ = iter_ + cfg.iter_start
         
         optimizer.zero_grad()
-        trianflow_inputs = (inputs[0], inputs[2], inputs[3])
+        trianflow_inputs = (inputs[0], inputs[1], inputs[2], inputs[3])
         loss_pack = model(trianflow_inputs)
         if iter_ % cfg.log_interval == 0:
             visualizer.print_loss(loss_pack, iter_=iter_)

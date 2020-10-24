@@ -112,18 +112,13 @@ class deepF_frontend(object):
         matches_use_ori = torch.cat((b_xy1, b_xy2), 2).cuda()
 
         data_batch = {
-            # "matches_xy": matches_use_normalizedK,
             "matches_xy_ori": matches_use_ori,
             "quality": None,
-            # "x1_normalizedK": x1_normalizedK,
-            # "x2_normalizedK": x2_normalizedK,
             "Ks": Ks,
             "K_invs": K_invs,
             "des1": None,
             "des2": None,
             "matches_good_unique_nums": b_xy1.shape[1], ## 
-            # "t_scene_scale": t_scene_scale,
-            # "frame_ids": sample["frame_ids"],
         }
         idx = 0 # first element in the batch
         with torch.no_grad():
@@ -147,6 +142,9 @@ class deepF_frontend(object):
             logging.debug(f"Rt_cam: {Rt_cam}")
             return Rt_cam
 
+    def forward(self, x):
+        
+        return outs, loss
 
 if __name__ == '__main__':
     import argparse
