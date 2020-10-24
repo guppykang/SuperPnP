@@ -37,7 +37,20 @@ models :
   attention:
     encoder_lr : 1e-5
     decoder_lr : 1e-4
- 
+
+#training hyperparameters 
+num_iterations: 200000  
+batch_size: 8 # 32
+iter_start : 0 #place the iteration that it last stopped at here
+num_workers : 6  
+ransac_num_matches : 1000
+
+
+#general
+img_hw: [256, 832] #superglue used 480, 640
+raw_hw : [370,1226]
+
+######### TRAINING CONFIGS BELOW #########
 
 
 # dataset
@@ -54,6 +67,10 @@ num_scales: 3
 # training
 num_iterations: 200000 # set -1 to use num_epochs
 num_epochs: 0
+
+lr : 0.0001
+stride : 1
+batch_size : 8
 
 # loss hyperparameters
 

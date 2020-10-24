@@ -1,1 +1,0 @@
-{"title": "APE w.r.t. translation part (m)\n(with Sim(3) Umeyama alignment)", "ref_name": "/jbk001-data1/datasets/tum/rgbd_dataset_freiburg2_pioneer_360/groundtruth.txt", "est_name": "./results/finetuned_depth/tum/rgbd_dataset_freiburg2_pioneer_360/superglueflow/preds.tum", "label": "APE (m)"}

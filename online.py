@@ -59,7 +59,7 @@ def train(model, cfg):
     # load dataset
     data_dir = cfg.prepared_base_dir
     if not os.path.exists(os.path.join(data_dir, 'train.txt')):
-        if cfg.dataset == 'kitti':
+        if cfg.dataset == 'kitti_odo':
             kitti_raw_dataset = KITTI_Odo(cfg.raw_base_dir, cfg.vo_gts)
             kitti_raw_dataset.prepare_data_mp(data_dir, stride=cfg.stride)
         elif cfg.dataset == 'tum':
@@ -82,7 +82,7 @@ def train(model, cfg):
     if not os.path.isdir('./tensorboard'):
         os.mkdir('./tensorboard')
     start_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S") 
-    writer = SummaryWriter(f'./tensorboard/trianflow_{cfg.mode}_{start_time}', flush_secs=1)
+    writer = SummaryWriter(f'./tensorboard/trianflow_{start_time}', flush_secs=1)
     f = open(f'./tensorboard/logs_{start_time}.txt', 'w+')
 
     # training
@@ -132,7 +132,7 @@ if __name__ == '__main__':
     arg_parser = argparse.ArgumentParser(
         description="TrianFlow training pipeline."
     )
-    arg_parser.add_argument('-c', '--config_file', default='./configs/superglueflow.yaml', help='config file.')
+    arg_parser.add_argument('-c', '--config_file', default='./configs/train/superglueflow.yaml', help='config file.')
     arg_parser.add_argument('-g', '--gpu', type=str, default='0', help='gpu id.')
     arg_parser.add_argument('--iter_start', type=int, default=0, help='starting iteration.')
     arg_parser.add_argument('--lr', type=float, default=0.0001, help='learning rate')
@@ -176,10 +176,7 @@ if __name__ == '__main__':
         setattr(cfg_new, attr, cfg[attr])
     
     
-    with open(os.path.join(args.model_dir, 'config.pkl'), 'wb') as f:
-        pickle.dump(cfg_new, f)
-        
 
     # main function 
-    train(cfg_new)
+    train(model, cfg_new)
 
