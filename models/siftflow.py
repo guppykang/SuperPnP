@@ -185,7 +185,7 @@ class SiftFlow(torch.nn.Module):
                                             preprocess=False))
         for i, en in enumerate(outs_select):
             outs_select[en] = torch.stack([torch.from_numpy(outs[en]).float() \
-                                           for outs in outs_list])
+                                           for outs in outs_list]).to(self.device)
         ## put results back to torch
         return outs_select, loss
         pass

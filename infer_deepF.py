@@ -37,8 +37,9 @@ from deepFEPE.utils.loader import (
     pretrainedLoader_opt,
 )
 
-class deepF_frontend(object):
+class deepF_frontend(torch.nn.Module):
     def __init__(self, config, device='cpu'):
+        super(deepF_frontend, self).__init__()
         self.device = device
         self.config = config
         img_zoom_xy = (
@@ -61,7 +62,8 @@ class deepF_frontend(object):
             "if_tri_depth": config["model"]["if_tri_depth"],
             "if_sample_loss": config["model"]["if_sample_loss"],
         }
-
+        self.load_model()
+        self.prepare_model()
         pass
 
     def load_model(self):
@@ -142,10 +144,62 @@ class deepF_frontend(object):
             logging.debug(f"Rt_cam: {Rt_cam}")
             return Rt_cam
 
-    def forward(self, x):
+    def compute_epipolar_loss(self, fmat, match, mask=None):
+        # fmat: [b, 3, 3] match: [b, 4, h*w] mask: [b,1,h*w]
+        num_batch = match.shape[0]
+        match_num = match.shape[-1]
+
+        points1 = match[:,:2,:]
+        points2 = match[:,2:,:]
+        ones = torch.ones(num_batch, 1, match_num).to(points1.get_device())
+        points1 = torch.cat([points1, ones], 1) # [b,3,n]
+        points2 = torch.cat([points2, ones], 1).transpose(1,2) # [b,n,3]
+
+        # compute fundamental matrix loss
+        fmat = fmat.unsqueeze(1)
+        fmat_tiles = fmat.view([-1,3,3])
+        epi_lines = fmat_tiles.bmm(points1) #[b,3,n]  [b*n, 3, 1]
+        dist_p2l = torch.abs((epi_lines.permute([0, 2, 1]) * points2).sum(-1, keepdim=True)) # [b,n,1]
+        a = epi_lines[:,0,:].unsqueeze(1).transpose(1,2) # [b,n,1]
+        b = epi_lines[:,1,:].unsqueeze(1).transpose(1,2) # [b,n,1]
+        dist_div = torch.sqrt(a*a + b*b) + 1e-6
+        dist_map = dist_p2l / dist_div # [B, n, 1]
+        if mask is None:
+            loss = dist_map.mean([1,2])
+        else:
+            loss = (dist_map * mask.transpose(1,2)).mean([1,2]) / mask.mean([1,2])
+        return loss, dist_map
         
+        
+    def forward(self, x):
+        """
+        params:
+            matches: [b, N, 4]
+            K: [b, ch, 3, 3]
+        """
+        (matches, Ks, K_invs) = (x[0], x[1], x[2])
+        from deepFEPE.train_good_utils import get_E_ests_deepF
+        data_batch = {
+            "matches_xy_ori": matches,
+            "quality": None,
+            "Ks": Ks,
+            "K_invs": K_invs,
+            "des1": None,
+            "des2": None,
+            "matches_good_unique_nums": matches.shape[1], ## 
+        }
+        loss = 0.
+        outs = self.net(data_batch)
+        #E_ests_layers = get_E_ests_deepF(outs, Ks.to(self.device), K_invs.to(self.device)) # [D, B, 3, 3]
+        #outs['E_ests_layers'] = E_ests_layers
+        
+        # F loss
+        loss, dist_map = self.compute_epipolar_loss(outs["F_est"], matches.transpose(1,2), mask=None)
+        outs['dist_map'] = dist_map
         return outs, loss
 
+    
+    
 if __name__ == '__main__':
     import argparse
     arg_parser = argparse.ArgumentParser(
@@ -224,8 +278,6 @@ if __name__ == '__main__':
     # load deepF model
     if if_deepF:
         deepF_fe = deepF_frontend(cfg["models"]["deepF"], device=device)
-        deepF_fe.load_model()
-        deepF_fe.prepare_model()
         vo_test.deepF_fe = deepF_fe
         
 

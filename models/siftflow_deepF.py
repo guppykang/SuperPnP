@@ -38,7 +38,8 @@ class SiftFlow_deepF(torch.nn.Module):
         super(SiftFlow_deepF, self).__init__()
         self.siftflow = SiftFlow(model_cfg, general_cfg)
         self.deepF_fe = deepF_frontend(general_cfg["models"]["deepF"])
-        
+        self.tb_scalar_by_name = {}
+        self.tb_image_by_name = {}        
         
     def load_modules(self, cfg):
         pass
@@ -46,9 +47,17 @@ class SiftFlow_deepF(torch.nn.Module):
     def inference(self, image1, image2, K, K_inv, hw):
         pass
     
+    def plot_tb(self, writer, task='train', n_iter=0):
+        for element in list(self.tb_scalar_by_name):
+            writer.add_scalar(task + "-" + element, 
+                              self.tb_scalar_by_name[element], n_iter)
+        
+        pass
+    
     def forward(self, x):
         """
         """
+        loss = {}
         (images, images_gray, K, K_inv) = (x[0], x[1], x[2], x[3]) #flownet input pair, superpoint input pair, K, K_inv
         img_h, img_w = int(images.shape[2] / 2), images.shape[3] 
         image1, image2 = images[:,:,:img_h,:], images[:,:,img_h:,:]
@@ -58,9 +67,12 @@ class SiftFlow_deepF(torch.nn.Module):
         outs_stg1, loss_stg1 = self.siftflow((image1, image2, K, K_inv))
         
         # feed into deepF, get essential matrix [B, 3, 3]
-        # poses = self.deepF_fe.run(b_xy1, b_xy2, b_K, b_K_inv)
-        # compute loss from essential matrix
+        outs_stg2, loss_stg2 = self.deepF_fe((outs_stg1['matches'], K, K_inv))
         
-        outs = None
-        loss = None
+        # compute loss from essential matrix
+        #code.interact(local = locals())
+        outs = outs_stg1.update(outs_stg2)
+        loss['all'] = (loss_stg1 + loss_stg2).mean()
+        self.tb_scalar_by_name.update(loss)
         return outs, loss
+    

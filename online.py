@@ -22,6 +22,8 @@ from tensorboardX import SummaryWriter
 import datetime
 from pathlib import Path
 
+from utils.logging import *
+
 def save_model(iter_, model_dir, filename, model, optimizer):
     torch.save({"iteration": iter_, "model_state_dict": model.state_dict(), 'optimizer_state_dict': optimizer.state_dict()}, os.path.join(model_dir, filename))
 
@@ -102,23 +104,26 @@ def train(model, cfg):
         
         optimizer.zero_grad()
         trianflow_inputs = (inputs[0], inputs[1], inputs[2], inputs[3])
-        loss_pack = model(trianflow_inputs)
-        if iter_ % cfg.log_interval == 0:
-            visualizer.print_loss(loss_pack, iter_=iter_)
+        outs, loss_pack = model(trianflow_inputs)
+        #if iter_ % cfg.log_interval == 0:
+        #    visualizer.print_loss(loss_pack, iter_=iter_)
             
         #in case tensorboard shits the bed
-        f.write(f'{loss_pack["pt_depth_loss"].mean().data.item()}, {loss_pack["pj_depth_loss"].mean().data.item()}, {loss_pack["depth_smooth_loss"].mean().data.item()}\n')
-        f.flush()
+        #f.write(f'{loss_pack["pt_depth_loss"].mean().data.item()}, {loss_pack["pj_depth_loss"].mean().data.item()}, {loss_pack["depth_smooth_loss"].mean().data.item()}\n')
+        #f.flush()
         
-        writer.add_scalar('loss_train/triangulation loss', loss_pack['pt_depth_loss'].mean().data.item(), iter_)
-        writer.add_scalar('loss_train/reprojection loss', loss_pack['pj_depth_loss'].mean().data.item(), iter_)
-        writer.add_scalar('loss_train/depth smooth loss', loss_pack['depth_smooth_loss'].mean().data.item(), iter_)
-        writer.flush()
+        #writer.add_scalar('loss_train/triangulation loss', loss_pack['pt_depth_loss'].mean().data.item(), iter_)
+        #writer.add_scalar('loss_train/reprojection loss', loss_pack['pj_depth_loss'].mean().data.item(), iter_)
+        #writer.add_scalar('loss_train/depth smooth loss', loss_pack['depth_smooth_loss'].mean().data.item(), iter_)
+        #writer.flush()
 
-        loss_list = []
-        for key in list(loss_pack.keys()):
-            loss_list.append((loss_weights_dict[key] * loss_pack[key].mean()).unsqueeze(0))
-        loss = torch.cat(loss_list, 0).sum()
+        #loss_list = []
+        #for key in list(loss_pack.keys()):
+        #    loss_list.append((loss_weights_dict[key] * loss_pack[key].mean()).unsqueeze(0))
+        #loss = torch.cat(loss_list, 0).sum()
+        model.plot_tb(writer, task='train', n_iter=iter_)
+        loss = loss_pack['all'].sum()
+        logging.info(f"loss: {loss}")
         loss.backward()
         optimizer.step()
         if (iter_ + 1) % cfg.save_interval == 0:
