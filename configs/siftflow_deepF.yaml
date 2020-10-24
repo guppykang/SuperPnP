@@ -9,6 +9,12 @@ data:
   procressed_data_path : '/jbk001-data1/datasets/kitti/kitti_vo/vo_dataset_processed'
   vo_gts : '/jbk001-data1/datasets/kitti/kitti_vo/vo_gts'
 
+## debug (for training)
+raw_base_dir: '/jbk001-data1/datasets/kitti/kitti_vo/vo_dataset/sequences'
+prepared_base_dir: '/jbk001-data1/datasets/kitti/kitti_vo/vo_dataset_processed'
+vo_gts : '/jbk001-data1/datasets/kitti/kitti_vo/vo_gts'
+dataset: 'kitti_odo' #can be kitti_depth
+num_scales: 3
 
 #config details for the models
 models : 
@@ -80,12 +86,15 @@ models :
 
     
 #training hyperparameters 
+prepared_base_dir: '/jbk001-data1/datasets/kitti/kitti_vo/vo_dataset_processed'
 num_iterations: 200000
 batch_size: 8 # 32
 iter_start : 0 #place the iteration that it last stopped at here
 num_workers : 6
 ransac_num_matches : 1000
 
+lr : 0.0001
+stride : 1
 
 #general
 img_hw: [256, 832]

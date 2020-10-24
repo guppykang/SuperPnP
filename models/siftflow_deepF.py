@@ -34,9 +34,10 @@ from .siftflow import SiftFlow
 from infer_deepF import deepF_frontend
 
 class SiftFlow_deepF(torch.nn.Module):
-    def __init__(self, model_cfg, general_cfg):
+    def __init__(self, model_cfg, general_cfg, device='cpu'):
+        super(SiftFlow_deepF, self).__init__()
         self.siftflow = SiftFlow(model_cfg, general_cfg)
-        self.deepF_fe = deepF_frontend(general_cfg)
+        self.deepF_fe = deepF_frontend(general_cfg["models"]["deepF"])
         
         
     def load_modules(self, cfg):

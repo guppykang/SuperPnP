@@ -57,7 +57,9 @@ def train(model, cfg):
     optimizer = torch.optim.Adam([{'params': filter(lambda p: p.requires_grad, model.parameters()), 'lr': cfg.lr}])
 
     # load dataset
-    data_dir = cfg.prepared_base_dir
+    # code.interact(local=locals())
+    data_dir = cfg.data['procressed_data_path'] # debug
+    # data_dir = cfg['prepared_base_dir'] # 
     if not os.path.exists(os.path.join(data_dir, 'train.txt')):
         if cfg.dataset == 'kitti_odo':
             kitti_raw_dataset = KITTI_Odo(cfg.raw_base_dir, cfg.vo_gts)
@@ -155,11 +157,14 @@ if __name__ == '__main__':
     if args.config_file is None:
         raise ValueError('config file needed. -c --config_file.')
     #do config stuff
-    model_cfg, cfg = get_configs(args.config_file, mode='superglueflow')    
 
     # set model
     if args.mode == 'superglueflow':
+        model_cfg, cfg = get_configs(args.config_file, mode='superglueflow')    
         from models.superglueflow import SuperGlueFlow as Model
+    elif args.mode == 'siftflow_deepF':
+        model_cfg, cfg = get_configs(args.config_file, mode='siftflow')    
+        from models.siftflow_deepF import SiftFlow_deepF as Model
     else : 
         raise ValueError('Model type not implemented yet')
     model = Model(model_cfg, cfg)
