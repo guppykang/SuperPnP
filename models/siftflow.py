@@ -120,8 +120,9 @@ class SiftFlow(torch.nn.Module):
             K_inverse = torch.from_numpy(K_inv).cuda().float().unsqueeze(0)
         else:
             image1_t, image2_t = image1, image2
-            image1_resized = squeezeToNumpy(image1).transpose(1,2,0)
-            image2_resized = squeezeToNumpy(image2).transpose(1,2,0)
+            image1_resized = squeezeToNumpy(image1).transpose(1,2,0)*255
+            image2_resized = squeezeToNumpy(image2).transpose(1,2,0)*255
+            #print(f"image1_resized: {image1_resized}")
             outs['inputs'] = { 'image1' : image1 , 'image2' : image2 }
             K, K_inverse = K, K_inv
         
