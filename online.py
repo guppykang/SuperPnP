@@ -136,10 +136,12 @@ def train(model, cfg):
             eval_depth_res = test_eigen_depth(cfg, model_eval)
 
 if __name__ == '__main__':
+    EXPER_PATH = 'logs/'
     import argparse
     arg_parser = argparse.ArgumentParser(
         description="TrianFlow training pipeline."
     )
+    arg_parser.add_argument('exper_name', type=str)
     arg_parser.add_argument('-c', '--config_file', default='./configs/train/superglueflow.yaml', help='config file.')
     arg_parser.add_argument('-g', '--gpu', type=str, default='0', help='gpu id.')
     arg_parser.add_argument('--iter_start', type=int, default=0, help='starting iteration.')
@@ -166,6 +168,10 @@ if __name__ == '__main__':
         raise ValueError('config file needed. -c --config_file.')
     #do config stuff
 
+    # create folders
+    output_dir = Path(EXPER_PATH)/args.exper_name
+    output_dir.mkdir(parents=True, exist_ok=True)
+    
     # set model
     if args.mode == 'superglueflow':
         model_cfg, cfg = get_configs(args.config_file, mode='superglueflow')    
@@ -199,6 +205,7 @@ if __name__ == '__main__':
     for attr in list(cfg.keys()):
         setattr(cfg_new, attr, cfg[attr])
     
+    cfg_new.model_dir = output_dir
     
     # main function 
     train(model, cfg_new)
