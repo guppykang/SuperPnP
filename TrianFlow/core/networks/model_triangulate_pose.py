@@ -20,6 +20,7 @@ class Model_triangulate_pose(nn.Module):
             self.inlier_thres = 0.1
             self.rigid_thres = 0.5
         self.filter = reduced_ransac(check_num=cfg.ransac_points, thres=self.inlier_thres, dataset=cfg.dataset)
+        self.device='cuda'
     
     def meshgrid(self, h, w):
         xx, yy = np.meshgrid(np.arange(0,w), np.arange(0,h))
@@ -67,8 +68,12 @@ class Model_triangulate_pose(nn.Module):
         match = torch.cat([grid, corres], 1) # [b,4,h,w]
 
         img1_score_mask = img1_valid_mask * 1.0 / (0.1 + img1_flow_diff_mask.mean(1).unsqueeze(1))
+        print(f"match: {match}, img1_score_mask: {img1_score_mask}")
+        print(f"match: {match.shape}, img1_score_mask: {img1_score_mask.shape}")
         F_final = self.filter(match, img1_score_mask)
+            
         geo_loss, rigid_mask = self.compute_epipolar_loss(F_final, match.view([batch_size,4,-1]), img1_valid_mask.view([batch_size,1,-1]))
+        print(f"rigid_mask: {rigid_mask}")
         img1_rigid_mask = (rigid_mask.view([batch_size,img_h,img_w,1]) < self.inlier_thres).float()
         
         return F_final, img1_valid_mask, img1_rigid_mask.permute(0,3,1,2), fwd_flow, match

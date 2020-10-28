@@ -21,6 +21,7 @@ import code
 from tensorboardX import SummaryWriter
 import datetime
 from pathlib import Path
+import numpy as np
 
 from utils.logging import *
 
@@ -181,6 +182,15 @@ if __name__ == '__main__':
     os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu)
 
     print(f"cfg: {cfg}")
+
+    ## reproducibility
+    if cfg["reproduce"]:
+        logging.info("reproduce = True")
+        torch.manual_seed(0)
+        np.random.seed(0)
+        print(f"test random # : np({np.random.rand(1)}), torch({torch.rand(1)})")
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False    
     
     class pObject(object):
         def __init__(self):

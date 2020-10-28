@@ -27,7 +27,7 @@ from deepFEPE.dsac_tools.utils_opencv import KNN_match
 from TrianFlow.core.networks.model_depth_pose import Model_depth_pose 
 
 #My Utils
-from utils.utils import desc_to_sparseDesc, prep_superpoint_image, prep_trianflow_image, get_2d_matches, dense_sparse_hybrid_correspondences, sample_random_k
+from utils.utils import desc_to_sparseDesc, prep_superpoint_image, prep_trianflow_image, get_2d_matches, dense_sparse_hybrid_correspondences, sample_random_k, crop_or_pad_choice
 
 
 
@@ -172,7 +172,10 @@ class SiftFlow(torch.nn.Module):
         #desc to sparse
         
         ## torch
-        (image1, image2, K, K_inv) = (x[0], x[1], x[2], x[3])
+        (images, images_gray, K, K_inv) = (x[0], x[1], x[2], x[3])
+        img_h, img_w = int(images.shape[2] / 2), images.shape[3] 
+        image1, image2 = images[:,:,:img_h,:], images[:,:,img_h:,:]
+        image1_gray, image2_gray = images_gray[:,:,:img_h,:], images_gray[:,:,img_h:,:]        
         
         ## batch inference with for loop
         outs_list = []
@@ -183,7 +186,9 @@ class SiftFlow(torch.nn.Module):
             outs_list.append(self.inference(image1[i].unsqueeze(0), image2[i].unsqueeze(0), 
                                             K[i].unsqueeze(0), K_inv[i].unsqueeze(0), 
                                             preprocess=False))
-        for i, en in enumerate(outs_select):
+            print(f"matches: {outs_list[-1]['matches'].shape}")
+        for i, en in enumerate(outs_select]):
+            code.interact(local=locals())
             outs_select[en] = torch.stack([torch.from_numpy(outs[en]).float() \
                                            for outs in outs_list]).to(self.device)
         ## put results back to torch
