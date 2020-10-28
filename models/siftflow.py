@@ -187,8 +187,8 @@ class SiftFlow(torch.nn.Module):
                                             K[i].unsqueeze(0), K_inv[i].unsqueeze(0), 
                                             preprocess=False))
             print(f"matches: {outs_list[-1]['matches'].shape}")
-        for i, en in enumerate(outs_select]):
-            code.interact(local=locals())
+        for i, en in enumerate(outs_select):
+            #code.interact(local=locals())
             outs_select[en] = torch.stack([torch.from_numpy(outs[en]).float() \
                                            for outs in outs_list]).to(self.device)
         ## put results back to torch
