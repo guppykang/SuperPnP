@@ -164,6 +164,7 @@ class deepF_frontend(torch.nn.Module):
         b = epi_lines[:,1,:].unsqueeze(1).transpose(1,2) # [b,n,1]
         dist_div = torch.sqrt(a*a + b*b) + 1e-6
         dist_map = dist_p2l / dist_div # [B, n, 1]
+        
         if mask is None:
             loss = dist_map.mean([1,2])
         else:
@@ -194,7 +195,8 @@ class deepF_frontend(torch.nn.Module):
         #outs['E_ests_layers'] = E_ests_layers
         
         # F loss
-        loss, dist_map = self.compute_epipolar_loss(outs["F_est"], matches.transpose(1,2), mask=None)
+        loss, dist_map = self.compute_epipolar_loss(outs["F_est"], matches.transpose(1,2), 
+                                                    mask=outs['weights'])
         outs['dist_map'] = dist_map
         return outs, loss
 

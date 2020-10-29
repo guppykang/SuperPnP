@@ -83,12 +83,13 @@ models :
       ### trained results
       # pretrained: 'logs/test_kitti/checkpoints/deepFNet_100000_checkpoint.pth.tar'
       pretrained: 'pretrained/deepF/baselineTrain_deepF_kitti_fLoss_v1/checkpoints/deepFNet_30000_checkpoint.pth.tar'
+      #pretrained: 'logs/test_b8/checkpoints/deepF_3.pth.tar'
 
     
 #training hyperparameters 
 prepared_base_dir: '/jbk001-data1/datasets/kitti/kitti_vo/vo_dataset_processed'
 num_iterations: 200000
-batch_size: 8 # 32
+batch_size: 16 # 32
 iter_start : 0 #place the iteration that it last stopped at here
 num_workers : 6
 ransac_num_matches : 1000

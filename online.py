@@ -57,10 +57,11 @@ def train(model, cfg):
     print(type(model))
     
     model = model.cuda()
-    optimizer = torch.optim.Adam([{'params': filter(lambda p: p.requires_grad, model.parameters()), 'lr': cfg.lr}])
+    #optimizer = torch.optim.Adam([{'params': filter(lambda p: p.requires_grad, model.parameters()), 'lr': cfg.lr}])
+    optimizers = model.optimizers
 
     # load dataset
-    # code.interact(local=locals())
+    #code.interact(local=locals())
     data_dir = cfg.data['procressed_data_path'] # debug
     # data_dir = cfg['prepared_base_dir'] # 
     if not os.path.exists(os.path.join(data_dir, 'train.txt')):
@@ -84,11 +85,11 @@ def train(model, cfg):
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=cfg.batch_size, shuffle=True, drop_last=False)
 
     #logging
-    if not os.path.isdir('./tensorboard'):
-        os.mkdir('./tensorboard')
+    #if not os.path.isdir('./tensorboard'):
+    #    os.mkdir('./tensorboard')
     start_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S") 
-    writer = SummaryWriter(f'./tensorboard/trianflow_{start_time}', flush_secs=1)
-    f = open(f'./tensorboard/logs_{start_time}.txt', 'w+')
+    writer = SummaryWriter(f'./tensorboard/{cfg.exper_name}/', flush_secs=1)
+    f = open(f'./tensorboard/{cfg.exper_name}/logs_{start_time}.txt', 'w+')
 
     # training
     print('starting iteration: {}.'.format(cfg.iter_start))
@@ -103,7 +104,8 @@ def train(model, cfg):
         model.train()
         iter_ = iter_ + cfg.iter_start
         
-        optimizer.zero_grad()
+        for i, en in enumerate(optimizers):
+            optimizers[en].zero_grad()
         trianflow_inputs = (inputs[0], inputs[1], inputs[2], inputs[3])
         outs, loss_pack = model(trianflow_inputs)
         #if iter_ % cfg.log_interval == 0:
@@ -126,10 +128,11 @@ def train(model, cfg):
         loss = loss_pack['all'].sum()
         logging.info(f"loss: {loss}")
         loss.backward()
-        optimizer.step()
-        if (iter_ + 1) % cfg.save_interval == 0:
-            save_model(iter_, cfg.model_dir, 'iter_{}.pth'.format(iter_), model, optimizer)
-            save_model(iter_, cfg.model_dir, 'last.pth'.format(iter_), model, optimizer)
+        for i, en in enumerate(optimizers):
+            optimizers[en].step()
+        if iter_ != 0 and (iter_) % cfg.save_interval == 0:
+            model.save_model(iter_, cfg.model_dir)
+            #save_model(iter_, cfg.model_dir, 'last.pth'.format(iter_), model, optimizer)
     
     if cfg.dataset == 'kitti_depth':
         if cfg.mode == 'depth' or cfg.mode == 'depth_pose':
@@ -170,6 +173,7 @@ if __name__ == '__main__':
 
     # create folders
     output_dir = Path(EXPER_PATH)/args.exper_name
+    output_dir = output_dir/'checkpoints'
     output_dir.mkdir(parents=True, exist_ok=True)
     
     # set model
@@ -206,6 +210,7 @@ if __name__ == '__main__':
         setattr(cfg_new, attr, cfg[attr])
     
     cfg_new.model_dir = output_dir
+    cfg_new.exper_name = args.exper_name
     
     # main function 
     train(model, cfg_new)

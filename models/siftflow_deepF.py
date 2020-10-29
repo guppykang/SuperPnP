@@ -6,6 +6,9 @@ import numpy as np
 import code
 import cv2
 from datetime import datetime
+import os
+import logging
+
 
 #torch imports
 import torch
@@ -39,13 +42,30 @@ class SiftFlow_deepF(torch.nn.Module):
         self.siftflow = SiftFlow(model_cfg, general_cfg)
         self.deepF_fe = deepF_frontend(general_cfg["models"]["deepF"])
         self.tb_scalar_by_name = {}
-        self.tb_image_by_name = {}        
+        self.tb_image_by_name = {}
+        self.optimizers = {}
+        self.optimizers.update({'deepF': self.deepF_fe.optimizer})
+        self.nets = {'deepF': self.deepF_fe.net}
         
     def load_modules(self, cfg):
         pass
     
     def inference(self, image1, image2, K, K_inv, hw):
         pass
+    
+    def save_model(self, iter_, model_dir):
+        for i, en in enumerate(self.nets):
+            model = self.nets[en]
+            optimizer = self.optimizers[en]
+            filename = f'{en}_{iter_}.pth.tar'
+            file = os.path.join(model_dir, filename)
+            logging.info(f"save model to: {file}")
+            torch.save({"n_iter": iter_, 'n_iter_val': iter_,
+                        "model_state_dict": model.state_dict(), 
+                        'optimizer_state_dict': optimizer.state_dict(),
+                       }, file)
+            
+        
     
     def plot_tb(self, writer, task='train', n_iter=0):
         for element in list(self.tb_scalar_by_name):
