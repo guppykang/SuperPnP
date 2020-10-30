@@ -76,7 +76,7 @@ def train(model, cfg):
     else:
         raise NotImplementedError
         
-    dataloader = torch.utils.data.DataLoader(dataset, batch_size=cfg.batch_size, shuffle=True, drop_last=False)
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=True, drop_last=False)
 
     #logging
     if not os.path.isdir('./tensorboard'):
@@ -93,7 +93,7 @@ def train(model, cfg):
 #         iter_ = iter_ + cfg.iter_start
         
         optimizer.zero_grad()
-        trianflow_inputs = (inputs[0], inputs[2], inputs[3])
+        trianflow_inputs = (inputs[0], inputs[1], inputs[2], inputs[3])
         loss_pack = model(trianflow_inputs)
         if iter_ % cfg.log_interval == 0:
             visualizer.print_loss(loss_pack, iter_=iter_)
@@ -151,8 +151,8 @@ if __name__ == '__main__':
     #do config stuff
     model_cfg, cfg = get_configs(args.config_file, mode='superglueflow')   
     cfg['model_dir'] = f'./models/pretrained/{args.mode}'
-    if not os.path.isdir(cfg.model_dir):
-        os.makedirs(cfg.model_dir)
+    if not os.path.isdir(cfg['model_dir']):
+        os.makedirs(cfg['model_dir'])
 
     # set model
     if args.mode == 'superglueflow':
@@ -172,10 +172,7 @@ if __name__ == '__main__':
     for attr in list(cfg.keys()):
         setattr(cfg_new, attr, cfg[attr])
         
-    
         
-    code.interact(local=locals())
-    
     
 
     # main function 

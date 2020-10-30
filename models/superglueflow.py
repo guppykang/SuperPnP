@@ -188,6 +188,7 @@ class SuperGlueFlow(torch.nn.Module):
         Output
             output: Losses 
         """
+        code.interact(local=locals())
         (images, images_gray, K, K_inv) = (x[0], x[1], x[2], x[3]) #flownet input pair, superpoint input pair, K, K_inv
         img_h, img_w = int(images.shape[2] / 2), images.shape[3] 
         image1, image2 = images[:,:,:img_h,:], images[:,:,img_h:,:]
