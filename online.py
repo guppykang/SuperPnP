@@ -88,15 +88,9 @@ def train(model, cfg):
     # training
     print('starting iteration: {}.'.format(cfg.iter_start))
     for iter_, inputs in enumerate(tqdm(dataloader)):
-        if (iter_ + 1) % cfg.test_interval == 0 and (not cfg.no_test):
-            model.eval()
-            if args.multi_gpu:
-                model_eval = model.module
-            else:
-                model_eval = model
                 
         model.train()
-        iter_ = iter_ + cfg.iter_start
+#         iter_ = iter_ + cfg.iter_start
         
         optimizer.zero_grad()
         trianflow_inputs = (inputs[0], inputs[2], inputs[3])
@@ -155,7 +149,10 @@ if __name__ == '__main__':
     if args.config_file is None:
         raise ValueError('config file needed. -c --config_file.')
     #do config stuff
-    model_cfg, cfg = get_configs(args.config_file, mode='superglueflow')    
+    model_cfg, cfg = get_configs(args.config_file, mode='superglueflow')   
+    cfg['model_dir'] = f'./models/pretrained/{args.mode}'
+    if not os.path.isdir(cfg.model_dir):
+        os.makedirs(cfg.model_dir)
 
     # set model
     if args.mode == 'superglueflow':
@@ -174,6 +171,10 @@ if __name__ == '__main__':
     cfg_new = pObject()
     for attr in list(cfg.keys()):
         setattr(cfg_new, attr, cfg[attr])
+        
+    
+        
+    code.interact(local=locals())
     
     
 
