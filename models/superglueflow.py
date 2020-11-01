@@ -170,6 +170,7 @@ class SuperGlueFlow(torch.nn.Module):
         #TrianFlow
         K = K.float().unsqueeze(0)
         K_inv = K_inv.float().unsqueeze(0)
+        #code.interact(local=locals())
         correspondences, image1_depth_map, image2_depth_map = self.trianFlow.infer_vo(image1, image2, K, K_inv, self.num_matches)
         outs['flownet_correspondences'] = squeezeToNumpy(correspondences.T)
         outs['image1_depth'] = squeezeToNumpy(image1_depth_map)

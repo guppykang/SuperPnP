@@ -126,7 +126,8 @@ class SiftFlow(torch.nn.Module):
             outs['inputs'] = { 'image1' : image1 , 'image2' : image2 }
             K, K_inverse = K, K_inv
         
-        correspondences, image1_depth_map, image2_depth_map = self.trianFlow.infer_vo(image1_t, image2_t, K, K_inverse, self.num_matches)
+        #code.interact(local=locals())
+        correspondences, image1_depth_map, image2_depth_map = self.trianFlow.infer_vo(image1_t, image2_t, K.unsqueeze(0), K_inverse.unsqueeze(0), self.num_matches)
 
         #post process
         outs['flownet_correspondences'] = squeezeToNumpy(correspondences.T)
@@ -185,7 +186,7 @@ class SiftFlow(torch.nn.Module):
         batch_size = K.shape[0]
         for i in range(batch_size):
             outs_list.append(self.inference(image1[i].unsqueeze(0), image2[i].unsqueeze(0), 
-                                            K[i].unsqueeze(0), K_inv[i].unsqueeze(0), 
+                                            K[i].float().unsqueeze(0), K_inv[i].float().unsqueeze(0), 
                                             preprocess=False))
             print(f"matches: {outs_list[-1]['matches'].shape}")
         for i, en in enumerate(outs_select):
