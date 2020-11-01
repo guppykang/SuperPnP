@@ -79,20 +79,20 @@ class SiftFlow_deepF(torch.nn.Module):
         """
         loss = {}
         (images, images_gray, K, K_inv) = (x[0], x[1], x[2], x[3]) #flownet input pair, superpoint input pair, K, K_inv
-        img_h, img_w = int(images.shape[2] / 2), images.shape[3] 
-        image1, image2 = images[:,:,:img_h,:], images[:,:,img_h:,:]
-        image1_gray, image2_gray = images_gray[:,:,:img_h,:], images_gray[:,:,img_h:,:]
+        #img_h, img_w = int(images.shape[2] / 2), images.shape[3] 
+        #image1, image2 = images[:,:,:img_h,:], images[:,:,img_h:,:]
+        #image1_gray, image2_gray = images_gray[:,:,:img_h,:], images_gray[:,:,img_h:,:]
         
         # feed into siftflow, get correspondences [B, N, 4]
-        outs_stg1, loss_stg1 = self.siftflow((image1, image2, K, K_inv))
+        outs_stg1, loss_stg1 = self.siftflow(x) # siftflow handles the input
         
         # feed into deepF, get essential matrix [B, 3, 3]
         outs_stg2, loss_stg2 = self.deepF_fe((outs_stg1['matches'], K, K_inv))
         
         # compute loss from essential matrix
         #code.interact(local = locals())
-        outs = outs_stg1.update(outs_stg2)
+        outs_stg1.update(outs_stg2)
         loss['all'] = (loss_stg1 + loss_stg2).mean()
         self.tb_scalar_by_name.update(loss)
-        return outs, loss
+        return outs_stg1, loss
     

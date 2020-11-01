@@ -1,7 +1,8 @@
 #!/usr/bin/env python 
 
 #models
-from models.attention import decoder, encoder, AttentionMatching
+#from models.attention import decoder, encoder, AttentionMatching
+
 from models.superglueflow import SuperGlueFlow
 
 import code
@@ -18,7 +19,7 @@ from utils.KITTI_dataset import KITTI_Dataset
 stride = 3
 
 
-model_cfg, cfg = get_configs('../../configs/kitti/superglueflow.yaml', mode='superglueflow')    
+model_cfg, cfg = get_configs('./configs/kitti/superglueflow.yaml', mode='superglueflow')    
 
 #get dataset and process
 kitti_raw_dataset = KITTI_Odo(cfg["kitti"]["vo_path"],  cfg["kitti"]["vo_gts"])
