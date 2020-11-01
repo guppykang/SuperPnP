@@ -6,7 +6,7 @@ metadata:
   labels:
     user: jbk001 
 spec:
-  ttlSecondsAfterFinished: 96400 # Wait one day to delete completed jobs
+  ttlSecondsAfterFinished: 1196400 # Wait one day to delete completed jobs
   template:
     spec:
       containers:
