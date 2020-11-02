@@ -212,6 +212,9 @@ if __name__ == '__main__':
     cfg_new.model_dir = output_dir
     cfg_new.exper_name = args.exper_name
     
+    with open(os.path.join(output_dir, 'config.yml'), 'w') as f:
+        yaml.dump(cfg, f, default_flow_style=False)
+    
     # main function 
     train(model, cfg_new)
 
