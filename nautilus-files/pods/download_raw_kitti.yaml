@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name:  superglueflow-job # deepsfm-pod
+  name:  download-raw-job # deepsfm-pod
   namespace: mc-lab
   labels:
     user: jbk001 
@@ -15,7 +15,7 @@ spec:
         command:
         - "sh"
         - "-c"
-        - "/jbk001-data1/raw_kitti/raw_data_downloader.sh"
+        - "/jbk001-data1/git/SuperPnP/nautilus-files/scripts/download_raw.sh"
         resources:
           requests:
             cpu: "8"
