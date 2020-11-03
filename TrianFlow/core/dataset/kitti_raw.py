@@ -5,18 +5,18 @@ from tqdm import tqdm
 import torch.multiprocessing as mp
 import pdb
 
-def process_folder(q, static_frames, test_scenes, data_dir, output_dir, stride=1):
+def process_folder(q, data_dir, output_dir, stride=1):
     while True:
         if q.empty():
             break
         folder = q.get()
-        if folder in static_frames.keys():
-            static_ids = static_frames[folder]
-        else:
-            static_ids = []
+#         if folder in static_frames.keys():
+#             static_ids = static_frames[folder]
+#         else:
+#             static_ids = []
         scene = folder.split('/')[1]
-        if scene[:-5] in test_scenes:
-            continue
+#         if scene[:-5] in test_scenes:
+#             continue
         image_path = os.path.join(data_dir, folder, 'image_02/data')
         dump_image_path = os.path.join(output_dir, folder)
         if not os.path.isdir(dump_image_path):
@@ -28,9 +28,9 @@ def process_folder(q, static_frames, test_scenes, data_dir, output_dir, stride=1
         for n in range(numbers - stride):
             s_idx = n
             e_idx = s_idx + stride
-            if '%.10d'%s_idx in static_ids or '%.10d'%e_idx in static_ids:
-                #print('%.10d'%s_idx)
-                continue
+#             if '%.10d'%s_idx in static_ids or '%.10d'%e_idx in static_ids:
+#                 #print('%.10d'%s_idx)
+#                 continue
             curr_image = imageio.imread(os.path.join(image_path, '%.10d'%s_idx)+'.png')
             next_image = imageio.imread(os.path.join(image_path, '%.10d'%e_idx)+'.png')
             seq_images = np.concatenate([curr_image, next_image], axis=0)
@@ -43,40 +43,40 @@ def process_folder(q, static_frames, test_scenes, data_dir, output_dir, stride=1
 
 
 class KITTI_RAW(object):
-    def __init__(self, data_dir, static_frames_txt, test_scenes_txt):
+    def __init__(self, data_dir):
         self.data_dir = data_dir
-        self.static_frames_txt = static_frames_txt
-        self.test_scenes_txt = test_scenes_txt
+#         self.static_frames_txt = static_frames_txt
+#         self.test_scenes_txt = test_scenes_txt
 
     def __len__(self):
         raise NotImplementedError
 
-    def collect_static_frame(self):
-        f = open(self.static_frames_txt)
-        static_frames = {}
-        for line in f.readlines():
-            line = line.strip()
-            date, drive, frame_id = line.split(' ')
-            curr_fid = '%.10d' % (np.int(frame_id))
-            if os.path.join(date, drive) not in static_frames.keys():
-                static_frames[os.path.join(date, drive)] = []
-            static_frames[os.path.join(date, drive)].append(curr_fid)
-        return static_frames
+#     def collect_static_frame(self):
+#         f = open(self.static_frames_txt)
+#         static_frames = {}
+#         for line in f.readlines():
+#             line = line.strip()
+#             date, drive, frame_id = line.split(' ')
+#             curr_fid = '%.10d' % (np.int(frame_id))
+#             if os.path.join(date, drive) not in static_frames.keys():
+#                 static_frames[os.path.join(date, drive)] = []
+#             static_frames[os.path.join(date, drive)].append(curr_fid)
+#         return static_frames
     
-    def collect_test_scenes(self):
-        f = open(self.test_scenes_txt)
-        test_scenes = []
-        for line in f.readlines():
-            line = line.strip()
-            test_scenes.append(line)
-        return test_scenes
+#     def collect_test_scenes(self):
+#         f = open(self.test_scenes_txt)
+#         test_scenes = []
+#         for line in f.readlines():
+#             line = line.strip()
+#             test_scenes.append(line)
+#         return test_scenes
 
     def prepare_data_mp(self, output_dir, stride=1):
         num_processes = 16
         processes = []
         q = mp.Queue()
-        static_frames = self.collect_static_frame()
-        test_scenes = self.collect_test_scenes()
+#         static_frames = self.collect_static_frame()
+#         test_scenes = self.collect_test_scenes()
         if not os.path.isfile(os.path.join(output_dir, 'train.txt')):
             os.makedirs(output_dir)
             #f = open(os.path.join(output_dir, 'train.txt'), 'w')
@@ -94,7 +94,7 @@ class KITTI_RAW(object):
                         q.put(os.path.join(d, s))
             # Process every folder
             for rank in range(num_processes):
-                p = mp.Process(target=process_folder, args=(q, static_frames, test_scenes, self.data_dir, output_dir, stride))
+                p = mp.Process(target=process_folder, args=(q,self.data_dir, output_dir, stride))
                 p.start()
                 processes.append(p)
             for p in processes:
@@ -120,8 +120,8 @@ class KITTI_RAW(object):
 
 
     def prepare_data(self, output_dir):
-        static_frames = self.collect_static_frame()
-        test_scenes = self.collect_test_scenes()
+#         static_frames = self.collect_static_frame()
+#         test_scenes = self.collect_test_scenes()
         if not os.path.isfile(os.path.join(output_dir, 'train.txt')):
             os.makedirs(output_dir)
             f = open(os.path.join(output_dir, 'train.txt'), 'w')
@@ -138,13 +138,13 @@ class KITTI_RAW(object):
                         total_dirlist.append(os.path.join(d, s))
             # Process every folder
             for folder in tqdm(total_dirlist):
-                if folder in static_frames.keys():
-                    static_ids = static_frames[folder]
-                else:
-                    static_ids = []
+#                 if folder in static_frames.keys():
+#                     static_ids = static_frames[folder]
+#                 else:
+#                     static_ids = []
                 scene = folder.split('/')[1]
-                if scene in test_scenes:
-                    continue
+#                 if scene in test_scenes:
+#                     continue
                 image_path = os.path.join(self.data_dir, folder, 'image_02/data')
                 dump_image_path = os.path.join(output_dir, folder)
                 if not os.path.isdir(dump_image_path):
@@ -154,9 +154,9 @@ class KITTI_RAW(object):
                 for n in range(numbers - 1):
                     s_idx = n
                     e_idx = s_idx + 1
-                    if '%.10d'%s_idx in static_ids or '%.10d'%e_idx in static_ids:
-                        print('%.10d'%s_idx)
-                        continue
+#                     if '%.10d'%s_idx in static_ids or '%.10d'%e_idx in static_ids:
+#                         print('%.10d'%s_idx)
+#                         continue
                     curr_image = imageio.imread(os.path.join(image_path, '%.10d'%s_idx)+'.png')
                     next_image = imageio.imread(os.path.join(image_path, '%.10d'%e_idx)+'.png')
                     seq_images = np.concatenate([curr_image, next_image], axis=0)
