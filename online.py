@@ -175,6 +175,7 @@ if __name__ == '__main__':
     output_dir = Path(EXPER_PATH)/args.exper_name
     output_dir = output_dir/'checkpoints'
     output_dir.mkdir(parents=True, exist_ok=True)
+    logging.info(f"save everything to: {output_dir}")
     
     # set model
     if args.mode == 'superglueflow':

@@ -47,7 +47,10 @@ class SiftFlow(torch.nn.Module):
 
         #TrianFlow
         self.trianFlow = Model_depth_pose(model_cfg["trianflow"])
-
+        #Load pretrained Modules
+        self.did_load_modules = False
+        self.load_modules(model_cfg)
+        
         #SIFT
     
     def load_modules(self, cfg):
@@ -55,9 +58,13 @@ class SiftFlow(torch.nn.Module):
         Loads specific modules that were pretrained into the pipeline, rather than the entire model
         """
         #load trian flow
-        weights = torch.load(cfg["trianflow"].pretrained)
+        pretrained_file = cfg["trianflow"].pretrained
+        print(f"load siftflow model from: {pretrained_file}")
+        weights = torch.load(pretrained_file)
         self.trianFlow.load_state_dict(weights['model_state_dict'])
-
+        
+        self.did_load_modules = True
+        
         pass
 
     def load_model(self):
