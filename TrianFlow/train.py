@@ -124,8 +124,8 @@ def train(cfg):
     if cfg.dataset == 'kitti_depth':
         dataset = KITTI_Prepared(data_dir, num_scales=cfg.num_scales, img_hw=cfg.img_hw, num_iterations=(cfg.num_iterations - cfg.iter_start) * cfg.batch_size)
     elif cfg.dataset == 'kitti_odo':
-        from utils.KITTI_dataset import KITTI_Dataset as KITTI_Prepared
-        dataset = KITTI_Prepared(data_dir, num_scales=cfg.num_scales, img_hw=cfg.img_hw, num_iterations=(cfg.num_iterations - cfg.iter_start) * cfg.batch_size, stride=cfg.stride)
+        from utils.KITTI_dataset import KITTI_Dataset as KITTI_odo_Prepared
+        dataset = KITTI_odo_Prepared(data_dir, num_scales=cfg.num_scales, img_hw=cfg.img_hw, num_iterations=(cfg.num_iterations - cfg.iter_start) * cfg.batch_size, stride=cfg.stride)
     elif cfg.dataset == 'nyuv2':
         dataset = NYU_v2(data_dir, num_scales=cfg.num_scales, img_hw=cfg.img_hw, num_iterations=(cfg.num_iterations - cfg.iter_start) * cfg.batch_size)
     elif cfg.dataset == 'tum':
@@ -156,8 +156,14 @@ def train(cfg):
         iter_ = iter_ + cfg.iter_start
         
         optimizer.zero_grad()
-        trianflow_inputs = (inputs[0], inputs[2], inputs[3])
-        loss_pack = model(trianflow_inputs)
+
+        if cfg.finetune_depth:#we're donig odo training
+            inputs = (inputs[0], inputs[2], inputs[3])
+        else : #using raw kitti data
+            inputs = [k.cuda() for k in inputs]
+
+            
+        loss_pack = model(inputs)
         if iter_ % cfg.log_interval == 0:
             visualizer.print_loss(loss_pack, iter_=iter_)
             
