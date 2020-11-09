@@ -171,6 +171,22 @@ class deepF_frontend(torch.nn.Module):
             loss = (dist_map * mask.transpose(1,2)).mean([1,2]) / mask.mean([1,2])
         return loss, dist_map
         
+    def compute_reprojection_loss(b_xyz1, b_xyz2, Ks, K_invs, Rt_cam):
+        """ 
+        params:
+            b_xyz1, b_xyz2: [b, N, 3]
+            Ks: [b, 3, 3]
+            K_invs: [b, 3, 3]
+            Rt_cam: tensor [3,4]
+        """
+        # normalize b_xyz
+        # [xyz] to homogeneous [x,y,z,1] -> [b, N, 4]
+        
+        # Rt_cam to 4x4 matrix (P)
+        # loss = | P*X1 - X2 |
+        
+        
+        return loss, {}
         
     def forward(self, x):
         """
@@ -179,6 +195,7 @@ class deepF_frontend(torch.nn.Module):
             K: [b, ch, 3, 3]
         """
         (matches, Ks, K_invs) = (x[0], x[1], x[2])
+        b_xy1, b_xy2 = matches[:,:2], matches[:,2:]
         from deepFEPE.train_good_utils import get_E_ests_deepF
         data_batch = {
             "matches_xy_ori": matches,
@@ -191,8 +208,20 @@ class deepF_frontend(torch.nn.Module):
         }
         loss = 0.
         outs = self.net(data_batch)
-        #E_ests_layers = get_E_ests_deepF(outs, Ks.to(self.device), K_invs.to(self.device)) # [D, B, 3, 3]
-        #outs['E_ests_layers'] = E_ests_layers
+        
+        """ # for reprojection loss
+        # solve for E, poses
+        E_ests_layers = get_E_ests_deepF(outs, Ks.to(self.device), K_invs.to(self.device)) # [D, B, 3, 3]
+        outs['E_ests_layers'] = E_ests_layers
+        Ks_np = Ks.numpy()
+        b_xy1_np = b_xy1.numpy()
+        b_xy2_np = b_xy2.numpy()
+        M2_list, error_Rt, Rt_cam = _E_to_M_train(E_ests_layers[-1][idx], Ks_np[idx], b_xy1_np[idx], 
+                    b_xy2_np[idx], show_result=True)
+        
+        # reprojection loss
+        loss = self.compute_reprojection_loss(b_xyz1, b_xyz2, Ks, Rt_cam)
+        """
         
         # F loss
         loss, dist_map = self.compute_epipolar_loss(outs["F_est"], matches.transpose(1,2), 
