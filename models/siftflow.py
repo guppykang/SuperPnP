@@ -161,7 +161,41 @@ class SiftFlow(torch.nn.Module):
         print(f'SIFT and flownet took {mid_time - start_time} to run')
         
         #SIFTFLOW
-        outs['matches'] = dense_sparse_hybrid_correspondences(outs['image1_sift_keypoints'], outs['image2_sift_keypoints'], outs['flownet_correspondences'], outs['sift_correspondences'], self.ransac_num_matches)
+        matches = dense_sparse_hybrid_correspondences(outs['image1_sift_keypoints'], outs['image2_sift_keypoints'], outs['flownet_correspondences'], outs['sift_correspondences'], self.ransac_num_matches)
+        outs['matches'] = matches
+        
+        # get depth from bilinear sampling
+        def get_depth_from_image(pts, depth_map):
+            """ extract sparse depth
+            params: 
+                pts: tensor [N, 2] (should be the same device as desc)
+                depth_map: [1, D, Hc, Wc]
+            return:
+                depth: [N, D]
+            """
+            samp_pts = pts.transpose(0,1)
+            H, W = image1_depth_map.shape[-2], image1_depth_map.shape[-1]
+            # Interpolate into descriptor map using 2D point locations.
+            samp_pts[0, :] = (samp_pts[0, :] / (float(W) / 2.)) - 1.
+            samp_pts[1, :] = (samp_pts[1, :] / (float(H) / 2.)) - 1.
+            samp_pts = samp_pts.transpose(0, 1).contiguous()
+            samp_pts = samp_pts.view(1, 1, -1, 2)
+            samp_pts = samp_pts.float()
+            # samp_pts = samp_pts.to(self.device)
+            desc = torch.nn.functional.grid_sample(depth_map, samp_pts, align_corners=True) # tensor [batch_size(1), D, 1, N]
+            # desc = desc.data.cpu().numpy().reshape(D, -1)
+            # desc /= np.linalg.norm(desc, axis=0)[np.newaxis, :]
+            desc = desc.squeeze(1).squeeze(0).transpose(0,1)
+            return desc
+        
+        
+        # get depth for matches
+        matches_tensor = torch.from_numpy(matches).float().to(self.device)
+        pnt_depth_1 = get_depth_from_image(matches_tensor[:,:2], image1_depth_map)
+        pnt_depth_2 = get_depth_from_image(matches_tensor[:,:2], image2_depth_map)
+        #code.interact(local=locals())
+        outs['matches_depth'] = torch.stack([pnt_depth_1, pnt_depth_2], dim=1)
+        outs['matches_tensor'] = matches_tensor
         
         return outs
 
