@@ -187,8 +187,16 @@ class deepF_frontend(torch.nn.Module):
 
         # Rt_cam to 4x4 matrix (P)
         # loss = | P*X1 - X2 |
-        transform = tgm.ConvertPointsToHomogeneous()
-        b_homo1 = transform(b_xyz1_norm) # [b, N, 4]
+        # transform = tgm.ConvertPointsToHomogeneous()
+        # b_homo1 = transform(b_xyz1_norm) # [b, N, 4]
+        def ConvertPointsToHomogeneous(points):
+            """ [b, N, ch] -> [b, N, ch+1]
+            """
+            num_batch, match_num = points.shape[0], points.shape[1]]
+            ones = torch.ones(num_batch, match_num, 1).to(points.get_device())
+            points = torch.cat([points, ones], 2) # [b,n,ch+1]
+            return points
+        b_homo1 = ConvertPointsToHomogeneous(b_xyz1_norm)
         b_warp1 = Rt_cam.bmm(b_homo1.transpose(1,2)).transpose(1,2) # [b, N, 3]
 
         dist_map = torch.abs(b_warp1 - b_xyz2_norm)
