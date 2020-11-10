@@ -27,6 +27,10 @@ from utils.logging import *
 from infer_vo import infer_vo, save_traj
 from infer_models import infer_vo_kitti, infer_vo_tum
 
+# deepFEPE
+from deepFEPE.train_good_utils import get_E_ests_deepF, mat_E_to_pose
+from deepFEPE.dsac_tools.utils_F import _get_M2s, _E_to_M_train
+
 warnings.filterwarnings("ignore")
 
 ##### deepF frontend
@@ -108,8 +112,8 @@ class deepF_frontend(torch.nn.Module):
 
 
     def run(self, b_xy1, b_xy2, Ks, K_invs, train=False):
-        from deepFEPE.train_good_utils import get_E_ests_deepF, mat_E_to_pose
-        from deepFEPE.dsac_tools.utils_F import _get_M2s, _E_to_M_train
+        """
+        """
         # Make data batch
         matches_use_ori = torch.cat((b_xy1, b_xy2), 2).cuda()
 
@@ -171,7 +175,7 @@ class deepF_frontend(torch.nn.Module):
             loss = (dist_map * mask.transpose(1,2)).mean([1,2]) / mask.mean([1,2])
         return loss, dist_map
         
-    def compute_reprojection_loss(b_xyz1, b_xyz2, Ks, K_invs, Rt_cam, mask=None):
+    def compute_reprojection_loss(self, b_xyz1, b_xyz2, Ks, K_invs, Rt_cam, mask=None):
         """ 
         params:
             b_xyz1, b_xyz2: [b, N, 3]
@@ -182,8 +186,11 @@ class deepF_frontend(torch.nn.Module):
         """
         # normalize b_xyz
         # [xyz] to homogeneous [x,y,z,1] -> [b, N, 4]
-        b_xyz1_norm = K_invs.bmm(b_xyz1.transpose(1,2)).transpose(1,2) # [b, N, 3]
-        b_xyz2_norm = K_invs.bmm(b_xyz2.transpose(1,2)).transpose(1,2)
+        #code.interact(local = locals())
+        b_xyz1_norm = K_invs.bmm(b_xyz1.transpose(1,2))
+        b_xyz1_norm = b_xyz1_norm.transpose(1,2) # [b, N, 3]
+        b_xyz2_norm = K_invs.bmm(b_xyz2.transpose(1,2))
+        b_xyz2_norm = b_xyz2_norm.transpose(1,2)
 
         # Rt_cam to 4x4 matrix (P)
         # loss = | P*X1 - X2 |
@@ -192,7 +199,7 @@ class deepF_frontend(torch.nn.Module):
         def ConvertPointsToHomogeneous(points):
             """ [b, N, ch] -> [b, N, ch+1]
             """
-            num_batch, match_num = points.shape[0], points.shape[1]]
+            num_batch, match_num = points.shape[0], points.shape[1]
             ones = torch.ones(num_batch, match_num, 1).to(points.get_device())
             points = torch.cat([points, ones], 2) # [b,n,ch+1]
             return points
@@ -215,10 +222,11 @@ class deepF_frontend(torch.nn.Module):
             matches_depth: [b, N, 2]
         """
         (matches, Ks, K_invs, matches_depth) = (x[0], x[1], x[2], x[3])
-        b_xy1, b_xy2 = matches[:,:2], matches[:,2:]
-        b_z1, b_z2 = matches_depth[:,:1], matches_depth[:,1:]
-        b_xyz1 = torch.stack([b_xy1, b_z1], dim=2)
-        b_xyz2 = torch.stack([b_xy2, b_z2], dim=2)
+        batch_size = matches.shape[0]
+        b_xy1, b_xy2 = matches[...,:2], matches[...,2:]
+        b_z1, b_z2 = matches_depth[...,:1], matches_depth[...,1:]
+        b_xyz1 = torch.cat([b_xy1, b_z1], dim=2)
+        b_xyz2 = torch.cat([b_xy2, b_z2], dim=2)
         from deepFEPE.train_good_utils import get_E_ests_deepF
         data_batch = {
             "matches_xy_ori": matches,
@@ -232,24 +240,32 @@ class deepF_frontend(torch.nn.Module):
         loss = 0.
         outs = self.net(data_batch)
         
-        """ # for reprojection loss
+        #""" # for reprojection loss
         # solve for E, poses
         E_ests_layers = get_E_ests_deepF(outs, Ks.to(self.device), K_invs.to(self.device)) # [D, B, 3, 3]
         outs['E_ests_layers'] = E_ests_layers
-        Ks_np = Ks.numpy()
-        b_xy1_np = b_xy1.numpy()
-        b_xy2_np = b_xy2.numpy()
-        M2_list, error_Rt, Rt_cam = _E_to_M_train(E_ests_layers[-1][idx], Ks_np[idx], b_xy1_np[idx], 
+        Ks_np = Ks.to('cpu').numpy()
+        b_xy1_np = b_xy1.detach().to('cpu').numpy()
+        b_xy2_np = b_xy2.detach().to('cpu').numpy()
+        b_Rt_cam = []
+        for idx in range(batch_size):
+            M2_list, error_Rt, Rt_cam = _E_to_M_train(E_ests_layers[-1][idx], Ks_np[idx], b_xy1_np[idx], 
                     b_xy2_np[idx], show_result=True)
+            b_Rt_cam.append(Rt_cam)
+            #break
+        b_Rt_cam = torch.stack(b_Rt_cam, dim=0)
 
         # reprojection loss
-        loss = self.compute_reprojection_loss(b_xyz1, b_xyz2, Ks, Rt_cam)
-        """
+        #code.interact(local = locals())
+        loss, dist_map = self.compute_reprojection_loss(b_xyz1, b_xyz2, Ks, K_invs, b_Rt_cam,
+                                                     mask=outs['weights'].transpose(1,2))
+        #"""
         
         # F loss
-        loss, dist_map = self.compute_epipolar_loss(outs["F_est"], matches.transpose(1,2), 
-                                                    mask=outs['weights'])
+        #loss, dist_map = self.compute_epipolar_loss(outs["F_est"], matches.transpose(1,2), 
+        #                                            mask=outs['weights'])
         outs['dist_map'] = dist_map
+        outs['pose'] = Rt_cam
         return outs, loss
 
     

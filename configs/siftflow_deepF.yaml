@@ -89,7 +89,7 @@ models :
 #training hyperparameters 
 prepared_base_dir: '/jbk001-data1/datasets/kitti/kitti_vo/vo_dataset_processed'
 num_iterations: 200000
-batch_size: 16 # 32
+batch_size: 2 # 32
 iter_start : 0 #place the iteration that it last stopped at here
 num_workers : 6
 ransac_num_matches : 1000

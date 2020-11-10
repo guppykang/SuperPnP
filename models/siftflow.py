@@ -194,7 +194,7 @@ class SiftFlow(torch.nn.Module):
         pnt_depth_1 = get_depth_from_image(matches_tensor[:,:2], image1_depth_map)
         pnt_depth_2 = get_depth_from_image(matches_tensor[:,:2], image2_depth_map)
         #code.interact(local=locals())
-        outs['matches_depth'] = torch.stack([pnt_depth_1, pnt_depth_2], dim=1)
+        outs['matches_depth'] = torch.cat([pnt_depth_1, pnt_depth_2], dim=1)
         outs['matches_tensor'] = matches_tensor
         
         return outs
@@ -232,7 +232,8 @@ class SiftFlow(torch.nn.Module):
             print(f"matches: {outs_list[-1]['matches'].shape}")
         for i, en in enumerate(outs_select):
             #code.interact(local=locals())
-            outs_select[en] = torch.stack([torch.from_numpy(outs[en]).float() \
+            #outs_select[en] = torch.stack([torch.from_numpy(outs[en]).float() \
+            outs_select[en] = torch.stack([outs[en] \
                                            for outs in outs_list]).to(self.device)
         ## put results back to torch
         return outs_select, loss

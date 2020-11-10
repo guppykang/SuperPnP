@@ -37,10 +37,11 @@ from .siftflow import SiftFlow
 from infer_deepF import deepF_frontend
 
 class SiftFlow_deepF(torch.nn.Module):
-    def __init__(self, model_cfg, general_cfg, device='cpu'):
+    def __init__(self, model_cfg, general_cfg, device='cuda:0'):
         super(SiftFlow_deepF, self).__init__()
+        self.device = device
         self.siftflow = SiftFlow(model_cfg, general_cfg)
-        self.deepF_fe = deepF_frontend(general_cfg["models"]["deepF"])
+        self.deepF_fe = deepF_frontend(general_cfg["models"]["deepF"], device=device)
         self.tb_scalar_by_name = {}
         self.tb_image_by_name = {}
         self.optimizers = {}
@@ -87,7 +88,8 @@ class SiftFlow_deepF(torch.nn.Module):
         outs_stg1, loss_stg1 = self.siftflow(x) # siftflow handles the input
         
         # feed into deepF, get essential matrix [B, 3, 3]
-        outs_stg2, loss_stg2 = self.deepF_fe((outs_stg1['matches_tensor'], K, K_inv, outs_stg1['matches_depth']))
+        b_K, b_K_inv = K[:,0,:,:], K_inv[:,0,:,:] # remove redundant dimension
+        outs_stg2, loss_stg2 = self.deepF_fe((outs_stg1['matches_tensor'], b_K, b_K_inv, outs_stg1['matches_depth']))
         
         # compute loss from essential matrix
         #code.interact(local = locals())
