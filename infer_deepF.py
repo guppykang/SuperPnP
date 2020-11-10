@@ -175,7 +175,7 @@ class deepF_frontend(torch.nn.Module):
             loss = (dist_map * mask.transpose(1,2)).mean([1,2]) / mask.mean([1,2])
         return loss, dist_map
         
-    def compute_reprojection_loss(self, b_xyz1, b_xyz2, Ks, K_invs, Rt_cam, mask=None):
+    def compute_reprojection_loss(self, b_xyz1, b_xyz2, Ks, K_invs, Rt_cam, mask=None, clamp=5):
         """ 
         params:
             b_xyz1, b_xyz2: [b, N, 3]
@@ -187,10 +187,8 @@ class deepF_frontend(torch.nn.Module):
         # normalize b_xyz
         # [xyz] to homogeneous [x,y,z,1] -> [b, N, 4]
         #code.interact(local = locals())
-        b_xyz1_norm = K_invs.bmm(b_xyz1.transpose(1,2))
-        b_xyz1_norm = b_xyz1_norm.transpose(1,2) # [b, N, 3]
-        b_xyz2_norm = K_invs.bmm(b_xyz2.transpose(1,2))
-        b_xyz2_norm = b_xyz2_norm.transpose(1,2)
+        b_xyz1_norm = K_invs.bmm(b_xyz1.transpose(1,2)).transpose(1,2)  # [b, N, 3]
+        b_xyz2_norm = K_invs.bmm(b_xyz2.transpose(1,2)).transpose(1,2)
 
         # Rt_cam to 4x4 matrix (P)
         # loss = | P*X1 - X2 |
@@ -205,14 +203,19 @@ class deepF_frontend(torch.nn.Module):
             return points
         b_homo1 = ConvertPointsToHomogeneous(b_xyz1_norm)
         b_warp1 = Rt_cam.bmm(b_homo1.transpose(1,2)).transpose(1,2) # [b, N, 3]
+        #b_homo2 = ConvertPointsToHomogeneous(b_xyz2_norm)
+        #b_warp2 = Rt_cam.bmm(b_homo2.transpose(1,2)).transpose(1,2) # [b, N, 3]
+        b_proj1 = Ks.bmm(b_warp1.transpose(1,2)).transpose(1,2)
 
         dist_map = torch.abs(b_warp1 - b_xyz2_norm)
+        dist_map = torch.clamp(dist_map, max=clamp) # change that to config
         if mask is None:
             loss = dist_map.mean([1,2])
         else:
             loss = (dist_map * mask).mean([1,2]) / mask.mean([1,2])
+        #code.interact(local = locals())
         
-        return loss, dist_map
+        return loss, {'dist_map': dist_map, 'b_proj1': b_proj1}
         
     def forward(self, x):
         """
@@ -257,14 +260,14 @@ class deepF_frontend(torch.nn.Module):
 
         # reprojection loss
         #code.interact(local = locals())
-        loss, dist_map = self.compute_reprojection_loss(b_xyz1, b_xyz2, Ks, K_invs, b_Rt_cam,
+        loss, obj_by_name = self.compute_reprojection_loss(b_xyz1, b_xyz2, Ks, K_invs, b_Rt_cam,
                                                      mask=outs['weights'].transpose(1,2))
         #"""
         
         # F loss
         #loss, dist_map = self.compute_epipolar_loss(outs["F_est"], matches.transpose(1,2), 
         #                                            mask=outs['weights'])
-        outs['dist_map'] = dist_map
+        outs.update(obj_by_name)
         outs['pose'] = Rt_cam
         return outs, loss
 
