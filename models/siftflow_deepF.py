@@ -87,7 +87,7 @@ class SiftFlow_deepF(torch.nn.Module):
         outs_stg1, loss_stg1 = self.siftflow(x) # siftflow handles the input
         
         # feed into deepF, get essential matrix [B, 3, 3]
-        outs_stg2, loss_stg2 = self.deepF_fe((outs_stg1['matches'], K, K_inv))
+        outs_stg2, loss_stg2 = self.deepF_fe((outs_stg1['matches_tensor'], K, K_inv, outs_stg1['matches_depth']))
         
         # compute loss from essential matrix
         #code.interact(local = locals())

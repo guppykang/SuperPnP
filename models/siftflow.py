@@ -222,7 +222,7 @@ class SiftFlow(torch.nn.Module):
         
         ## batch inference with for loop
         outs_list = []
-        outs_select = {'matches': None}
+        outs_select = {'matches_tensor': None, 'matches_depth': None}
         loss = 0.
         batch_size = K.shape[0]
         for i in range(batch_size):

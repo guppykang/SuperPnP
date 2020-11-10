@@ -171,31 +171,46 @@ class deepF_frontend(torch.nn.Module):
             loss = (dist_map * mask.transpose(1,2)).mean([1,2]) / mask.mean([1,2])
         return loss, dist_map
         
-    def compute_reprojection_loss(b_xyz1, b_xyz2, Ks, K_invs, Rt_cam):
+    def compute_reprojection_loss(b_xyz1, b_xyz2, Ks, K_invs, Rt_cam, mask=None):
         """ 
         params:
             b_xyz1, b_xyz2: [b, N, 3]
             Ks: [b, 3, 3]
             K_invs: [b, 3, 3]
-            Rt_cam: tensor [3,4]
+            Rt_cam: tensor [b, 3, 4]
+            mask: [b,N,1]
         """
         # normalize b_xyz
         # [xyz] to homogeneous [x,y,z,1] -> [b, N, 4]
-        
+        b_xyz1_norm = K_invs.bmm(b_xyz1.transpose(1,2)).transpose(1,2) # [b, N, 3]
+        b_xyz2_norm = K_invs.bmm(b_xyz2.transpose(1,2)).transpose(1,2)
+
         # Rt_cam to 4x4 matrix (P)
         # loss = | P*X1 - X2 |
+        transform = tgm.ConvertPointsToHomogeneous()
+        b_homo1 = transform(b_xyz1_norm) # [b, N, 4]
+        b_warp1 = Rt_cam.bmm(b_homo1.transpose(1,2)).transpose(1,2) # [b, N, 3]
+
+        dist_map = torch.abs(b_warp1 - b_xyz2_norm)
+        if mask is None:
+            loss = dist_map.mean([1,2])
+        else:
+            loss = (dist_map * mask).mean([1,2]) / mask.mean([1,2])
         
-        
-        return loss, {}
+        return loss, dist_map
         
     def forward(self, x):
         """
         params:
             matches: [b, N, 4]
             K: [b, ch, 3, 3]
+            matches_depth: [b, N, 2]
         """
-        (matches, Ks, K_invs) = (x[0], x[1], x[2])
+        (matches, Ks, K_invs, matches_depth) = (x[0], x[1], x[2], x[3])
         b_xy1, b_xy2 = matches[:,:2], matches[:,2:]
+        b_z1, b_z2 = matches_depth[:,:1], matches_depth[:,1:]
+        b_xyz1 = torch.stack([b_xy1, b_z1], dim=2)
+        b_xyz2 = torch.stack([b_xy2, b_z2], dim=2)
         from deepFEPE.train_good_utils import get_E_ests_deepF
         data_batch = {
             "matches_xy_ori": matches,
@@ -218,7 +233,7 @@ class deepF_frontend(torch.nn.Module):
         b_xy2_np = b_xy2.numpy()
         M2_list, error_Rt, Rt_cam = _E_to_M_train(E_ests_layers[-1][idx], Ks_np[idx], b_xy1_np[idx], 
                     b_xy2_np[idx], show_result=True)
-        
+
         # reprojection loss
         loss = self.compute_reprojection_loss(b_xyz1, b_xyz2, Ks, Rt_cam)
         """

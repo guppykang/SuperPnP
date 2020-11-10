@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name:  yyjau-pod
+  name:  yyjau-pod-v2
   namespace: mc-lab
   labels:
     user: yyjau 

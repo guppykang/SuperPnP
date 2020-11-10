@@ -10,6 +10,11 @@ Must add the root of the repo to the python path (sorry) :
 export PYTHONPATH="/home/joshuakang/git/cvlab/SuperPnP:$PYTHONPATH"
 ```
 ### Python Packages
+- conda env
+```
+conda create -p /jbk001-data1/yyjau/conda/py36-superpnp_1015 python=3.6 pip
+conda activate /jbk001-data1/yyjau/conda/py36-superpnp_1015
+```
 Must install exact versioning as given in the reqs.txt (most important being torch and cv2):  
 ```bash 
 pip install -r ./requirements_torch.txt
