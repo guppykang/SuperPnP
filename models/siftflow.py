@@ -6,6 +6,7 @@ import numpy as np
 import code
 import cv2
 from datetime import datetime
+import copy
 
 #torch imports
 import torch
@@ -191,8 +192,8 @@ class SiftFlow(torch.nn.Module):
         
         # get depth for matches
         matches_tensor = torch.from_numpy(matches).float().to(self.device)
-        pnt_depth_1 = get_depth_from_image(matches_tensor[:,:2], image1_depth_map)
-        pnt_depth_2 = get_depth_from_image(matches_tensor[:,:2], image2_depth_map)
+        pnt_depth_1 = get_depth_from_image(copy.deepcopy(matches_tensor[:,:2]), image1_depth_map) # need to detach if necessary
+        pnt_depth_2 = get_depth_from_image(copy.deepcopy(matches_tensor[:,2:]), image2_depth_map)
         #code.interact(local=locals())
         outs['matches_depth'] = torch.cat([pnt_depth_1, pnt_depth_2], dim=1)
         outs['matches_tensor'] = matches_tensor

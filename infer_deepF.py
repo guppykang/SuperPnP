@@ -217,6 +217,18 @@ class deepF_frontend(torch.nn.Module):
         
         return loss, {'dist_map': dist_map, 'b_proj1': b_proj1}
         
+     
+    def normalize_coord(self, xy, K):
+        """ normalize xy coordinates
+        xy: [N, 2]
+        K: [3, 3]
+        """
+        xy_norm = copy.deepcopy(xy)
+        xy_norm[:,0] = (xy[:,0] - K[0,2]) / K[0,0]
+        xy_norm[:,1] = (xy[:,1] - K[1,2]) / K[1,1]
+
+        return xy_norm
+        
     def forward(self, x):
         """
         params:

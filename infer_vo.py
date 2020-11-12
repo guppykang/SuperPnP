@@ -88,6 +88,44 @@ def cv_triangulation(matches, pose):
     return points1, points2
 
 
+def align_to_depth(xy1, xy2, xy1_norm, xy2_norm, pose, depth2,
+                   align_ransac_min_samples=3,
+                   align_ransac_max_trials=100,
+                   align_ransac_stop_prob = 0.99, 
+                   align_ransac_thre=1.0):
+    # Align the translation scale according to triangulation depth
+    # xy1, xy2: [N, 2] pose: [4, 4] depth2: [H, W]
+
+    # Triangulation
+    img_h, img_w = np.shape(depth2)[0], np.shape(depth2)[1]
+    pose_inv = np.linalg.inv(pose)
+
+    #xy1_norm = self.normalize_coord(xy1, self.cam_intrinsics)
+    #xy2_norm = self.normalize_coord(xy2, self.cam_intrinsics)
+
+    points1_tri, points2_tri = cv_triangulation(np.concatenate([xy1_norm, xy2_norm], axis=1), pose_inv)
+
+    depth2_tri = projection(xy2, points2_tri, img_h, img_w)
+    depth2_tri[depth2_tri < 0] = 0
+
+    # Remove negative depths
+    valid_mask = (depth2 > 0) * (depth2_tri > 0)
+    depth_pred_valid = depth2[valid_mask]
+    depth_tri_valid = depth2_tri[valid_mask]
+
+    if np.sum(valid_mask) > 100:
+        scale_reg = linear_model.RANSACRegressor(base_estimator=linear_model.LinearRegression(fit_intercept=False), 
+                        min_samples=align_ransac_min_samples,
+                        max_trials=align_ransac_max_trials, 
+                        stop_probability=align_ransac_stop_prob, 
+                        residual_threshold=align_ransac_thre)
+        scale_reg.fit(depth_tri_valid.reshape(-1, 1), depth_pred_valid.reshape(-1, 1))
+        scale = scale_reg.estimator_.coef_[0, 0]
+    else:
+        scale = -1
+
+    return scale
+
 
 class infer_vo():
     def __init__(self, seq_id, sequences_root_dir, if_pnp=True, if_deepF=False):
@@ -258,29 +296,17 @@ class infer_vo():
         # xy1, xy2: [N, 2] pose: [4, 4] depth2: [H, W]
         
         # Triangulation
-        img_h, img_w = np.shape(depth2)[0], np.shape(depth2)[1]
-        pose_inv = np.linalg.inv(pose)
+        #img_h, img_w = np.shape(depth2)[0], np.shape(depth2)[1]
+        #pose_inv = np.linalg.inv(pose)
 
         xy1_norm = self.normalize_coord(xy1, self.cam_intrinsics)
         xy2_norm = self.normalize_coord(xy2, self.cam_intrinsics)
 
-        points1_tri, points2_tri = cv_triangulation(np.concatenate([xy1_norm, xy2_norm], axis=1), pose_inv)
-        
-        depth2_tri = projection(xy2, points2_tri, img_h, img_w)
-        depth2_tri[depth2_tri < 0] = 0
-        
-        # Remove negative depths
-        valid_mask = (depth2 > 0) * (depth2_tri > 0)
-        depth_pred_valid = depth2[valid_mask]
-        depth_tri_valid = depth2_tri[valid_mask]
-        
-        if np.sum(valid_mask) > 100:
-            scale_reg = linear_model.RANSACRegressor(base_estimator=linear_model.LinearRegression(fit_intercept=False), min_samples=self.align_ransac_min_samples, \
-                        max_trials=self.align_ransac_max_trials, stop_probability=self.align_ransac_stop_prob, residual_threshold=self.align_ransac_thre)
-            scale_reg.fit(depth_tri_valid.reshape(-1, 1), depth_pred_valid.reshape(-1, 1))
-            scale = scale_reg.estimator_.coef_[0, 0]
-        else:
-            scale = -1
+        scale = align_to_depth(xy1, xy2, xy1_norm, xy2_norm, pose, depth2,
+                    align_ransac_min_samples=self.align_ransac_min_samples, 
+                    align_ransac_stop_prob =self.align_ransac_stop_prob,
+                    align_ransac_max_trials=self.align_ransac_max_trials,
+                    align_ransac_thre=self.align_ransac_thre)
 
         return scale
     
