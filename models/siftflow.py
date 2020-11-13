@@ -197,6 +197,8 @@ class SiftFlow(torch.nn.Module):
         #code.interact(local=locals())
         outs['matches_depth'] = torch.cat([pnt_depth_1, pnt_depth_2], dim=1)
         outs['matches_tensor'] = matches_tensor
+        #outs['image1_depth_map'] = image1_depth_map
+        outs['image2_depth_map'] = image2_depth_map.squeeze()
         
         return outs
 
@@ -223,7 +225,7 @@ class SiftFlow(torch.nn.Module):
         
         ## batch inference with for loop
         outs_list = []
-        outs_select = {'matches_tensor': None, 'matches_depth': None}
+        outs_select = {'matches_tensor': None, 'matches_depth': None, 'image2_depth_map': None}
         loss = 0.
         batch_size = K.shape[0]
         for i in range(batch_size):

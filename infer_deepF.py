@@ -24,7 +24,7 @@ from collections import OrderedDict
 from utils.utils import get_configs, vehicle_to_world
 from utils.logging import *
 
-from infer_vo import infer_vo, save_traj
+from infer_vo import infer_vo, save_traj, align_to_depth
 from infer_models import infer_vo_kitti, infer_vo_tum
 
 # deepFEPE
@@ -206,6 +206,7 @@ class deepF_frontend(torch.nn.Module):
         #b_homo2 = ConvertPointsToHomogeneous(b_xyz2_norm)
         #b_warp2 = Rt_cam.bmm(b_homo2.transpose(1,2)).transpose(1,2) # [b, N, 3]
         b_proj1 = Ks.bmm(b_warp1.transpose(1,2)).transpose(1,2)
+        b_proj1 = torch.div(b_proj1[:,:,:2],b_proj1[:,:,2:])
 
         dist_map = torch.abs(b_warp1 - b_xyz2_norm)
         dist_map = torch.clamp(dist_map, max=clamp) # change that to config
@@ -229,14 +230,14 @@ class deepF_frontend(torch.nn.Module):
 
         return xy_norm
         
-    def forward(self, x):
+    def forward(self, x, align_scale=False):
         """
         params:
             matches: [b, N, 4]
             K: [b, ch, 3, 3]
             matches_depth: [b, N, 2]
         """
-        (matches, Ks, K_invs, matches_depth) = (x[0], x[1], x[2], x[3])
+        (matches, Ks, K_invs, matches_depth, b_depth2) = (x[0], x[1], x[2], x[3], x[4])
         batch_size = matches.shape[0]
         b_xy1, b_xy2 = matches[...,:2], matches[...,2:]
         b_z1, b_z2 = matches_depth[...,:1], matches_depth[...,1:]
@@ -266,7 +267,22 @@ class deepF_frontend(torch.nn.Module):
         for idx in range(batch_size):
             M2_list, error_Rt, Rt_cam = _E_to_M_train(E_ests_layers[-1][idx], Ks_np[idx], b_xy1_np[idx], 
                     b_xy2_np[idx], show_result=True)
+            if align_scale:
+                toNumpy = lambda x: x.detach().to('cpu').numpy()
+                xy1 = b_xy1[idx]
+                xy2 = b_xy2[idx]
+                xy1_norm = self.normalize_coord(xy1, Ks[idx])
+                xy2_norm = self.normalize_coord(xy2, Ks[idx])
+                depth2 = b_depth2[idx]
+                Rt_cam_np = toNumpy(Rt_cam)
+                Rt_cam_np = np.concatenate([ Rt_cam_np, np.array([[0,0,0,1]]) ], axis=0)
+                #code.interact(local = locals()) 
+                scale = align_to_depth(toNumpy(xy1), toNumpy(xy2), 
+                                       toNumpy(xy1_norm), toNumpy(xy2_norm), Rt_cam_np, toNumpy(depth2))
+                Rt_cam[:3,3:] = Rt_cam[:3,3:] * scale
+                               
             b_Rt_cam.append(Rt_cam)
+
             #break
         b_Rt_cam = torch.stack(b_Rt_cam, dim=0)
 

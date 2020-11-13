@@ -89,7 +89,9 @@ class SiftFlow_deepF(torch.nn.Module):
         
         # feed into deepF, get essential matrix [B, 3, 3]
         b_K, b_K_inv = K[:,0,:,:], K_inv[:,0,:,:] # remove redundant dimension
-        outs_stg2, loss_stg2 = self.deepF_fe((outs_stg1['matches_tensor'], b_K, b_K_inv, outs_stg1['matches_depth']))
+        outs_stg2, loss_stg2 = self.deepF_fe((outs_stg1['matches_tensor'], b_K, b_K_inv, 
+                                              outs_stg1['matches_depth'], outs_stg1['image2_depth_map'],
+                                              ), align_scale=True)
         
         # compute loss from essential matrix
         #code.interact(local = locals())
