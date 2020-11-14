@@ -206,7 +206,7 @@ class deepF_frontend(torch.nn.Module):
         #b_homo2 = ConvertPointsToHomogeneous(b_xyz2_norm)
         #b_warp2 = Rt_cam.bmm(b_homo2.transpose(1,2)).transpose(1,2) # [b, N, 3]
         b_proj1 = Ks.bmm(b_warp1.transpose(1,2)).transpose(1,2)
-        b_proj1 = torch.div(b_proj1[:,:,:2],b_proj1[:,:,2:])
+        #b_proj1 = torch.div(b_proj1[:,:,:2],b_proj1[:,:,2:])
 
         dist_map = torch.abs(b_warp1 - b_xyz2_norm)
         dist_map = torch.clamp(dist_map, max=clamp) # change that to config
