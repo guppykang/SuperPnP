@@ -175,7 +175,7 @@ class deepF_frontend(torch.nn.Module):
             loss = (dist_map * mask.transpose(1,2)).mean([1,2]) / mask.mean([1,2])
         return loss, dist_map
         
-    def compute_reprojection_loss(self, b_xyz1, b_xyz2, Ks, K_invs, Rt_cam, mask=None, clamp=5):
+    def compute_reprojection_loss(self, b_xyz1, b_xyz2, Ks, K_invs, Rt_cam, mask=None, clamp=1):
         """ 
         params:
             b_xyz1, b_xyz2: [b, N, 3]
@@ -271,8 +271,8 @@ class deepF_frontend(torch.nn.Module):
                 toNumpy = lambda x: x.detach().to('cpu').numpy()
                 xy1 = b_xy1[idx]
                 xy2 = b_xy2[idx]
-                xy1_norm = self.normalize_coord(xy1, Ks[idx])
-                xy2_norm = self.normalize_coord(xy2, Ks[idx])
+                xy1_norm = self.normalize_coord(copy.deepcopy(xy1), Ks[idx])
+                xy2_norm = self.normalize_coord(copy.deepcopy(xy2), Ks[idx])
                 depth2 = b_depth2[idx]
                 Rt_cam_np = toNumpy(Rt_cam)
                 Rt_cam_np = np.concatenate([ Rt_cam_np, np.array([[0,0,0,1]]) ], axis=0)

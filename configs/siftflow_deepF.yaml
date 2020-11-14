@@ -81,10 +81,10 @@ models :
       train: false
       reset_iter: true
       ### trained results
-      #pretrained: 'pretrained/deepF/baselineTrain_deepF_kitti_fLoss_v1/checkpoints/deepFNet_30000_checkpoint.pth.tar'
+      pretrained: 'pretrained/deepF/baselineTrain_deepF_kitti_fLoss_v1/checkpoints/deepFNet_30000_checkpoint.pth.tar'
       #pretrained: 'logs/train_b16_fixData_v2/checkpoints/deepF_20.pth.tar'
       #pretrained: 'logs/train_b16_fixData_v4_pretrainedDeepF/checkpoints/deepF_100.pth.tar'
-      pretrained: 'logs/train_b16_fixData_v5_reprojLoss/checkpoints/deepF_700.pth.tar'
+      #pretrained: 'logs/train_b16_fixData_v5_reprojLoss/checkpoints/deepF_700.pth.tar'
 
     
 #training hyperparameters 
