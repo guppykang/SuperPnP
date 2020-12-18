@@ -26,8 +26,8 @@ models :
     pretrained : '/jbk001-data1/git/SuperPnP/TrianFlow/models/pretrained/kitti_odo.pth'
 
   scsfm:
-    pretrained: '/jbk001-data1/yyjau/Documents/scsfm_models/d3vo_scsfm_setting_tum_b8_seq3/200k/dispnet_checkpoint.pth.tar'
-    net: 'DispResNet'
+    pretrained: '/jbk001-data1/yyjau/Documents/scsfm_models/d3vo_scale_test_1214_adapt_tum/160k/dispnet_checkpoint.pth.tar'
+    net: 'DispResNet_scale'
 
   superpoint : 
     data:
