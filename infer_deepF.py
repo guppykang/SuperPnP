@@ -289,7 +289,8 @@ class deepF_frontend(torch.nn.Module):
         # reprojection loss
         #code.interact(local = locals())
         loss, obj_by_name = self.compute_reprojection_loss(b_xyz1, b_xyz2, Ks, K_invs, b_Rt_cam,
-                                                     mask=outs['weights'].transpose(1,2))
+                                                     mask=None)
+                                                     #mask=outs['weights'].transpose(1,2))
         #"""
         
         # F loss
