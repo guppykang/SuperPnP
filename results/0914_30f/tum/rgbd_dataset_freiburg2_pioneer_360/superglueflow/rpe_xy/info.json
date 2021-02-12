@@ -1,1 +1,0 @@
-{"title": "RPE w.r.t. translation part (m)\nfor delta = 30 (frames) using all pairs\n(with Sim(3) Umeyama alignment)", "ref_name": "/jbk001-data1/datasets/tum/rgbd_dataset_freiburg2_pioneer_360/groundtruth.txt", "est_name": "./results//0914_30f/tum/rgbd_dataset_freiburg2_pioneer_360/superglueflow/preds.tum", "label": "RPE (m)"}

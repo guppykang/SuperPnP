@@ -1,0 +1,43 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name:  download-tartanair # deepsfm-pod
+  namespace: mc-lab
+  labels:
+    user: jbk001 
+spec:
+  ttlSecondsAfterFinished: 1196400 # Wait one day to delete completed jobs
+  template:
+    spec:
+      containers:
+      - name: gpu-container
+        image: gitlab-registry.nautilus.optiputer.net/prp/jupyterlab # pytorch/pytorch:1.0.1-cuda10.0-cudnn7-runtime
+        command:
+        - "sh"
+        - "-c"
+        - "/jbk001-data1/git/SuperPnP/nautilus-files/scripts/download_tartanair.sh"
+        resources:
+          requests:
+            cpu: "8"
+            memory: "8Gi"
+            nvidia.com/gpu: 1
+            ephemeral-storage: 100Gi
+          limits:
+            cpu: "8"
+            memory: "8Gi"
+            nvidia.com/gpu: 1
+            ephemeral-storage: 100Gi
+        volumeMounts:
+        - mountPath: /jbk001-data1
+          name: jbk001-data1
+        - mountPath: /jbk001-data1-large
+          name: jbk001-data1-large
+      volumes:
+      - name: jbk001-data1
+        persistentVolumeClaim:
+          claimName: jbk001-data1
+      - name: jbk001-data1-large
+        persistentVolumeClaim:
+          claimName: jbk001-data1-large
+      restartPolicy: Never
+  backoffLimit: 5

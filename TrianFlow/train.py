@@ -3,12 +3,11 @@
 import os, sys
 sys.path.append("/jbk001-data1/git/SuperPnP")
 import yaml
-from TrianFlow.core.dataset import KITTI_RAW, KITTI_Prepared, NYU_Prepare, NYU_v2, KITTI_Odo
+from TrianFlow.core.dataset import KITTI_RAW, KITTI_Prepared, KITTI_Odo
 from TrianFlow.core.networks import get_model
 from TrianFlow.core.config import generate_loss_weights_dict
 from TrianFlow.core.visualize import Visualizer
 from TrianFlow.core.evaluation import load_gt_flow_kitti, load_gt_mask
-from TrianFlow.test import test_kitti_2012, test_kitti_2015, test_eigen_depth, test_nyu, load_nyu_test_data
 
 from utils.TUM_prepare import TUM_Prepare
 from utils.TUM_dataset import TUM_Dataset
@@ -74,17 +73,17 @@ def train(cfg):
     elif cfg.flow_pretrained_model:
         data = torch.load(cfg.flow_pretrained_model)['model_state_dict']
         renamed_dict = OrderedDict()
-        for k, v in data.items():
-            if cfg.multi_gpu:
-                name = 'module.model_flow.' + k
-            elif cfg.mode == 'flowposenet':
-                name = 'model_flow.' + k
-            else:
-                name = 'model_pose.model_flow.' + k
-            renamed_dict[name] = v
+#         for k, v in data.items():
+#             if cfg.multi_gpu:
+#                 name = 'module.model_flow.' + k
+#             elif cfg.mode == 'flowposenet':
+#                 name = 'model_flow.' + k
+#             else:
+#                 name = 'model_pose.model_flow.' + k
+#             renamed_dict[name] = v
         missing_keys, unexp_keys = model.load_state_dict(renamed_dict, strict=False)
-        print(f'Missing keys : {missing_keys}')
-        print(f'Unseen Keys : {unexp_keys}')
+        print(f'Flow Missing keys : {missing_keys}')
+        print(f'Flow Unexpected Keys : {unexp_keys}')
         print('Load Flow Pretrained Model from ' + cfg.flow_pretrained_model)
     if cfg.depth_pretrained_model and not cfg.resume:
         data = torch.load(cfg.depth_pretrained_model)['model_state_dict']
@@ -108,7 +107,7 @@ def train(cfg):
     data_dir = cfg.prepared_base_dir
     if not os.path.exists(os.path.join(data_dir, 'train.txt')):
         if cfg.dataset == 'kitti_depth':
-            kitti_raw_dataset = KITTI_RAW(cfg.raw_base_dir, cfg.static_frames_txt, cfg.test_scenes_txt)
+            kitti_raw_dataset = KITTI_RAW(cfg.raw_base_dir)
             kitti_raw_dataset.prepare_data_mp(data_dir, stride=cfg.stride)
         elif cfg.dataset == 'kitti_odo':
             kitti_raw_dataset = KITTI_Odo(cfg.raw_base_dir, cfg.vo_gts)
@@ -125,8 +124,8 @@ def train(cfg):
     if cfg.dataset == 'kitti_depth':
         dataset = KITTI_Prepared(data_dir, num_scales=cfg.num_scales, img_hw=cfg.img_hw, num_iterations=(cfg.num_iterations - cfg.iter_start) * cfg.batch_size)
     elif cfg.dataset == 'kitti_odo':
-        from utils.KITTI_dataset import KITTI_Dataset as KITTI_Prepared
-        dataset = KITTI_Prepared(data_dir, num_scales=cfg.num_scales, img_hw=cfg.img_hw, num_iterations=(cfg.num_iterations - cfg.iter_start) * cfg.batch_size, stride=cfg.stride)
+        from utils.KITTI_dataset import KITTI_Dataset as KITTI_odo_Prepared
+        dataset = KITTI_odo_Prepared(data_dir, num_scales=cfg.num_scales, img_hw=cfg.img_hw, num_iterations=(cfg.num_iterations - cfg.iter_start) * cfg.batch_size, stride=cfg.stride)
     elif cfg.dataset == 'nyuv2':
         dataset = NYU_v2(data_dir, num_scales=cfg.num_scales, img_hw=cfg.img_hw, num_iterations=(cfg.num_iterations - cfg.iter_start) * cfg.batch_size)
     elif cfg.dataset == 'tum':
@@ -157,8 +156,14 @@ def train(cfg):
         iter_ = iter_ + cfg.iter_start
         
         optimizer.zero_grad()
-        trianflow_inputs = (inputs[0], inputs[2], inputs[3])
-        loss_pack = model(trianflow_inputs)
+
+        if cfg.finetune_depth:#we're donig odo training
+            inputs = (inputs[0], inputs[2], inputs[3])
+        else : #using raw kitti data
+            inputs = [k.cuda() for k in inputs]
+
+            
+        loss_pack = model(inputs)
         if iter_ % cfg.log_interval == 0:
             visualizer.print_loss(loss_pack, iter_=iter_)
             
