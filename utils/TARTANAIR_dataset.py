@@ -15,8 +15,10 @@ import torch.utils.data
 import pdb
 
 class TARTANAIR_Dataset(torch.utils.data.Dataset):
-    def __init__(self, data_dir, num_scales=3, img_hw=(256, 832), num_iterations=None, stride=1):
+    def __init__(self, data_dir, mode='scsfm', num_scales=3, img_hw=(256, 832), num_iterations=None, stride=1):
         super(TARTANAIR_Dataset, self).__init__()
+        
+        self.mode = mode
         self.data_dir = f"{data_dir}/image_left" #full path
 
         self.num_scales = num_scales
@@ -73,14 +75,11 @@ class TARTANAIR_Dataset(torch.utils.data.Dataset):
         img = img / 255.0
         return img
 
-    def read_cam_intrinsic(self, fname):
-        with open(fname, 'r') as f:
-            lines = f.readlines()
-        data = lines[-1].strip('\n').split(' ')[1:]
-        data = [float(k) for k in data]
-        data = np.array(data).reshape(3,4)
-        cam_intrinsics = data[:3,:3]
-        return cam_intrinsics
+    def get_cam_intrinsic(self):
+        return np.array([[320.0, 0, 320.0],
+                        [0, 320.0, 240.0],
+                        [0, 0, 1]])
+
 
     def rescale_intrinsics(self, K, img_hw_orig, img_hw_new):
         K[0,:] = K[0,:] * img_hw_new[0] / img_hw_orig[0]
@@ -137,7 +136,13 @@ class TARTANAIR_Dataset(torch.utils.data.Dataset):
         superpoint_input = self.preprocess_img(img_gray, self.img_hw) # (img_h * 2, img_w)
         superpoint_input = superpoint_input[np.newaxis, ...]
         
-        return torch.from_numpy(flownet_input).float().cuda(), torch.from_numpy(superpoint_input).float().cuda()
+        #intrinsics
+        k = self.get_cam_intrinsic()
+
+        if self.mode == 'scsfm':
+            return torch.from_numpy(img_left).float().cuda(), torch.from_numpy(img_right).float().cuda(), torch.from_numpy(k).float().cuda(), torch.from_numpy(np.linalg.inv(k)).float().cuda()
+
+        return torch.from_numpy(flownet_input).float().cuda(), torch.from_numpy(superpoint_input).float().cuda(), torch.from_numpy(k).float().cuda(), torch.from_numpy(np.linalg.inv(k)).float().cuda()
 
 if __name__ == '__main__':
     pass
