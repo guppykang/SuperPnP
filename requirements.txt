@@ -37,4 +37,4 @@ setuptools
 wheel
 pebble
 path
-
+termcolor

@@ -21,7 +21,7 @@ from superpoint.models.SuperPointNet_gauss2 import get_matches as get_descriptor
 from superpoint.utils.utils import flattenDetection
 from superpoint.models.classical_detectors_descriptors import SIFT_det as classical_detector_descriptor
 
-from deepF.dsac_tools.utils_opencv import KNN_match
+from deepFEPE.dsac_tools.utils_opencv import KNN_match
 
 #TrianFlow imports
 from TrianFlow.core.networks.model_depth_pose import Model_depth_pose 
@@ -52,7 +52,7 @@ class SiftFlow_scsfm(SiftFlow):
         # scsfm
         self.disp_net = getattr(models, general_cfg["models"]["scsfm"]["net"])().to(self.device)
         self.load_pretrained_net(general_cfg["models"]["scsfm"], self.disp_net)
-        # print(f"dispnet: {self.disp_net}")
+        print(f'dispnet: {general_cfg["models"]["scsfm"]["pretrained"]}')
 
         #SIFT
 
