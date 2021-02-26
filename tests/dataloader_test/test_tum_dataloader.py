@@ -1,7 +1,8 @@
 #!/usr/bin/env python 
+import sys
+sys.path.append('/jbk001-data1/git/SuperPnP/')
 
 #models
-from models.attention import decoder, encoder, AttentionMatching
 from models.superglueflow import SuperGlueFlow
 
 import code

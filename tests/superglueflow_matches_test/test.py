@@ -1,10 +1,13 @@
 #!/usr/bin/env python 
+import sys
+sys.path.append('/jbk001-data1/git/SuperPnP/')
+
 
 from models.superglueflow import SuperGlueFlow
+import os
 
 import argparse
 import cv2
-import os
 import yaml
 import code
 from pathlib import Path
@@ -12,6 +15,8 @@ import random
 import numpy as np
 import torch
 import pickle
+
+
 
 #utils stuff
 from utils.utils import load_image_pair, load_camera_intrinsics, pObject, get_configs, get_random_sequence
@@ -38,21 +43,21 @@ if __name__ == '__main__':
     model.cuda()
     # model.eval()
 
+    for i in range(10):
+        sequence = get_random_sequence()
 
-    sequence = get_random_sequence()
+        #load a pair of images
+        vo_sequences_root = Path('/jbk001-data1/datasets/kitti/kitti_vo/vo_dataset/sequences')
+        images = load_image_pair(vo_sequences_root, sequence)
 
-    #load a pair of images
-    vo_sequences_root = Path('/jbk001-data1/datasets/kitti/kitti_vo/vo_dataset/sequences')
-    images = load_image_pair(vo_sequences_root, sequence)
-    
-    #load camera intrinsics
-    K = load_camera_intrinsics(vo_sequences_root, sequence, cfg['raw_hw'], cfg['img_hw'])
-    K_inv = np.linalg.inv(K)
-    #TODO : assert that the K has the right dims that we expect to have 3x3
+        #load camera intrinsics
+        K = load_camera_intrinsics(vo_sequences_root, sequence, cfg['raw_hw'], cfg['img_hw'])
+        K_inv = np.linalg.inv(K)
+        #TODO : assert that the K has the right dims that we expect to have 3x3
 
-    #inference
-    outs = model.inference(images[0], images[1], K, K_inv, cfg['img_hw'])
-    torch.save(outs, 'inference_outs.pth')
+        #inference
+        outs = model.inference(images[0], images[1], K, K_inv, cfg['img_hw'])
+        torch.save(outs, f"inference_outs_{i}.pth")
     
     
     
